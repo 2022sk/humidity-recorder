@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>🌡 체감온도 기록관리 대장</title>
+<title>체감온도 기록관리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Square:wght@400;700;800&display=swap">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -14,46 +14,39 @@
 <style>
   [x-cloak]{display:none!important}
   body{font-family:'Nanum Square','Apple SD Gothic Neo','맑은 고딕',sans-serif;background:#f5f5f7}
-  .hero{background:linear-gradient(135deg,#1c1c1e 0%,#2c5282 100%)}
-  .tab-btn{transition:all .2s;border-radius:10px;padding:8px 18px;font-weight:600;font-size:.85rem;cursor:pointer}
-  .tab-btn.active{background:white;box-shadow:0 1px 6px rgba(0,0,0,.12);color:#0071e3}
-  .tab-btn:not(.active){color:#86868b;background:transparent}
-  .tab-btn:not(.active):hover{background:rgba(255,255,255,.5)}
-  .card{background:white;border-radius:14px;padding:18px 20px;box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8e8ed}
-  .kpi-card{background:white;border:1px solid #e8e8ed;border-radius:13px;padding:14px;text-align:center}
-  .kpi-val{font-size:1.5rem;font-weight:700;color:#1c1c1e}
-  .kpi-lbl{font-size:.7rem;color:#86868b;margin-top:2px}
-  .btn-primary{background:#0071e3;color:white;border-radius:10px;padding:9px 18px;font-weight:600;font-size:.87rem;cursor:pointer;transition:background .15s}
+  .card{background:white;border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8e8ed}
+  .kpi-card{background:white;border:1px solid #e8e8ed;border-radius:13px;padding:12px;text-align:center}
+  .kpi-val{font-size:1.4rem;font-weight:800;color:#1c1c1e}
+  .kpi-lbl{font-size:.68rem;color:#86868b;margin-top:2px}
+  .btn-primary{background:#0071e3;color:white;border-radius:10px;padding:9px 16px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none}
   .btn-primary:hover{background:#005bbf}
   .btn-primary:disabled{background:#b0b0b5;cursor:not-allowed}
-  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 16px;font-weight:600;font-size:.87rem;cursor:pointer;transition:background .15s}
+  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none}
   .btn-secondary:hover{background:#e5e5ea}
-  .btn-danger{background:#ff3b30;color:white;border-radius:10px;padding:6px 14px;font-weight:600;font-size:.82rem;cursor:pointer}
-  input,select,textarea{border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;font-size:.87rem;width:100%;outline:none;transition:border-color .15s}
+  input,select,textarea{border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;font-size:.85rem;width:100%;outline:none;transition:border-color .15s;font-family:inherit}
   input:focus,select:focus,textarea:focus{border-color:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
-  .drop-zone{border:2px dashed #c7c7cc;border-radius:13px;padding:32px 16px;text-align:center;background:#fafafa;cursor:pointer;transition:all .2s}
+  .tab-btn{transition:all .2s;border-radius:9px;padding:8px 10px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent}
+  .tab-btn.active{background:white;box-shadow:0 1px 6px rgba(0,0,0,.12);color:#0071e3}
+  .tab-btn:not(.active){color:#86868b}
+  .tab-btn:not(.active):hover{background:rgba(255,255,255,.6)}
+  .drop-zone{border:2px dashed #c7c7cc;border-radius:13px;padding:28px 16px;text-align:center;background:#fafafa;cursor:pointer;transition:all .2s}
   .drop-zone:hover,.drop-zone.dragover{border-color:#0071e3;background:#f0f5ff}
-  .badge-위험{background:#ff3b30;color:white;padding:2px 8px;border-radius:5px;font-size:.75rem;font-weight:700}
-  .badge-경고{background:#ff9500;color:white;padding:2px 8px;border-radius:5px;font-size:.75rem;font-weight:700}
-  .badge-주의{background:#ffcc00;color:#1c1c1e;padding:2px 8px;border-radius:5px;font-size:.75rem;font-weight:700}
-  .badge-관심{background:#34c759;color:white;padding:2px 8px;border-radius:5px;font-size:.75rem;font-weight:700}
-  .week-tag{display:inline-block;background:#0071e3;color:white;border-radius:8px;padding:3px 12px;font-size:.82rem;font-weight:600}
-  .grid-table{width:100%;border-collapse:collapse;font-size:.82rem}
-  .grid-table th{background:#0071e3;color:white;padding:7px 8px;text-align:center;font-weight:600;white-space:nowrap}
-  .grid-table td{padding:4px 6px;border:1px solid #e8e8ed;vertical-align:middle}
+  .badge-위험{background:#ff3b30;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .badge-경고{background:#ff9500;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .badge-주의{background:#ffcc00;color:#1c1c1e;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .badge-관심{background:#34c759;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .week-tag{display:inline-block;background:#0071e3;color:white;border-radius:8px;padding:3px 12px;font-size:.8rem;font-weight:700}
+  .grid-table{width:100%;border-collapse:collapse;font-size:.8rem}
+  .grid-table th{background:#0071e3;color:white;padding:7px 6px;text-align:center;font-weight:700;white-space:nowrap}
+  .grid-table td{padding:4px 5px;border:1px solid #e8e8ed;vertical-align:middle}
   .grid-table tr:nth-child(even){background:#f9f9fb}
   .grid-table tr:hover{background:#f0f5ff}
-  .grid-table input,.grid-table select{border:none;background:transparent;padding:4px 6px;font-size:.82rem;width:100%;border-radius:4px}
+  .grid-table input,.grid-table select{border:none;background:transparent;padding:4px 5px;font-size:.8rem;width:100%;border-radius:4px;font-family:inherit}
   .grid-table input:focus,.grid-table select:focus{background:white;border:1px solid #0071e3;box-shadow:0 0 0 2px rgba(0,113,227,.1)}
-  .sidebar{width:260px;min-width:260px;background:white;border-right:1px solid #e8e8ed;height:100vh;overflow-y:auto;padding:16px;position:sticky;top:0}
-  @media(max-width:768px){
-    .sidebar{width:100%;min-width:unset;height:auto;position:static;border-right:none;border-bottom:1px solid #e8e8ed}
-    .layout{flex-direction:column}
-  }
-  .photo-thumb{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e8e8ed}
+  .photo-thumb{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e8e8ed}
   .progress-bar{height:4px;background:#e8e8ed;border-radius:2px;overflow:hidden}
   .progress-fill{height:100%;background:#0071e3;transition:width .3s}
-  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar{width:5px;height:5px}
   ::-webkit-scrollbar-track{background:#f1f1f1}
   ::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:3px}
 </style>
@@ -61,73 +54,370 @@
 
 <body x-data="app()" x-init="init()" x-cloak>
 
-<!-- ── 레이아웃 ──────────────────────────────────────────────────────────── -->
-<div class="flex layout min-h-screen">
-
-  <!-- 사이드바 -->
-  <aside class="sidebar">
-    <div class="text-xs font-bold text-blue-600 mb-3 flex items-center gap-1">
-      <span>🌡</span> 기본 정보
+<!-- ── 고정 상단 헤더 ──────────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
+  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+    <h1 class="text-base font-extrabold text-gray-900 tracking-tight">🌡 체감온도 기록관리</h1>
+    <div class="flex items-center gap-2">
+      <template x-if="meta.siteCode">
+        <span class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold border border-blue-100"
+              x-text="meta.siteCode"></span>
+      </template>
+      <template x-if="meta.location">
+        <span class="text-xs text-gray-400 hidden sm:inline truncate max-w-24" x-text="meta.location"></span>
+      </template>
+      <span class="text-xs font-semibold"
+            :class="apiOk ? 'text-green-600' : 'text-red-500'"
+            :title="apiOk ? 'Gemini AI 연결됨' : 'API 키 미설정'"
+            x-text="apiOk ? '✅ AI' : '❌ AI'"></span>
     </div>
+  </div>
+</header>
 
-    <!-- 현장코드 -->
-    <div class="mb-2">
-      <label class="text-xs text-gray-500 font-semibold">현장코드</label>
-      <input type="text" x-model="meta.siteCode" placeholder="예: J881"
-             @change="onSiteCodeChange" list="site-code-list" class="mt-1">
-      <datalist id="site-code-list">
-        <template x-for="s in ac.siteCodes" :key="s.code">
-          <option :value="s.code" :label="s.name"></option>
-        </template>
-      </datalist>
-    </div>
+<div class="max-w-3xl mx-auto p-3 space-y-3 pb-10">
 
-    <!-- 현장명 -->
-    <div class="mb-2">
-      <label class="text-xs text-gray-500 font-semibold">현장명</label>
-      <input type="text" x-model="meta.siteName" placeholder="현장명" list="site-name-list" class="mt-1">
-      <datalist id="site-name-list">
-        <template x-for="s in ac.siteCodes" :key="s.name">
-          <option :value="s.name"></option>
-        </template>
-      </datalist>
-    </div>
-
-    <!-- 업체명 -->
-    <div class="mb-2">
-      <label class="text-xs text-gray-500 font-semibold">업체명</label>
-      <input type="text" x-model="meta.company" placeholder="업체명" list="company-list" class="mt-1">
-      <datalist id="company-list">
-        <template x-for="c in ac.companies" :key="c">
-          <option :value="c"></option>
-        </template>
-      </datalist>
-    </div>
-
-    <!-- 온습도계 위치 -->
-    <div class="mb-2">
-      <label class="text-xs text-gray-500 font-semibold">온습도계 위치</label>
-      <input type="text" x-model="meta.location" placeholder="예: GATE 2" list="loc-list" class="mt-1">
-      <datalist id="loc-list">
-        <template x-for="l in ac.locations" :key="l">
-          <option :value="l"></option>
-        </template>
-      </datalist>
-    </div>
-
-    <!-- 측정자 -->
-    <div class="mb-3">
-      <label class="text-xs text-gray-500 font-semibold">측정자</label>
-      <input type="text" x-model="meta.measurer" placeholder="홍길동" @change="saveMeasurer" class="mt-1">
-    </div>
-
-    <hr class="border-gray-100 mb-3">
-
-    <!-- 측정 기간 -->
-    <div class="text-xs font-bold text-blue-600 mb-2">📅 측정 기간</div>
+  <!-- ══ 현장 기본 정보 ═══════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="text-xs font-extrabold text-blue-600 mb-3">🏗 현장 기본 정보</div>
     <div class="grid grid-cols-2 gap-2 mb-2">
       <div>
-        <label class="text-xs text-gray-500">연도</label>
+        <label class="text-xs text-gray-500 font-bold">현장코드</label>
+        <input type="text" x-model="meta.siteCode" placeholder="예: J881"
+               @change="onSiteCodeChange" list="site-code-list" class="mt-1">
+        <datalist id="site-code-list">
+          <template x-for="s in ac.siteCodes" :key="s.code">
+            <option :value="s.code" :label="s.name"></option>
+          </template>
+        </datalist>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 font-bold">현장명</label>
+        <input type="text" x-model="meta.siteName" placeholder="현장명" list="site-name-list" class="mt-1">
+        <datalist id="site-name-list">
+          <template x-for="s in ac.siteCodes" :key="s.name">
+            <option :value="s.name"></option>
+          </template>
+        </datalist>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 font-bold">업체명</label>
+        <input type="text" x-model="meta.company" placeholder="업체명" list="company-list" class="mt-1">
+        <datalist id="company-list">
+          <template x-for="c in ac.companies" :key="c">
+            <option :value="c"></option>
+          </template>
+        </datalist>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 font-bold">온습도계 위치</label>
+        <input type="text" x-model="meta.location" placeholder="예: GATE 2" list="loc-list" class="mt-1">
+        <datalist id="loc-list">
+          <template x-for="l in ac.locations" :key="l">
+            <option :value="l"></option>
+          </template>
+        </datalist>
+      </div>
+    </div>
+    <div>
+      <label class="text-xs text-gray-500 font-bold">측정자</label>
+      <input type="text" x-model="meta.measurer" placeholder="홍길동" @change="saveMeasurer" class="mt-1">
+    </div>
+  </div>
+
+  <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
+  <div class="card">
+    <!-- 탭 버튼: 글자 잘리지 않도록 white-space:nowrap 적용 -->
+    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
+      <button class="tab-btn flex-1" :class="{active:activeTab==='camera'}"  @click="activeTab='camera'">📸 촬영</button>
+      <button class="tab-btn flex-1" :class="{active:activeTab==='upload'}"  @click="activeTab='upload'">📁 업로드</button>
+      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}" @click="activeTab='history'">📋 기간 조회</button>
+    </div>
+
+    <!-- ── 카메라 탭 ── -->
+    <div x-show="activeTab==='camera'">
+      <p class="text-xs text-gray-400 mb-3">측정 구분(오전1~오후2)은 AI 시간 인식 결과로 자동 판정됩니다.</p>
+      <div class="mb-3">
+        <label class="text-xs text-gray-500 font-bold">촬영 날짜</label>
+        <input type="date" x-model="cam.date" class="mt-1">
+      </div>
+      <label class="drop-zone block cursor-pointer" for="cam-input">
+        <div class="text-3xl mb-2">📷</div>
+        <div class="font-bold text-gray-700 text-sm">여기를 탭하여 카메라 열기</div>
+        <div class="text-xs text-gray-400 mt-1">모바일: 후면 카메라 / PC: 웹캠 또는 파일 선택</div>
+      </label>
+      <input id="cam-input" type="file" accept="image/*" capture="environment"
+             class="hidden" @change="onCameraCapture">
+      <template x-if="cam.preview">
+        <div class="mt-3 flex gap-3 items-start bg-blue-50 rounded-xl p-3">
+          <img :src="cam.preview" class="w-28 h-28 object-cover rounded-xl border-2 border-blue-200 flex-shrink-0">
+          <div class="flex-1">
+            <div class="text-sm font-bold text-gray-800 mb-1">촬영된 사진</div>
+            <div class="text-xs text-gray-500 space-y-1">
+              <div>📅 <span x-text="cam.date"></span></div>
+              <div>👤 <span x-text="meta.measurer||'(측정자 미입력)'"></span></div>
+              <div class="text-blue-600 font-semibold">🕐 구분: AI 추출 후 자동 판정</div>
+            </div>
+            <button @click="addCameraPhoto" class="btn-primary mt-3 text-sm w-full">
+              ✅ 사진 추가
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── 업로드 탭 ── -->
+    <div x-show="activeTab==='upload'">
+      <p class="text-xs text-gray-400 mb-3">
+        파일명에 날짜가 포함되면 자동 인식됩니다.
+        <code class="bg-gray-100 px-1 rounded">20260506 (1).jpg</code> → 5/6일.
+        측정 구분은 AI 시간 인식으로 자동 판정.
+      </p>
+      <label class="drop-zone block cursor-pointer"
+             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+             @dragleave="$event.currentTarget.classList.remove('dragover')"
+             @drop.prevent="onDrop($event)">
+        <input type="file" accept="image/*" multiple class="hidden"
+               @change="onFileSelect($event.target.files)">
+        <div class="text-3xl mb-2">📁</div>
+        <div class="font-bold text-gray-700 text-sm">클릭하거나 파일을 여기에 드래그</div>
+        <div class="text-xs text-gray-400 mt-1">여러 장 동시 선택 가능 (JPG, PNG, BMP)</div>
+      </label>
+    </div>
+
+    <!-- ── 기간 조회·추가 탭 ── -->
+    <div x-show="activeTab==='history'">
+      <p class="text-xs text-gray-400 mb-3">저장된 이전 기간의 기록을 불러오거나 사진을 추가 등록합니다.</p>
+      <div class="flex gap-2 mb-3">
+        <select x-model="hist.selectedWeek" class="flex-1" @change="loadHistoryWeekInfo">
+          <option value="">-- 기간 선택 --</option>
+          <template x-for="w in hist.availableWeeks" :key="w">
+            <option :value="w" x-text="formatMonday(w)"></option>
+          </template>
+        </select>
+        <button @click="loadHistoryWeek" class="btn-primary whitespace-nowrap">📂 불러오기</button>
+      </div>
+      <template x-if="hist.summary">
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="kpi-card"><div class="kpi-val text-blue-600" x-text="hist.summary.count+'건'"></div><div class="kpi-lbl">기록 건수</div></div>
+          <div class="kpi-card"><div class="kpi-val" x-text="hist.summary.maxTemp"></div><div class="kpi-lbl">최고 온도</div></div>
+          <div class="kpi-card"><div class="kpi-val text-orange-500" x-text="hist.summary.maxFeels"></div><div class="kpi-lbl">최고 체감온도</div></div>
+        </div>
+      </template>
+      <template x-if="hist.selectedWeek">
+        <div>
+          <div class="text-xs font-bold text-gray-600 mb-2">➕ 이 기간에 사진 추가</div>
+          <label class="drop-zone block cursor-pointer">
+            <input type="file" accept="image/*" multiple class="hidden"
+                   @change="onHistFileSelect($event.target.files)">
+            <div class="text-2xl mb-1">📎</div>
+            <div class="text-sm text-gray-600">추가 사진 선택</div>
+          </label>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ══ 업로드 대기 사진 목록 ══════════════════════════════════════════════ -->
+  <template x-if="queue.length > 0">
+    <div class="card">
+      <div class="flex items-center justify-between mb-3">
+        <div class="font-bold text-gray-800 text-sm">
+          📸 업로드된 사진
+          <span class="text-xs text-gray-400 ml-1 font-normal" x-text="`(${queue.length}장)`"></span>
+        </div>
+        <div class="flex gap-2">
+          <button @click="extractAll" class="btn-primary text-xs py-2 px-3"
+                  :disabled="isExtracting || !apiOk"
+                  x-text="isExtracting ? '추출 중...' : '🤖 AI 자동 추출'">
+          </button>
+          <button @click="clearQueue" class="btn-secondary text-xs py-2 px-3">🗑 초기화</button>
+        </div>
+      </div>
+      <template x-if="isExtracting">
+        <div class="mb-3">
+          <div class="progress-bar mb-1">
+            <div class="progress-fill" :style="`width:${extractProgress}%`"></div>
+          </div>
+          <div class="text-xs text-gray-400" x-text="extractStatus"></div>
+        </div>
+      </template>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <template x-for="(item,i) in queue" :key="item.id">
+          <div class="relative border border-gray-100 rounded-xl p-2 text-center">
+            <img :src="item.preview" class="w-full h-24 object-cover rounded-lg mb-1">
+            <div class="text-xs text-gray-400 truncate" x-text="item.filename"></div>
+            <div class="text-xs font-bold text-gray-700" x-text="item.date"></div>
+            <div x-show="item.status==='done'" class="mt-1">
+              <span class="text-xs text-green-600 font-bold">✅ 추출완료</span>
+              <div class="text-xs text-blue-600 font-bold" x-text="item.slot"></div>
+              <div class="text-xs text-gray-600" x-text="(item.result?.temperature??'?')+'°C / '+(item.result?.humidity??'?')+'%'"></div>
+            </div>
+            <div x-show="item.status==='error'" class="mt-1">
+              <span class="text-xs text-red-500 font-bold">❌ 실패</span>
+            </div>
+            <div x-show="item.status==='pending'" class="mt-1">
+              <span class="text-xs text-gray-400">대기중</span>
+            </div>
+            <div x-show="item.status==='uploading'" class="mt-1">
+              <span class="text-xs text-blue-500 font-bold">업로드중...</span>
+            </div>
+            <button @click="removeFromQueue(i)"
+                    class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">✕</button>
+          </div>
+        </template>
+      </div>
+      <div class="mt-3">
+        <button @click="saveQueueToRecords"
+                class="btn-primary text-sm w-full"
+                :disabled="!queue.some(q=>q.status==='done')">
+          💾 기록에 저장
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- ══ KPI 요약 ══════════════════════════════════════════════════════════ -->
+  <template x-if="records.length > 0">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="kpi-card" style="background:linear-gradient(135deg,#e8f4fd,#dbeafe);border-color:#bfdbfe">
+        <div class="kpi-val" style="color:#1e40af" x-text="records.length+'건'"></div>
+        <div class="kpi-lbl">측정 건수</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" x-text="kpi.maxTemp"></div>
+        <div class="kpi-lbl">최고 온도</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" x-text="kpi.maxHumid"></div>
+        <div class="kpi-lbl">최고 습도</div>
+      </div>
+      <div class="kpi-card" style="background:linear-gradient(135deg,#FFAB76,#FF7043);border:none">
+        <div class="kpi-val" style="color:white" x-text="kpi.maxFeels"></div>
+        <div class="kpi-lbl" style="color:rgba(255,255,255,.85)">최고 체감온도</div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ══ 주별 섹션 ═════════════════════════════════════════════════════════ -->
+  <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday">
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
+        <button @click="downloadExcel(wkInfo.monday)"
+                class="btn-primary text-xs py-2 px-3"
+                :disabled="!wkInfo.records.some(r=>r.temperature!=null)">
+          💾 엑셀 다운로드
+        </button>
+      </div>
+      <template x-if="wkInfo.records.some(r=>r.feels_like!=null)">
+        <div class="card mb-2" style="padding:10px">
+          <canvas :id="'chart-'+wi" height="110"></canvas>
+        </div>
+      </template>
+      <div class="card overflow-x-auto">
+        <table class="grid-table">
+          <thead>
+            <tr>
+              <th style="width:78px">날짜</th>
+              <th style="width:55px">구분</th>
+              <th style="width:72px">측정시각</th>
+              <th style="width:70px">온도(°C)</th>
+              <th style="width:65px">습도(%)</th>
+              <th style="width:82px">체감온도(°C)</th>
+              <th style="width:55px">단계</th>
+              <th style="width:140px">조치사항</th>
+              <th style="width:105px">기타내용</th>
+              <th style="width:72px">측정자</th>
+              <th style="width:95px">비고</th>
+              <th style="width:36px">삭제</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="row in wkInfo.gridRows" :key="row.key">
+              <tr>
+                <td class="text-center text-xs font-bold" x-text="row.dateLabel"></td>
+                <td class="text-center text-xs" x-text="row.slot"></td>
+                <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
+                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                <td><input type="number" x-model.number="row.temperature" step="0.1"
+                           placeholder="-" @input="recalcRow(row)"
+                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                <td><input type="number" x-model.number="row.humidity" step="1"
+                           placeholder="-" @input="recalcRow(row)"
+                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                <td class="text-center">
+                  <span class="font-bold text-sm"
+                        x-text="row.feels_like != null ? row.feels_like.toFixed(1)+'°C' : '-'"></span>
+                </td>
+                <td class="text-center">
+                  <span x-show="row.heat_level && row.heat_level!=='-'"
+                        :class="'badge-'+row.heat_level" x-text="row.heat_level"></span>
+                  <span x-show="!row.heat_level || row.heat_level==='-'" class="text-gray-300">-</span>
+                </td>
+                <td>
+                  <select x-model="row.action" @change="autoSaveRow(row, wkInfo.monday)">
+                    <option>N/A</option>
+                    <option>추가휴식시간부여</option>
+                    <option>보냉장구지급</option>
+                    <option>작업시간대조정</option>
+                    <option>작업중지</option>
+                    <option>기타</option>
+                  </select>
+                </td>
+                <td><input type="text" x-model="row.other_content"
+                           :placeholder="row.action==='기타'?'내용 입력':''"
+                           :disabled="row.action!=='기타'"
+                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                <td><input type="text" x-model="row.measurer"
+                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                <td><input type="text" x-model="row.notes"
+                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                <td class="text-center">
+                  <template x-if="row.id">
+                    <button @click="deleteRow(row, wkInfo)"
+                            class="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 rounded text-xs">✕</button>
+                  </template>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <template x-if="wkInfo.photos.length > 0">
+        <details class="mt-2 card">
+          <summary class="cursor-pointer text-sm font-bold text-gray-700">
+            📷 사진 미리보기 (<span x-text="wkInfo.photos.length"></span>장)
+          </summary>
+          <div class="flex flex-wrap gap-3 mt-3">
+            <template x-for="ph in wkInfo.photos" :key="ph.photo_id">
+              <div class="text-center">
+                <img :src="'/uploads/'+ph.photo_id" class="photo-thumb">
+                <div class="text-xs text-gray-400 mt-1" x-text="ph.dateLabel+' '+ph.slot"></div>
+                <template x-if="ph.temperature">
+                  <div class="text-xs font-bold" x-text="ph.temperature+'°C / '+ph.humidity+'%'"></div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </details>
+      </template>
+    </div>
+  </template>
+
+  <!-- 기록 없을 때 -->
+  <template x-if="records.length === 0 && queue.length === 0">
+    <div class="card text-center py-10 text-gray-400">
+      <div class="text-5xl mb-3">🌡</div>
+      <div class="font-bold text-sm">위 탭에서 사진을 등록하거나 아래에서 기록을 불러오세요</div>
+    </div>
+  </template>
+
+  <!-- ══ 측정기간 선택 및 기록 불러오기 (맨 아래) ══════════════════════════ -->
+  <div class="card">
+    <div class="text-xs font-extrabold text-blue-600 mb-3">📅 측정기간 선택 및 기록 불러오기</div>
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div>
+        <label class="text-xs text-gray-500 font-bold">연도</label>
         <select x-model.number="meta.year" @change="buildWeeks" class="mt-1">
           <template x-for="y in [2024,2025,2026,2027,2028,2029]" :key="y">
             <option :value="y" x-text="y+'년'"></option>
@@ -135,7 +425,7 @@
         </select>
       </div>
       <div>
-        <label class="text-xs text-gray-500">월</label>
+        <label class="text-xs text-gray-500 font-bold">월</label>
         <select x-model.number="meta.month" @change="buildWeeks" class="mt-1">
           <template x-for="m in Array.from({length:12},(_,i)=>i+1)" :key="m">
             <option :value="m" x-text="m+'월'"></option>
@@ -144,377 +434,34 @@
       </div>
     </div>
     <div class="mb-3">
-      <label class="text-xs text-gray-500">주차</label>
+      <label class="text-xs text-gray-500 font-bold">주차</label>
       <select x-model="meta.weekLabel" @change="onWeekChange" class="mt-1">
         <template x-for="w in weeks" :key="w.monday">
           <option :value="w.label" x-text="w.label"></option>
         </template>
       </select>
     </div>
-
-    <button @click="loadRecords" class="btn-primary w-full mb-2 text-sm">
+    <button @click="loadRecords" class="btn-primary w-full text-sm">
       📂 기록 불러오기
     </button>
+  </div>
 
-    <hr class="border-gray-100 my-3">
-
-    <!-- KOSHA 범례 -->
-    <div class="text-xs font-bold text-gray-600 mb-2">📊 KOSHA 폭염 단계</div>
-    <div class="space-y-1 text-xs">
-      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span><b>관심</b><span class="text-gray-400">31~33°C</span></div>
-      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span><b>주의</b><span class="text-gray-400">33~35°C</span></div>
-      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span><b>경고</b><span class="text-gray-400">35~38°C</span></div>
-      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span><b>위험</b><span class="text-gray-400">38°C 이상</span></div>
+  <!-- ══ KOSHA 범례 ════════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="text-xs font-extrabold text-gray-600 mb-2">📊 KOSHA 폭염 단계 기준</div>
+    <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-xs">
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></span><b>관심</b><span class="text-gray-400">체감 31~33°C</span></div>
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-400 flex-shrink-0"></span><b>주의</b><span class="text-gray-400">체감 33~35°C</span></div>
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-orange-500 flex-shrink-0"></span><b>경고</b><span class="text-gray-400">체감 35~38°C</span></div>
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500 flex-shrink-0"></span><b>위험</b><span class="text-gray-400">체감 38°C 이상</span></div>
     </div>
+  </div>
 
-    <hr class="border-gray-100 my-3">
-    <div class="text-xs" :class="apiOk ? 'text-green-600' : 'text-red-500'">
-      <span x-text="apiOk ? '✅ Gemini API 연결됨' : '❌ 서버 API 키 미설정'"></span>
-    </div>
-  </aside>
-
-  <!-- 메인 -->
-  <main class="flex-1 p-4 overflow-x-auto">
-
-    <!-- 히어로 헤더 -->
-    <div class="hero rounded-2xl text-white p-5 mb-5 shadow-lg">
-      <h1 class="text-xl font-bold tracking-tight">🌡 체감온도 기록관리 대장</h1>
-      <div class="flex flex-wrap gap-2 mt-2">
-        <template x-if="meta.siteName">
-          <span class="text-xs px-3 py-1 rounded-full bg-white/20 border border-white/30" x-text="'🏗 '+meta.siteName"></span>
-        </template>
-        <template x-if="meta.company">
-          <span class="text-xs px-3 py-1 rounded-full bg-white/20 border border-white/30" x-text="'🏢 '+meta.company"></span>
-        </template>
-        <template x-if="meta.location">
-          <span class="text-xs px-3 py-1 rounded-full bg-white/20 border border-white/30" x-text="'📍 '+meta.location"></span>
-        </template>
-        <span class="text-xs px-3 py-1 rounded-full bg-white/20 border border-white/30" x-text="'📅 '+currentWeekStr()"></span>
-      </div>
-    </div>
-
-    <!-- ══ 세 가지 등록 탭 ══════════════════════════════════════════════════ -->
-    <div class="card mb-4">
-      <!-- 탭 버튼 -->
-      <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
-        <button class="tab-btn flex-1" :class="{active:activeTab==='camera'}"    @click="activeTab='camera'">📸 실시간 촬영</button>
-        <button class="tab-btn flex-1" :class="{active:activeTab==='upload'}"    @click="activeTab='upload'">📁 사진 업로드</button>
-        <button class="tab-btn flex-1" :class="{active:activeTab==='history'}"   @click="activeTab='history'">📋 기간 조회</button>
-      </div>
-
-      <!-- ── Tab 1: 실시간 사진 촬영 ────────────────────────────────────── -->
-      <div x-show="activeTab==='camera'">
-        <p class="text-sm text-gray-500 mb-3">카메라로 온습도계를 촬영합니다. 모바일에서 바로 카메라가 열립니다.</p>
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="text-xs text-gray-500 font-semibold">촬영 날짜</label>
-            <input type="date" x-model="cam.date" class="mt-1">
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 font-semibold">측정 구분</label>
-            <select x-model="cam.slot" class="mt-1">
-              <option>오전1</option><option>오전2</option><option>오후1</option><option>오후2</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 카메라 입력 -->
-        <label class="drop-zone block cursor-pointer" for="cam-input">
-          <div class="text-4xl mb-2">📷</div>
-          <div class="font-semibold text-gray-700">여기를 탭하여 카메라 열기</div>
-          <div class="text-xs text-gray-400 mt-1">모바일: 카메라 앱 / PC: 웹캠</div>
-        </label>
-        <input id="cam-input" type="file" accept="image/*" capture="environment"
-               class="hidden" @change="onCameraCapture">
-
-        <!-- 미리보기 + 추가 -->
-        <template x-if="cam.preview">
-          <div class="mt-3 flex gap-3 items-start">
-            <img :src="cam.preview" class="w-32 h-32 object-cover rounded-xl border border-gray-200">
-            <div class="flex-1">
-              <div class="text-sm font-semibold text-gray-700 mb-1">촬영 정보</div>
-              <div class="text-xs text-gray-500 space-y-1">
-                <div>📅 날짜: <span class="font-medium" x-text="cam.date"></span></div>
-                <div>🕐 구분: <span class="font-medium" x-text="cam.slot"></span></div>
-                <div>👤 측정자: <span class="font-medium" x-text="meta.measurer||'(미입력)'"></span></div>
-              </div>
-              <button @click="addCameraPhoto" class="btn-primary mt-3 text-sm w-full">
-                ✅ 사진 추가
-              </button>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <!-- ── Tab 2: 사진 업로드 ─────────────────────────────────────────── -->
-      <div x-show="activeTab==='upload'">
-        <p class="text-sm text-gray-500 mb-3">파일명에 날짜가 있으면 자동 인식됩니다. <code class="bg-gray-100 px-1 rounded text-xs">20260506 (1).jpg</code> → 5/6 오전1</p>
-
-        <label class="drop-zone block cursor-pointer"
-               @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-               @dragleave="$event.currentTarget.classList.remove('dragover')"
-               @drop.prevent="onDrop($event)">
-          <input type="file" accept="image/*" multiple class="hidden"
-                 @change="onFileSelect($event.target.files)">
-          <div class="text-4xl mb-2">📁</div>
-          <div class="font-semibold text-gray-700">클릭하거나 파일을 여기에 드래그</div>
-          <div class="text-xs text-gray-400 mt-1">여러 장 동시 선택 가능 (JPG, PNG, BMP)</div>
-        </label>
-      </div>
-
-      <!-- ── Tab 3: 기간 조회·추가 등록 ───────────────────────────────── -->
-      <div x-show="activeTab==='history'">
-        <p class="text-sm text-gray-500 mb-3">저장된 이전 기간을 불러오거나, 해당 기간에 사진을 추가 등록합니다.</p>
-        <div class="flex gap-2 mb-3">
-          <select x-model="hist.selectedWeek" class="flex-1" @change="loadHistoryWeekInfo">
-            <option value="">-- 기간 선택 --</option>
-            <template x-for="w in hist.availableWeeks" :key="w">
-              <option :value="w" x-text="formatMonday(w)"></option>
-            </template>
-          </select>
-          <button @click="loadHistoryWeek" class="btn-primary whitespace-nowrap">📂 불러오기</button>
-        </div>
-
-        <!-- 해당 기간 요약 -->
-        <template x-if="hist.summary">
-          <div class="grid grid-cols-3 gap-2 mb-3">
-            <div class="kpi-card"><div class="kpi-val text-blue-600" x-text="hist.summary.count+'건'"></div><div class="kpi-lbl">기록 건수</div></div>
-            <div class="kpi-card"><div class="kpi-val" x-text="hist.summary.maxTemp"></div><div class="kpi-lbl">최고 온도</div></div>
-            <div class="kpi-card"><div class="kpi-val text-orange-500" x-text="hist.summary.maxFeels"></div><div class="kpi-lbl">최고 체감온도</div></div>
-          </div>
-        </template>
-
-        <!-- 추가 업로드 (해당 기간 귀속) -->
-        <template x-if="hist.selectedWeek">
-          <div>
-            <div class="text-sm font-semibold text-gray-700 mb-2">➕ 이 기간에 사진 추가</div>
-            <label class="drop-zone block cursor-pointer">
-              <input type="file" accept="image/*" multiple class="hidden"
-                     @change="onHistFileSelect($event.target.files)">
-              <div class="text-2xl mb-1">📎</div>
-              <div class="text-sm text-gray-600">추가 사진 선택</div>
-            </label>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- ══ 업로드 대기 사진 목록 ═══════════════════════════════════════════ -->
-    <template x-if="queue.length > 0">
-      <div class="card mb-4">
-        <div class="flex items-center justify-between mb-3">
-          <div class="font-semibold text-gray-800">
-            📸 업로드된 사진
-            <span class="text-xs text-gray-400 ml-2" x-text="`(총 ${queue.length}장)`"></span>
-          </div>
-          <div class="flex gap-2">
-            <button @click="extractAll" class="btn-primary text-sm"
-                    :disabled="isExtracting || !apiOk"
-                    x-text="isExtracting ? '추출 중...' : '🤖 AI 자동 추출'">
-            </button>
-            <button @click="clearQueue" class="btn-secondary text-sm">🗑 초기화</button>
-          </div>
-        </div>
-
-        <!-- 진행률 바 -->
-        <template x-if="isExtracting">
-          <div class="mb-3">
-            <div class="progress-bar mb-1">
-              <div class="progress-fill" :style="`width:${extractProgress}%`"></div>
-            </div>
-            <div class="text-xs text-gray-400" x-text="extractStatus"></div>
-          </div>
-        </template>
-
-        <!-- 사진 목록 -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          <template x-for="(item,i) in queue" :key="item.id">
-            <div class="relative border border-gray-100 rounded-xl p-2 text-center">
-              <img :src="item.preview" class="w-full h-24 object-cover rounded-lg mb-1">
-              <div class="text-xs text-gray-500 truncate" x-text="item.filename"></div>
-              <div class="text-xs font-medium" x-text="item.date+' '+item.slot"></div>
-              <div class="mt-1" x-show="item.status==='done'">
-                <span class="text-xs text-green-600 font-semibold">✅ 추출완료</span>
-                <div class="text-xs text-gray-600" x-text="(item.result?.temperature??'?')+'°C / '+(item.result?.humidity??'?')+'%'"></div>
-              </div>
-              <div class="mt-1" x-show="item.status==='error'">
-                <span class="text-xs text-red-500">❌ 실패</span>
-              </div>
-              <div class="mt-1" x-show="item.status==='pending'">
-                <span class="text-xs text-gray-400">대기중</span>
-              </div>
-              <div class="mt-1" x-show="item.status==='uploading'">
-                <span class="text-xs text-blue-400">업로드중...</span>
-              </div>
-              <button @click="removeFromQueue(i)"
-                      class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">✕</button>
-            </div>
-          </template>
-        </div>
-
-        <div class="mt-3 flex gap-2">
-          <button @click="saveQueueToRecords"
-                  class="btn-primary text-sm"
-                  :disabled="!queue.some(q=>q.status==='done')">
-            💾 기록에 저장
-          </button>
-        </div>
-      </div>
-    </template>
-
-    <!-- ══ KPI 요약 ════════════════════════════════════════════════════════ -->
-    <template x-if="records.length > 0">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div class="kpi-card" style="background:linear-gradient(135deg,#e8f4fd,#dbeafe);border:1px solid #bfdbfe">
-          <div class="kpi-val" style="color:#1e40af" x-text="records.length+'건'"></div>
-          <div class="kpi-lbl">측정 건수</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-val" x-text="kpi.maxTemp"></div>
-          <div class="kpi-lbl">최고 온도</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-val" x-text="kpi.maxHumid"></div>
-          <div class="kpi-lbl">최고 습도</div>
-        </div>
-        <div class="kpi-card" style="background:linear-gradient(135deg,#FFAB76,#FF7043);border:none">
-          <div class="kpi-val" style="color:white" x-text="kpi.maxFeels"></div>
-          <div class="kpi-lbl" style="color:rgba(255,255,255,.85)">최고 체감온도</div>
-        </div>
-      </div>
-    </template>
-
-    <!-- ══ 주별 섹션 ═══════════════════════════════════════════════════════ -->
-    <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday">
-      <div class="mb-6">
-        <!-- 주차 헤더 -->
-        <div class="flex items-center justify-between mb-3">
-          <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
-          <div class="flex gap-2">
-            <button @click="downloadExcel(wkInfo.monday)"
-                    class="btn-primary text-sm"
-                    :disabled="!wkInfo.records.some(r=>r.temperature!=null)">
-              💾 엑셀 다운로드
-            </button>
-          </div>
-        </div>
-
-        <!-- 차트 -->
-        <template x-if="wkInfo.records.some(r=>r.feels_like!=null)">
-          <div class="card mb-3" style="padding:12px">
-            <canvas :id="'chart-'+wi" height="120"></canvas>
-          </div>
-        </template>
-
-        <!-- 데이터 그리드 -->
-        <div class="card overflow-x-auto">
-          <table class="grid-table">
-            <thead>
-              <tr>
-                <th style="width:80px">날짜</th>
-                <th style="width:60px">구분</th>
-                <th style="width:75px">측정시각</th>
-                <th style="width:75px">온도(°C)</th>
-                <th style="width:70px">습도(%)</th>
-                <th style="width:85px">체감온도(°C)</th>
-                <th style="width:60px">단계</th>
-                <th style="width:145px">조치사항</th>
-                <th style="width:110px">기타내용</th>
-                <th style="width:75px">측정자</th>
-                <th style="width:100px">비고</th>
-                <th style="width:40px">삭제</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="row in wkInfo.gridRows" :key="row.key">
-                <tr>
-                  <td class="text-center text-xs font-medium" x-text="row.dateLabel"></td>
-                  <td class="text-center text-xs" x-text="row.slot"></td>
-                  <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
-                             @change="autoSaveRow(row, wkInfo.monday)"></td>
-                  <td><input type="number" x-model.number="row.temperature" step="0.1"
-                             placeholder="-" @input="recalcRow(row)"
-                             @change="autoSaveRow(row, wkInfo.monday)"></td>
-                  <td><input type="number" x-model.number="row.humidity" step="1"
-                             placeholder="-" @input="recalcRow(row)"
-                             @change="autoSaveRow(row, wkInfo.monday)"></td>
-                  <td class="text-center">
-                    <span class="font-semibold text-sm"
-                          x-text="row.feels_like != null ? row.feels_like.toFixed(1)+'°C' : '-'"></span>
-                  </td>
-                  <td class="text-center">
-                    <span x-show="row.heat_level && row.heat_level!=='-'"
-                          :class="'badge-'+row.heat_level"
-                          x-text="row.heat_level"></span>
-                    <span x-show="!row.heat_level || row.heat_level==='-'" class="text-gray-300">-</span>
-                  </td>
-                  <td>
-                    <select x-model="row.action" @change="autoSaveRow(row, wkInfo.monday)">
-                      <option>N/A</option>
-                      <option>추가휴식시간부여</option>
-                      <option>보냉장구지급</option>
-                      <option>작업시간대조정</option>
-                      <option>작업중지</option>
-                      <option>기타</option>
-                    </select>
-                  </td>
-                  <td><input type="text" x-model="row.other_content"
-                             :placeholder="row.action==='기타'?'내용 입력':''"
-                             :disabled="row.action!=='기타'"
-                             @change="autoSaveRow(row, wkInfo.monday)"></td>
-                  <td><input type="text" x-model="row.measurer"
-                             @change="autoSaveRow(row, wkInfo.monday)"></td>
-                  <td><input type="text" x-model="row.notes"
-                             @change="autoSaveRow(row, wkInfo.monday)"></td>
-                  <td class="text-center">
-                    <template x-if="row.id">
-                      <button @click="deleteRow(row, wkInfo)"
-                              class="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 rounded text-xs">✕</button>
-                    </template>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 사진 미리보기 -->
-        <template x-if="wkInfo.photos.length > 0">
-          <details class="mt-2 card">
-            <summary class="cursor-pointer text-sm font-semibold text-gray-700">
-              📷 사진 미리보기 (<span x-text="wkInfo.photos.length"></span>장)
-            </summary>
-            <div class="flex flex-wrap gap-3 mt-3">
-              <template x-for="ph in wkInfo.photos" :key="ph.photo_id">
-                <div class="text-center">
-                  <img :src="'/uploads/'+ph.photo_id" class="photo-thumb">
-                  <div class="text-xs text-gray-400 mt-1" x-text="ph.dateLabel+' '+ph.slot"></div>
-                  <template x-if="ph.temperature">
-                    <div class="text-xs font-semibold" x-text="ph.temperature+'°C / '+ph.humidity+'%'"></div>
-                  </template>
-                </div>
-              </template>
-            </div>
-          </details>
-        </template>
-      </div>
-    </template>
-
-    <!-- 기록 없을 때 -->
-    <template x-if="records.length === 0 && queue.length === 0">
-      <div class="card text-center py-12 text-gray-400">
-        <div class="text-5xl mb-3">🌡</div>
-        <div class="font-semibold">사진을 업로드하거나 기록을 불러오세요</div>
-        <div class="text-sm mt-1">왼쪽 '기록 불러오기' 버튼 또는 위 탭에서 사진 등록</div>
-      </div>
-    </template>
-
-  </main>
 </div>
 
 <!-- 토스트 메시지 -->
 <div x-show="toast.show" x-transition
-     class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-3 rounded-xl text-sm font-medium shadow-xl z-50"
+     class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-xl z-50"
      x-text="toast.msg"></div>
 
 <!-- ══ Alpine.js 앱 로직 ══════════════════════════════════════════════════ -->
@@ -527,7 +474,6 @@ let _camFile = null;
 
 function app() {
   return {
-    // 사이드바 상태
     meta: {
       siteCode:'', siteName:'', company:'', location:'',
       measurer: localStorage.getItem('measurer')||'',
@@ -538,41 +484,29 @@ function app() {
     weeks: [],
     currentMonday: '',
 
-    // 자동완성
     ac: { siteCodes:[], companies:[], locations:[] },
 
-    // 탭
     activeTab: 'upload',
 
-    // 카메라
-    cam: { date: todayStr(), slot:'오전1', preview:null },
+    // 카메라 (slot은 AI 추출 후 자동 판정되므로 UI에서 제거)
+    cam: { date: todayStr(), preview:null },
 
-    // 업로드 큐
     queue: [],
     isExtracting: false,
     extractProgress: 0,
     extractStatus: '',
 
-    // DB에서 불러온 기록
     records: [],
 
-    // 기간 조회
     hist: {
       availableWeeks: [],
       selectedWeek: '',
       summary: null,
     },
 
-    // KPI
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
-
-    // 주별 그룹
     weekGroups: [],
-
-    // API 상태
     apiOk: false,
-
-    // 토스트
     toast: { show:false, msg:'' },
 
     // ── 초기화 ──────────────────────────────────────────────────────────
@@ -594,7 +528,6 @@ function app() {
       } catch { this.apiOk = false; }
     },
 
-    // ── 자동완성 로드 ──────────────────────────────────────────────────
     async loadAutoComplete() {
       try {
         const r = await fetch('/api/autocomplete');
@@ -612,7 +545,6 @@ function app() {
       const y = this.meta.year, m = this.meta.month;
       const first = new Date(y, m-1, 1);
       const last  = new Date(y, m, 0);
-      // 월요일 기준 주차: getDay()=0(일)→6, 1(월)→0, ... 6(토)→5
       const dow = first.getDay() === 0 ? 6 : first.getDay() - 1;
       const mon = new Date(first); mon.setDate(first.getDate() - dow);
 
@@ -641,13 +573,6 @@ function app() {
       if (w) this.currentMonday = w.monday;
     },
 
-    currentWeekStr() {
-      const w = this.weeks.find(w => w.label === this.meta.weekLabel);
-      if (!w) return '';
-      const mon = new Date(w.monday), sun = new Date(w.sun);
-      return `${mon.getMonth()+1}/${mon.getDate()}~${sun.getMonth()+1}/${sun.getDate()}`;
-    },
-
     // ── 기록 로드 ──────────────────────────────────────────────────────
     async loadRecords() {
       if (!this.currentMonday) { this.showToast('주차를 선택하세요'); return; }
@@ -670,7 +595,6 @@ function app() {
 
       this.weekGroups = mondays.map(monday => {
         const mon = new Date(monday);
-        const sun = new Date(monday); sun.setDate(mon.getDate()+6);
         const wkRecs = this.records.filter(r=>r.week_monday===monday);
         const photos = wkRecs.filter(r=>r.photo_id).map(r=>({
           photo_id: r.photo_id, slot: r.slot,
@@ -678,7 +602,6 @@ function app() {
           temperature: r.temperature, humidity: r.humidity,
         }));
 
-        // 7일 × 4슬롯 그리드 생성
         const recMap = {};
         wkRecs.forEach(r => { recMap[r.measure_date+'_'+r.slot] = r; });
 
@@ -696,8 +619,7 @@ function app() {
           });
         }
 
-        const weekLabel = formatMondayLabel(monday);
-        return { monday, label: weekLabel, records: wkRecs, gridRows, photos };
+        return { monday, label: formatMondayLabel(monday), records: wkRecs, gridRows, photos };
       });
     },
 
@@ -712,7 +634,7 @@ function app() {
       };
     },
 
-    // ── 차트 ────────────────────────────────────────────────────────────
+    // ── 차트 ──────────────────────────────────────────────────────────
     drawCharts() {
       this.weekGroups.forEach((wk, wi) => {
         const canvas = document.getElementById('chart-'+wi);
@@ -729,8 +651,7 @@ function app() {
           label: slot, backgroundColor: colors[slot]+'cc',
           data: dayLabels.map((_,di) => {
             const d = new Date(wk.monday); d.setDate(new Date(wk.monday).getDate()+di);
-            const ds = fmtDate(d);
-            const r = wk.records.find(r=>r.measure_date===ds && r.slot===slot);
+            const r = wk.records.find(r=>r.measure_date===fmtDate(d) && r.slot===slot);
             return r?.feels_like ?? null;
           }),
         }));
@@ -740,18 +661,18 @@ function app() {
           data: { labels: dayLabels, datasets },
           options: {
             responsive:true, maintainAspectRatio:false,
-            plugins: { legend:{ position:'top', labels:{ boxWidth:12, font:{size:11} } } },
+            plugins: { legend:{ position:'top', labels:{ boxWidth:11, font:{size:10} } } },
             scales: {
               y: { min: allVals.length?Math.min(...allVals)-3:25,
                    max: allVals.length?Math.max(...allVals)+4:42,
-                   title:{ display:true, text:'체감온도(°C)' } }
+                   title:{ display:true, text:'체감온도(°C)', font:{size:10} } }
             }
           }
         });
       });
     },
 
-    // ── 행 자동 저장 ────────────────────────────────────────────────────
+    // ── 행 자동 저장 ──────────────────────────────────────────────────
     async autoSaveRow(row, weekMonday) {
       if (row.temperature == null && row.humidity == null) return;
       const payload = {
@@ -805,7 +726,7 @@ function app() {
       this.showToast('삭제 완료');
     },
 
-    // ── 카메라 탭 ───────────────────────────────────────────────────────
+    // ── 카메라 탭 ─────────────────────────────────────────────────────
     onCameraCapture(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -815,21 +736,21 @@ function app() {
 
     async addCameraPhoto() {
       if (!_camFile) { this.showToast('촬영된 사진이 없습니다'); return; }
-      if (!this.currentMonday) { this.showToast('주차를 선택하세요'); return; }
-      const fname = `camera_${this.cam.date}_${this.cam.slot}.jpg`;
+      if (!this.currentMonday) { this.showToast('아래에서 주차를 먼저 선택하세요'); return; }
+      const fname = `camera_${this.cam.date}.jpg`;
       const file = _camFile;
       _camFile = null;
       this.cam.preview = null;
       document.getElementById('cam-input').value = '';
-      await this.enqueueFile(file, fname, this.cam.date, this.cam.slot, this.currentMonday);
-      this.showToast('📸 사진 추가됨');
+      await this.enqueueFile(file, fname, this.cam.date, '오전1', this.currentMonday);
+      this.showToast('📸 사진 추가됨 — AI 추출 후 구분 자동 판정');
     },
 
-    // ── 업로드 탭 ───────────────────────────────────────────────────────
+    // ── 업로드 탭 ─────────────────────────────────────────────────────
     onFileSelect(files) {
       [...files].forEach(f => {
-        const d = parseDateFromFilename(f.name) || this.currentMonday;
-        const s = parseSlotFromFilename(f.name);
+        const d = parseDateFromFilename(f.name) || todayStr();
+        const s = parseSlotFromFilename(f.name); // 파일명 힌트 (AI 추출 시 갱신)
         this.enqueueFile(f, f.name, d, s, calcMonday(d));
       });
     },
@@ -839,7 +760,7 @@ function app() {
       this.onFileSelect(e.dataTransfer.files);
     },
 
-    // ── 기간 조회 탭 ────────────────────────────────────────────────────
+    // ── 기간 조회 탭 ──────────────────────────────────────────────────
     async loadAvailableWeeks() {
       try {
         const q = new URLSearchParams({ site_code: this.meta.siteCode });
@@ -855,12 +776,12 @@ function app() {
       const r = await fetch('/api/records?'+q);
       const d = await r.json();
       const recs = d.records || [];
-      const temps  = recs.map(r=>r.temperature).filter(v=>v!=null);
-      const feels  = recs.map(r=>r.feels_like).filter(v=>v!=null);
+      const temps = recs.map(r=>r.temperature).filter(v=>v!=null);
+      const feels = recs.map(r=>r.feels_like).filter(v=>v!=null);
       this.hist.summary = recs.length ? {
         count: recs.length,
-        maxTemp:  temps.length  ? Math.max(...temps).toFixed(1)+'°C' : '-',
-        maxFeels: feels.length  ? Math.max(...feels).toFixed(1)+'°C' : '-',
+        maxTemp:  temps.length ? Math.max(...temps).toFixed(1)+'°C' : '-',
+        maxFeels: feels.length ? Math.max(...feels).toFixed(1)+'°C' : '-',
       } : null;
     },
 
@@ -886,11 +807,10 @@ function app() {
       });
     },
 
-    // ── 큐 관리 ─────────────────────────────────────────────────────────
+    // ── 큐 관리 ───────────────────────────────────────────────────────
     async enqueueFile(file, fname, dateStr, slot, weekMonday) {
       const id = crypto.randomUUID();
       const preview = URL.createObjectURL(file);
-      // file 객체는 큐 항목에 저장하지 않음 (Alpine Proxy 문제 방지)
       this.queue.push({ id, filename:fname, date:dateStr, slot, weekMonday,
                         preview, status:'uploading', photo_id:null, result:null });
 
@@ -899,7 +819,6 @@ function app() {
         const r = await fetch('/api/photos/upload', { method:'POST', body:fd });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
-        // 큐 배열에서 반응형 참조를 가져와서 업데이트
         const qItem = this.queue.find(q => q.id === id);
         if (qItem) { qItem.photo_id = d.photo_id; qItem.status = 'pending'; }
       } catch(e) {
@@ -909,15 +828,10 @@ function app() {
       }
     },
 
-    removeFromQueue(i) {
-      this.queue.splice(i, 1);
-    },
+    removeFromQueue(i) { this.queue.splice(i, 1); },
+    clearQueue() { this.queue = []; },
 
-    clearQueue() {
-      this.queue = [];
-    },
-
-    // ── AI 자동 추출 ────────────────────────────────────────────────────
+    // ── AI 자동 추출 (시간 → 측정구분 자동 판정) ──────────────────────
     async extractAll() {
       const pending = this.queue.filter(q=>q.status==='pending' && q.photo_id);
       if (!pending.length) { this.showToast('추출할 항목이 없습니다'); return; }
@@ -934,6 +848,9 @@ function app() {
           });
           if (!r.ok) throw new Error(await r.text());
           item.result = await r.json();
+          // 추출된 시간으로 측정 구분 자동 판정
+          const detectedSlot = slotFromTime(item.result?.time);
+          if (detectedSlot) item.slot = detectedSlot;
           item.status = 'done';
         } catch(e) {
           item.status = 'error';
@@ -943,10 +860,10 @@ function app() {
       }
       this.isExtracting = false;
       this.extractStatus = '✅ 추출 완료';
-      this.showToast('✅ AI 추출 완료');
+      this.showToast('✅ AI 추출 완료 — 측정 구분 자동 판정됨');
     },
 
-    // ── 큐 → DB 저장 ────────────────────────────────────────────────────
+    // ── 큐 → DB 저장 ──────────────────────────────────────────────────
     async saveQueueToRecords() {
       const done = this.queue.filter(q=>q.status==='done' && q.result);
       let saved = 0;
@@ -984,24 +901,21 @@ function app() {
       this.$nextTick(()=>this.drawCharts());
     },
 
-    // ── 엑셀 다운로드 ────────────────────────────────────────────────────
     downloadExcel(monday) {
       const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: monday });
       window.location.href = '/api/excel?'+q;
     },
 
-    // ── 기간 조회 포맷 ──────────────────────────────────────────────────
     formatMonday(m) { return formatMondayLabel(m); },
 
-    // ── 토스트 ───────────────────────────────────────────────────────────
-    showToast(msg, ms=2500) {
+    showToast(msg, ms=2800) {
       this.toast = { show:true, msg };
       setTimeout(() => { this.toast.show=false; }, ms);
     },
   };
 }
 
-// ── 유틸 함수 ──────────────────────────────────────────────────────────────
+// ── 유틸 함수 ─────────────────────────────────────────────────────────────
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1037,12 +951,25 @@ function parseSlotFromFilename(name) {
   return '오전1';
 }
 
+// AI 추출 시간 → 측정 구분 자동 판정
+// 07:00~09:30 → 오전1 / 10:00~12:00 → 오전2 / 12:30~14:00 → 오후1 / 14:30~16:00 → 오후2
+function slotFromTime(timeStr) {
+  if (!timeStr || timeStr === 'null') return null;
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return null;
+  const mins = parseInt(parts[0], 10) * 60 + (parseInt(parts[1], 10) || 0);
+  if (mins >= 420 && mins <= 570) return '오전1';   // 07:00~09:30
+  if (mins >= 600 && mins <= 720) return '오전2';   // 10:00~12:00
+  if (mins >= 750 && mins <= 840) return '오후1';   // 12:30~14:00
+  if (mins >= 870 && mins <= 960) return '오후2';   // 14:30~16:00
+  return null;
+}
+
 function formatMondayLabel(mondayStr) {
   const d = new Date(mondayStr+'T00:00:00');
   const sun = new Date(d); sun.setDate(d.getDate()+6);
-  // 월 1일부터 해당 월요일까지 몇 번째 주인지 (월요일 기준)
   const first = new Date(d.getFullYear(), d.getMonth(), 1);
-  const firstDow = first.getDay()===0 ? 6 : first.getDay()-1; // 1일의 요일(월=0)
+  const firstDow = first.getDay()===0 ? 6 : first.getDay()-1;
   const firstMon = new Date(first); firstMon.setDate(1 - firstDow);
   const diffDays = Math.floor((d - firstMon) / 86400000);
   const wkN = Math.floor(diffDays / 7) + 1;
