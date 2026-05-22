@@ -4,3 +4,8 @@ uploads/
 __pycache__/
 *.pyc
 .venv/
+*.xlsx
+t1.json
+t2.json
+rec1.json
+rec2.json
