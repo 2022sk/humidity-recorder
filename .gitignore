@@ -5,6 +5,7 @@ __pycache__/
 *.pyc
 .venv/
 *.xlsx
+cloudflare_url.log
 t1.json
 t2.json
 rec1.json
