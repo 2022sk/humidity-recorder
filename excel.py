@@ -1,7 +1,6 @@
 """엑셀 생성 – DB 레코드 기반"""
 
 import io, os, math
-import glob as _glob
 from datetime import date, timedelta
 from PIL import Image
 
@@ -19,25 +18,32 @@ SLOTS   = ["오전1","오전2","오후1","오후2"]
 
 
 def _excel_font() -> str:
+    from pathlib import Path
+    # 환경변수로 직접 지정 가능: EXCEL_FONT=HyundaiSansHead
+    env = os.environ.get("EXCEL_FONT", "")
+    if env:
+        return env
     dirs = (
-        [r"C:\Windows\Fonts"] if os.name == "nt"
-        else ["/usr/share/fonts","/usr/local/share/fonts",
-              os.path.expanduser("~/.local/share/fonts")]
+        [Path(r"C:\Windows\Fonts")] if os.name == "nt"
+        else [Path(p) for p in ["/usr/share/fonts", "/usr/local/share/fonts",
+                                  os.path.expanduser("~/.local/share/fonts")]]
     )
     for d in dirs:
-        if not os.path.isdir(d): continue
-        # 나눔스퀘어 우선 탐색
-        for p in ["*NanumSquare*","*나눔스퀘어*","NanumSquare*.ttf","NanumSquare*.otf"]:
-            hits = _glob.glob(os.path.join(d,"**",p),recursive=True) or _glob.glob(os.path.join(d,p))
-            if hits: return "NanumSquare"
-        # 현대하모니 폴백
-        for p in ["*[Hh]yundai*[Ss]ans*","*[Hh]yundai*[Hh]armony*","*현대하모니*"]:
-            hits = _glob.glob(os.path.join(d,"**",p),recursive=True) or _glob.glob(os.path.join(d,p))
-            if hits:
-                n = os.path.splitext(os.path.basename(hits[0]))[0]
-                if "Head" in n: return "HyundaiSansHead"
-                if "Text" in n: return "HyundaiSansText"
-                return "현대하모니"
+        if not d.is_dir(): continue
+        stems = {f.stem.lower(): f.stem
+                 for ext in ("*.ttf","*.otf","*.TTF","*.OTF")
+                 for f in d.rglob(ext)}
+        # 1순위: 현대하모니
+        for sl, s in stems.items():
+            if "hyundai" in sl or "현대하모니" in sl:
+                if "head" in sl: return "HyundaiSansHead"
+                if "text" in sl: return "HyundaiSansText"
+                return "HyundaiSansHead"
+        # 2순위: 나눔스퀘어
+        for sl in stems:
+            if "nanumsquare" in sl or "나눔스퀘어" in sl:
+                return "NanumSquare"
+    # 3순위: 맑은 고딕
     return "맑은 고딕"
 
 
@@ -46,6 +52,14 @@ def _heat_index(Ta: float, RH: float) -> float:
           + math.atan(Ta+RH) - math.atan(RH-1.67633)
           + 0.00391838*RH**1.5*math.atan(0.023101*RH) - 4.686035)
     return round(-0.2442+0.55399*Tw+0.45535*Ta-0.0022*Tw**2+0.00278*Tw*Ta+3.0, 1)
+
+
+def _heat_level(fl: float) -> str:
+    if fl >= 38: return "위험"
+    if fl >= 35: return "경고"
+    if fl >= 33: return "주의"
+    if fl >= 31: return "관심"
+    return "-"
 
 
 def week_label_ko(n: int) -> str:
@@ -97,7 +111,7 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
 
     ROW_H=34; NCOL=11; PC=NCOL+1; PCW=22
     HDR=["작성일","구분","측정시각","온도(°C)","습도(%)","체감온도(°C)","단계","조치사항","기타내용","측정자","비고"]
-    CWIDTHS=[10,7,9,7.5,7.5,10,8,17,13,10,13]
+    CWIDTHS=[13,10,12,7.5,7.5,10,8,17,13,10,13]
     for i,w in enumerate(CWIDTHS,1): ws.column_dimensions[get_column_letter(i)].width=w
     for i in range(4): ws.column_dimensions[get_column_letter(PC+i)].width=PCW
 
@@ -150,11 +164,17 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
         even=(day_i%2==0)
         dfill=PatternFill("solid",fgColor=C_ROW0 if even else C_ROW1)
 
+        empty_fill = PatternFill("solid", fgColor="E8E8E8")
+
         for slot in SLOTS:
             rec=rec_map.get((d.isoformat(),slot),{})
             act=rec.get("action","") or rec.get("조치사항","")
-            T  =rec.get("temperature") or rec.get("온도(°C)")
-            RH =rec.get("humidity")    or rec.get("습도(%)")
+            T  =rec.get("temperature") if rec.get("temperature") is not None else rec.get("온도(°C)")
+            RH =rec.get("humidity")    if rec.get("humidity")    is not None else rec.get("습도(%)")
+            fl = rec.get("feels_like")
+            hl = rec.get("heat_level","") or ""
+            has_data = T is not None or RH is not None
+            row_fill = dfill if has_data else empty_fill
 
             row_data=[f"{d.month}/{d.day}({DAYS_KO[d.weekday()]})",slot,
                       rec.get("measure_time","") or rec.get("측정시각",""),
@@ -166,22 +186,26 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
 
             for ci,val in enumerate(row_data,1):
                 c=ws.cell(row=row_num,column=ci,value=val)
-                c.font=f_body; c.alignment=ctr; c.border=bdr; c.fill=dfill
+                c.font=f_body; c.alignment=ctr; c.border=bdr
+                c.fill = dfill if ci == 1 else row_fill  # A열(날짜)은 항상 day fill
                 if ci in (4,5) and val!="": c.number_format="0.0"
 
-            dr=f"D{row_num}"; er=f"E{row_num}"
-            tw=(f"({dr}*ATAN(0.151977*SQRT({er}+8.313659))+ATAN({dr}+{er})"
-                f"-ATAN({er}-1.67633)+0.00391838*{er}^1.5*ATAN(0.023101*{er})-4.686035)")
-            fc=ws.cell(row=row_num,column=6)
-            fc.value=(f'=IF(AND({dr}<>"",{er}<>""),ROUND(-0.2442+0.55399*{tw}'
-                      f'+0.45535*{dr}-0.0022*{tw}^2+0.00278*{tw}*{dr}+3.0,1),"")')
-            fc.font=f_body; fc.alignment=ctr; fc.border=bdr; fc.fill=dfill; fc.number_format="0.0"
+            # 체감온도: DB 저장값 우선, 없으면 T·RH로 직접 계산
+            if fl is None and T is not None and RH is not None:
+                try: fl = _heat_index(float(T), float(RH))
+                except Exception: fl = None
+            # 단계: DB 저장값 우선, 없으면 체감온도로 계산 (수식 미사용)
+            if hl not in ("위험","경고","주의","관심"):
+                hl = _heat_level(fl) if fl is not None else ""
 
-            fr=f"F{row_num}"
+            fc=ws.cell(row=row_num,column=6)
+            fc.value = fl if fl is not None else ""
+            fc.font=f_body; fc.alignment=ctr; fc.border=bdr; fc.fill=row_fill
+            if fl is not None: fc.number_format="0.0"
+
             gc=ws.cell(row=row_num,column=7)
-            gc.value=(f'=IF({fr}="","",IF({fr}>=38,"위험",IF({fr}>=35,"경고",'
-                      f'IF({fr}>=33,"주의",IF({fr}>=31,"관심","-")))))')
-            gc.font=f_body; gc.alignment=ctr; gc.border=bdr; gc.fill=dfill
+            gc.value = hl
+            gc.font=f_body; gc.alignment=ctr; gc.border=bdr; gc.fill=row_fill
             dv.add(ws.cell(row=row_num,column=8))
             row_num+=1
 
@@ -190,10 +214,16 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
         dc.font=f_date; dc.alignment=ctr
         dc.fill=fill_date if even else fill_date1; dc.border=bdr
 
+        wt = Side(style="thin", color="FFFFFF")
         for si,slot in enumerate(SLOTS):
             col=PC+si
             ws.merge_cells(start_row=rs,start_column=col,end_row=re_,end_column=col)
             tc=ws.cell(row=rs,column=col); tc.border=bdr; tc.alignment=ctr; tc.fill=dfill
+            # 병합 내부 행 구분선 흰색 처리 (L열과 동일하게)
+            for ir in range(rs+1, re_+1):
+                ic=ws.cell(row=ir,column=col)
+                ic.border=Border(left=thin,right=thin,top=wt,bottom=wt)
+                ic.fill=PatternFill("solid",fgColor="FFFFFF")
             rec=rec_map.get((d.isoformat(),slot))
             if rec and rec.get("_bytes"):
                 try:

@@ -75,16 +75,47 @@ class Database:
             ).fetchone()
             return dict(row) if row else None
 
+    def delete_photo(self, photo_id: str):
+        with self.conn() as con:
+            con.execute("DELETE FROM photos WHERE id=?", (photo_id,))
+            con.execute("UPDATE records SET photo_id='' WHERE photo_id=?", (photo_id,))
+
     # ── Records ───────────────────────────────────────────────────────────────
-    def get_records(self, site_code: str = "", week_monday: str = "") -> list:
+    def get_records(self, site_code: str = "", week_monday: str = "", location: str = "", company: str = "") -> list:
         with self.conn() as con:
             q, p = "SELECT * FROM records WHERE 1=1", []
             if site_code:
-                q += " AND site_code=?"; p.append(site_code)
+                q += " AND UPPER(site_code)=UPPER(?)"; p.append(site_code)
             if week_monday:
                 q += " AND week_monday=?"; p.append(week_monday)
+            if location:
+                q += " AND location=?"; p.append(location)
+            if company:
+                q += " AND company=?"; p.append(company)
             q += " ORDER BY measure_date, slot"
             return [dict(r) for r in con.execute(q, p).fetchall()]
+
+    def get_companies(self, site_code: str = "", week_monday: str = "") -> list:
+        with self.conn() as con:
+            q, p = "SELECT DISTINCT company FROM records WHERE company!=''", []
+            if site_code:
+                q += " AND UPPER(site_code)=UPPER(?)"; p.append(site_code)
+            if week_monday:
+                q += " AND week_monday=?"; p.append(week_monday)
+            q += " ORDER BY company"
+            return [r[0] for r in con.execute(q, p).fetchall()]
+
+    def get_locations(self, site_code: str = "", company: str = "", week_monday: str = "") -> list:
+        with self.conn() as con:
+            q, p = "SELECT DISTINCT location FROM records WHERE location!=''", []
+            if site_code:
+                q += " AND UPPER(site_code)=UPPER(?)"; p.append(site_code)
+            if company:
+                q += " AND company=?"; p.append(company)
+            if week_monday:
+                q += " AND week_monday=?"; p.append(week_monday)
+            q += " ORDER BY location"
+            return [r[0] for r in con.execute(q, p).fetchall()]
 
     def upsert_record(self, data: dict) -> int:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -142,23 +173,40 @@ class Database:
                 data.get("notes",""), now, rec_id,
             ))
 
+    def get_record_photo_id(self, rec_id: int) -> str:
+        with self.conn() as con:
+            row = con.execute("SELECT photo_id FROM records WHERE id=?", (rec_id,)).fetchone()
+            return row[0] if row else ""
+
     def delete_record(self, rec_id: int):
         with self.conn() as con:
             con.execute("DELETE FROM records WHERE id=?", (rec_id,))
 
     # ── Autocomplete / History ─────────────────────────────────────────────────
-    def get_autocomplete(self) -> dict:
+    def get_autocomplete(self, site_code: str = "") -> dict:
         with self.conn() as con:
             codes = con.execute(
                 "SELECT DISTINCT site_code,site_name FROM records "
                 "WHERE site_code!='' ORDER BY site_code"
             ).fetchall()
-            companies = con.execute(
-                "SELECT DISTINCT company FROM records WHERE company!='' ORDER BY company"
-            ).fetchall()
-            locations = con.execute(
-                "SELECT DISTINCT location FROM records WHERE location!='' ORDER BY location"
-            ).fetchall()
+            if site_code:
+                companies = con.execute(
+                    "SELECT DISTINCT company FROM records "
+                    "WHERE company!='' AND UPPER(site_code)=UPPER(?) ORDER BY company",
+                    (site_code,)
+                ).fetchall()
+                locations = con.execute(
+                    "SELECT DISTINCT location FROM records "
+                    "WHERE location!='' AND UPPER(site_code)=UPPER(?) ORDER BY location",
+                    (site_code,)
+                ).fetchall()
+            else:
+                companies = con.execute(
+                    "SELECT DISTINCT company FROM records WHERE company!='' ORDER BY company"
+                ).fetchall()
+                locations = con.execute(
+                    "SELECT DISTINCT location FROM records WHERE location!='' ORDER BY location"
+                ).fetchall()
         return {
             "site_codes": [{"code": r[0], "name": r[1]} for r in codes],
             "companies":  [r[0] for r in companies],

@@ -100,8 +100,18 @@ async def extract_photo(body: dict):
 
 # ── 기록 CRUD ─────────────────────────────────────────────────────────────────
 @app.get("/api/records")
-def get_records(site_code: str = "", week_monday: str = ""):
-    return {"records": db.get_records(site_code=site_code, week_monday=week_monday)}
+def get_records(site_code: str = "", week_monday: str = "", location: str = "", company: str = ""):
+    return {"records": db.get_records(site_code=site_code, week_monday=week_monday, location=location, company=company)}
+
+
+@app.get("/api/companies")
+def get_companies(site_code: str = "", week_monday: str = ""):
+    return {"companies": db.get_companies(site_code=site_code, week_monday=week_monday)}
+
+
+@app.get("/api/locations")
+def get_locations(site_code: str = "", company: str = "", week_monday: str = ""):
+    return {"locations": db.get_locations(site_code=site_code, company=company, week_monday=week_monday)}
 
 
 @app.post("/api/records")
@@ -118,14 +128,35 @@ def update_record(rec_id: int, rec: RecordIn):
 
 @app.delete("/api/records/{rec_id}")
 def delete_record(rec_id: int):
+    photo_id = db.get_record_photo_id(rec_id)
     db.delete_record(rec_id)
+    if photo_id:
+        photo = db.get_photo(photo_id)
+        if photo:
+            fp = Path(photo["filepath"])
+            if fp.exists():
+                fp.unlink(missing_ok=True)
+        db.delete_photo(photo_id)
+    return {"ok": True, "deleted_photo_id": photo_id}
+
+
+@app.delete("/api/photos/{photo_id}")
+def delete_photo(photo_id: str):
+    if not re.fullmatch(r"[0-9a-f\-]{36}", photo_id):
+        raise HTTPException(400, "잘못된 photo_id")
+    photo = db.get_photo(photo_id)
+    if photo:
+        fp = Path(photo["filepath"])
+        if fp.exists():
+            fp.unlink(missing_ok=True)
+        db.delete_photo(photo_id)
     return {"ok": True}
 
 
 # ── 자동완성 / 이력 ────────────────────────────────────────────────────────────
 @app.get("/api/autocomplete")
-def get_autocomplete():
-    return db.get_autocomplete()
+def get_autocomplete(site_code: str = ""):
+    return db.get_autocomplete(site_code=site_code)
 
 
 @app.get("/api/weeks")

@@ -7,25 +7,28 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>체감온도 기록관리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Square:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   [x-cloak]{display:none!important}
-  body{font-family:'Nanum Square','Apple SD Gothic Neo','맑은 고딕',sans-serif;background:#f5f5f7}
+  body{font-family:'Nanum Square','NanumSquare','Apple SD Gothic Neo','맑은 고딕',sans-serif;background:#f5f5f7}
   .card{background:white;border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8e8ed}
   .kpi-card{background:white;border:1px solid #e8e8ed;border-radius:13px;padding:12px;text-align:center}
   .kpi-val{font-size:1.4rem;font-weight:800;color:#1c1c1e}
   .kpi-lbl{font-size:.68rem;color:#86868b;margin-top:2px}
-  .btn-primary{background:#0071e3;color:white;border-radius:10px;padding:9px 16px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none}
+  .btn-primary{background:#0071e3;color:white;border-radius:10px;padding:9px 16px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
   .btn-primary:hover{background:#005bbf}
   .btn-primary:disabled{background:#b0b0b5;cursor:not-allowed}
-  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none}
+  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
   .btn-secondary:hover{background:#e5e5ea}
-  input,select,textarea{border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;font-size:.85rem;width:100%;outline:none;transition:border-color .15s;font-family:inherit}
+  input,select,textarea{box-sizing:border-box;border:1px solid #d1d5db;border-radius:12px;padding:12px 16px 12px 14px!important;font-size:.85rem!important;line-height:1.4;width:100%;max-width:100%;outline:none;transition:border-color .15s;font-family:inherit}
   input:focus,select:focus,textarea:focus{border-color:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
-  .tab-btn{transition:all .2s;border-radius:9px;padding:8px 10px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent}
+  input::placeholder,textarea::placeholder{font-size:.85rem!important;color:#b0b0b8}
+  .tab-btn{transition:all .2s;border-radius:9px;padding:8px 10px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent;font-family:inherit}
   .tab-btn.active{background:white;box-shadow:0 1px 6px rgba(0,0,0,.12);color:#0071e3}
   .tab-btn:not(.active){color:#86868b}
   .tab-btn:not(.active):hover{background:rgba(255,255,255,.6)}
@@ -36,13 +39,14 @@
   .badge-주의{background:#ffcc00;color:#1c1c1e;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
   .badge-관심{background:#34c759;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
   .week-tag{display:inline-block;background:#0071e3;color:white;border-radius:8px;padding:3px 12px;font-size:.8rem;font-weight:700}
-  .grid-table{width:100%;border-collapse:collapse;font-size:.8rem}
-  .grid-table th{background:#0071e3;color:white;padding:7px 6px;text-align:center;font-weight:700;white-space:nowrap}
-  .grid-table td{padding:4px 5px;border:1px solid #e8e8ed;vertical-align:middle}
-  .grid-table tr:nth-child(even){background:#f9f9fb}
-  .grid-table tr:hover{background:#f0f5ff}
-  .grid-table input,.grid-table select{border:none;background:transparent;padding:4px 5px;font-size:.8rem;width:100%;border-radius:4px;font-family:inherit}
+  .grid-table{border-collapse:collapse;font-size:.82rem}
+  .grid-table th{background:#0071e3;color:white;padding:7px 8px;text-align:center;font-weight:700;font-size:.82rem;overflow:hidden}
+  .grid-table td{padding:4px 5px;border-right:1px solid #e8e8ed;border-bottom:1px solid #e8e8ed;vertical-align:middle;overflow:hidden;white-space:nowrap}
+  .grid-table tr.day-sep td{border-top:2px solid #c7c7cc}
+  .grid-table tr:hover td{background:#f0f5ff}
+  .grid-table input,.grid-table select{border:none;background:transparent;padding:3px 6px!important;font-size:.82rem!important;border-radius:4px;font-family:inherit;width:100%;box-sizing:border-box;white-space:nowrap}
   .grid-table input:focus,.grid-table select:focus{background:white;border:1px solid #0071e3;box-shadow:0 0 0 2px rgba(0,113,227,.1)}
+  .heat-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;vertical-align:middle;margin-right:3px}
   .photo-thumb{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e8e8ed}
   .progress-bar{height:4px;background:#e8e8ed;border-radius:2px;overflow:hidden}
   .progress-fill{height:100%;background:#0071e3;transition:width .3s}
@@ -55,19 +59,43 @@
 <body x-data="app()" x-init="init()" x-cloak>
 
 <!-- ── 고정 상단 헤더 ──────────────────────────────────────────────────────── -->
-<header class="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-  <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-    <h1 class="text-base font-extrabold text-gray-900 tracking-tight">🌡 체감온도 기록관리</h1>
-    <div class="flex items-center gap-2">
-      <template x-if="meta.siteCode">
-        <span class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold border border-blue-100"
-              x-text="meta.siteCode"></span>
-      </template>
-      <template x-if="meta.location">
-        <span class="text-xs text-gray-400 hidden sm:inline truncate max-w-24" x-text="meta.location"></span>
-      </template>
-      <span class="text-xs font-semibold"
-            :class="apiOk ? 'text-green-600' : 'text-red-500'"
+<header class="sticky top-0 z-40" style="background:linear-gradient(135deg,#0062cc,#0071e3,#0096c7);box-shadow:0 2px 12px rgba(0,100,200,.2)">
+  <div class="max-w-3xl mx-auto px-4" style="padding-top:14px;padding-bottom:14px">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg">🌡</span>
+          <h1 class="font-extrabold text-white" style="font-size:1.15rem;letter-spacing:-.02em">체감온도 기록관리</h1>
+        </div>
+        <div class="pl-7 leading-tight">
+          <template x-if="meta.siteCode || meta.siteName || meta.company || meta.location">
+            <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              <template x-if="meta.siteCode">
+                <span class="text-xs px-1.5 py-0.5 rounded font-bold"
+                      style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3)"
+                      x-text="meta.siteCode"></span>
+              </template>
+              <template x-if="meta.siteName">
+                <span class="text-xs px-1.5 py-0.5 rounded font-bold"
+                      style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.25)"
+                      x-text="meta.siteName"></span>
+              </template>
+              <template x-if="meta.company">
+                <span class="text-xs" style="color:rgba(255,255,255,.75)" x-text="meta.company"></span>
+              </template>
+              <template x-if="meta.location">
+                <span class="text-xs" style="color:rgba(255,255,255,.75)" x-text="'📍'+meta.location"></span>
+              </template>
+            </div>
+          </template>
+          <template x-if="!meta.siteCode && !meta.siteName && !meta.company && !meta.location">
+            <span class="text-xs" style="color:rgba(255,255,255,.6)">현장 기본 정보를 입력하세요</span>
+          </template>
+        </div>
+      </div>
+      <span class="text-xs font-bold mt-1 px-2 py-1 rounded-lg"
+            style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)"
+            :style="apiOk ? 'color:white' : 'color:#ffd0d0'"
             :title="apiOk ? 'Gemini AI 연결됨' : 'API 키 미설정'"
             x-text="apiOk ? '✅ AI' : '❌ AI'"></span>
     </div>
@@ -83,6 +111,7 @@
       <div>
         <label class="text-xs text-gray-500 font-bold">현장코드</label>
         <input type="text" x-model="meta.siteCode" placeholder="예: J881"
+               @input="meta.siteCode = meta.siteCode.toUpperCase()"
                @change="onSiteCodeChange" list="site-code-list" class="mt-1">
         <datalist id="site-code-list">
           <template x-for="s in ac.siteCodes" :key="s.code">
@@ -125,104 +154,307 @@
   </div>
 
   <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
-  <div class="card">
-    <!-- 탭 버튼: 글자 잘리지 않도록 white-space:nowrap 적용 -->
+  <div class="card relative">
+    <template x-if="!meta.siteCode || !meta.siteName">
+      <div class="absolute inset-0 rounded-xl z-10 flex flex-col items-center justify-center gap-2"
+           style="background:rgba(255,255,255,.88);backdrop-filter:blur(3px)">
+        <div class="text-4xl">🏗</div>
+        <div class="font-bold text-sm text-gray-600">현장코드를 먼저 입력해주세요</div>
+        <div class="text-xs text-gray-400">현장 기본 정보를 입력하면 활성화됩니다</div>
+      </div>
+    </template>
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
       <button class="tab-btn flex-1" :class="{active:activeTab==='camera'}"  @click="activeTab='camera'">📸 촬영</button>
       <button class="tab-btn flex-1" :class="{active:activeTab==='upload'}"  @click="activeTab='upload'">📁 업로드</button>
-      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}" @click="activeTab='history'">📋 기간 조회</button>
+      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}" @click="activeTab='history'">📋 이전 기록</button>
     </div>
 
-    <!-- ── 카메라 탭 ── -->
+    <!-- ── 카메라 탭: 촬영 → 즉시 AI 추출 → 수정 → 저장 ── -->
     <div x-show="activeTab==='camera'">
-      <p class="text-xs text-gray-400 mb-3">측정 구분(오전1~오후2)은 AI 시간 인식 결과로 자동 판정됩니다.</p>
-      <div class="mb-3">
-        <label class="text-xs text-gray-500 font-bold">촬영 날짜</label>
-        <input type="date" x-model="cam.date" class="mt-1">
-      </div>
-      <label class="drop-zone block cursor-pointer" for="cam-input">
-        <div class="text-3xl mb-2">📷</div>
-        <div class="font-bold text-gray-700 text-sm">여기를 탭하여 카메라 열기</div>
-        <div class="text-xs text-gray-400 mt-1">모바일: 후면 카메라 / PC: 웹캠 또는 파일 선택</div>
-      </label>
-      <input id="cam-input" type="file" accept="image/*" capture="environment"
-             class="hidden" @change="onCameraCapture">
+      <template x-if="!cam.preview">
+        <div>
+          <div class="mb-3">
+            <label class="text-xs text-gray-500 font-bold">촬영 날짜</label>
+            <input type="date" x-model="cam.date" class="mt-1">
+          </div>
+          <label class="drop-zone block cursor-pointer">
+            <input type="file" accept="image/*" :capture="isMobile ? 'environment' : false"
+                   class="hidden" @change="onCameraCapture">
+            <div class="text-4xl mb-2" x-text="isMobile ? '📷' : '🖼️'"></div>
+            <div class="font-bold text-gray-700" x-text="isMobile ? '온습도계 사진 촬영' : '사진 파일 선택'"></div>
+            <div class="text-xs text-gray-400 mt-1"
+                 x-text="isMobile ? '탭하면 후면 카메라가 열립니다' : 'PC에서는 파일 선택창이 열립니다 (업로드 탭과 동일)'"></div>
+          </label>
+        </div>
+      </template>
+
       <template x-if="cam.preview">
-        <div class="mt-3 flex gap-3 items-start bg-blue-50 rounded-xl p-3">
-          <img :src="cam.preview" class="w-28 h-28 object-cover rounded-xl border-2 border-blue-200 flex-shrink-0">
-          <div class="flex-1">
-            <div class="text-sm font-bold text-gray-800 mb-1">촬영된 사진</div>
-            <div class="text-xs text-gray-500 space-y-1">
-              <div>📅 <span x-text="cam.date"></span></div>
-              <div>👤 <span x-text="meta.measurer||'(측정자 미입력)'"></span></div>
-              <div class="text-blue-600 font-semibold">🕐 구분: AI 추출 후 자동 판정</div>
+        <div>
+          <div class="flex gap-3 items-start mb-3">
+            <img :src="cam.preview" class="w-32 h-32 object-cover rounded-xl border-2 border-blue-200 flex-shrink-0">
+            <div class="flex-1">
+              <div class="text-xs text-gray-500 mb-1">📅 <span x-text="cam.date"></span></div>
+              <template x-if="cam.extracting">
+                <div class="text-sm text-blue-600 font-bold animate-pulse">🤖 AI 분석 중...</div>
+              </template>
+              <template x-if="cam.error">
+                <div class="text-sm text-red-500 font-bold" x-text="'❌ '+cam.error"></div>
+              </template>
+              <template x-if="!cam.extracting && !cam.error && cam.result">
+                <div class="text-xs text-green-600 font-bold">✅ 추출 완료 — 아래에서 확인·수정 후 저장</div>
+              </template>
+              <button @click="resetCam()" class="btn-secondary text-xs py-1 px-3 mt-2">↩ 다시 촬영</button>
             </div>
-            <button @click="addCameraPhoto" class="btn-primary mt-3 text-sm w-full">
-              ✅ 사진 추가
-            </button>
+          </div>
+
+          <template x-if="cam.result">
+            <div>
+              <div class="bg-gray-50 rounded-xl p-3 space-y-2 mb-3">
+                <div class="text-xs font-extrabold text-gray-600 mb-2">측정값 확인 및 수정</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="text-xs text-gray-400">온도 (°C)</label>
+                    <input type="number" step="0.1" x-model.number="cam.result.temperature"
+                           @input="camRecalc()" class="mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">습도 (%)</label>
+                    <input type="number" step="1" x-model.number="cam.result.humidity"
+                           @input="camRecalc()" class="mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">측정시각</label>
+                    <input type="text" placeholder="HH:MM" x-model="cam.result.time"
+                           @change="camRecalc()" class="mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">측정 구분 (자동)</label>
+                    <input type="text" :value="cam.result.slot||'(시간 미인식)'"
+                           class="mt-1 bg-blue-50 text-blue-700 font-bold" readonly>
+                  </div>
+                </div>
+                <template x-if="cam.result.feels_like != null">
+                  <div class="flex items-center gap-3 pt-1 border-t border-gray-200">
+                    <span class="text-xs text-gray-500">체감온도</span>
+                    <span class="text-lg font-extrabold text-orange-500" x-text="cam.result.feels_like+'°C'"></span>
+                    <span x-show="cam.result.heat_level && cam.result.heat_level!=='-'"
+                          :class="'badge-'+cam.result.heat_level"
+                          x-text="cam.result.heat_level"></span>
+                  </div>
+                </template>
+                <div>
+                  <label class="text-xs text-gray-400">조치사항</label>
+                  <select x-model="cam.result.action" class="mt-1">
+                    <option>N/A</option><option>추가휴식시간부여</option><option>보냉장구지급</option>
+                    <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
+                  </select>
+                </div>
+              </div>
+              <button @click="saveCamDirect()" class="btn-primary w-full"
+                      :disabled="cam.saving || !meta.siteCode || !meta.location"
+                      x-text="cam.saving ? '저장 중...' : '💾 저장'">
+              </button>
+              <div x-show="!meta.siteCode || !meta.location"
+                   class="text-xs text-red-400 text-center mt-1">
+                ※ 현장코드와 위치를 입력해야 저장됩니다
+              </div>
+            </div>
+          </template>
+
+          <template x-if="cam.error && !cam.result">
+            <div class="text-center py-4">
+              <div class="text-xs text-gray-500 mb-2">AI 추출에 실패했습니다. 수동으로 다시 시도해 주세요.</div>
+              <button @click="retryExtract('cam')" class="btn-primary text-xs py-2 px-4">🔄 다시 추출</button>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── 업로드 탭: 파일 선택 → 즉시 AI 추출 → 수정 → 저장 ── -->
+    <div x-show="activeTab==='upload'">
+      <template x-if="!upld.preview">
+        <div>
+          <div class="mb-3">
+            <label class="text-xs text-gray-500 font-bold">촬영 날짜</label>
+            <input type="date" x-model="upld.date" class="mt-1">
+          </div>
+          <label class="drop-zone block cursor-pointer"
+                 @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+                 @dragleave="$event.currentTarget.classList.remove('dragover')"
+                 @drop.prevent="onUploadDrop($event)">
+            <input type="file" accept="image/*" multiple class="hidden"
+                   @change="onUploadFileSelect($event)">
+            <div class="text-3xl mb-2">📁</div>
+            <div class="font-bold text-gray-700 text-sm">클릭하거나 파일을 여기에 드래그</div>
+            <div class="text-xs text-gray-400 mt-1">여러 장 동시 선택 가능 · 한 장씩 확인 후 저장</div>
+          </label>
+        </div>
+      </template>
+
+      <template x-if="upld.preview">
+        <div>
+          <div class="flex gap-3 items-start mb-3">
+            <img :src="upld.preview" class="w-32 h-32 object-cover rounded-xl border-2 border-blue-200 flex-shrink-0">
+            <div class="flex-1">
+              <template x-if="upld.total > 1">
+                <div class="text-xs font-bold text-blue-600 mb-1"
+                     x-text="`📸 ${upld.current} / ${upld.total}장`"></div>
+              </template>
+              <div class="text-xs text-gray-500 mb-1 truncate" x-text="upld.filename"></div>
+              <div class="text-xs text-gray-500 mb-1">📅 <span x-text="upld.date"></span></div>
+              <template x-if="upld.extracting">
+                <div class="text-sm text-blue-600 font-bold animate-pulse">🤖 AI 분석 중...</div>
+              </template>
+              <template x-if="upld.error">
+                <div class="text-sm text-red-500 font-bold" x-text="'❌ '+upld.error"></div>
+              </template>
+              <template x-if="!upld.extracting && !upld.error && upld.result">
+                <div class="text-xs text-green-600 font-bold">✅ 추출 완료 — 확인·수정 후 저장</div>
+              </template>
+              <div class="flex gap-2 mt-2">
+                <button @click="resetUpld()" class="btn-secondary text-xs py-1 px-3">↩ 처음으로</button>
+                <template x-if="upld.total > 1">
+                  <button @click="skipUpld()" class="btn-secondary text-xs py-1 px-3">건너뛰기 ›</button>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <template x-if="upld.result">
+            <div>
+              <div class="bg-gray-50 rounded-xl p-3 space-y-2 mb-3">
+                <div class="text-xs font-extrabold text-gray-600 mb-2">측정값 확인 및 수정</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="text-xs text-gray-400">온도 (°C)</label>
+                    <input type="number" step="0.1" x-model.number="upld.result.temperature"
+                           @input="upldRecalc()" class="mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">습도 (%)</label>
+                    <input type="number" step="1" x-model.number="upld.result.humidity"
+                           @input="upldRecalc()" class="mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">측정시각</label>
+                    <input type="text" placeholder="HH:MM" x-model="upld.result.time"
+                           @change="upldRecalc()" class="mt-1">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">측정 구분 (자동)</label>
+                    <input type="text" :value="upld.result.slot||'(시간 미인식)'"
+                           class="mt-1 bg-blue-50 text-blue-700 font-bold" readonly>
+                  </div>
+                </div>
+                <template x-if="upld.result.feels_like != null">
+                  <div class="flex items-center gap-3 pt-1 border-t border-gray-200">
+                    <span class="text-xs text-gray-500">체감온도</span>
+                    <span class="text-lg font-extrabold text-orange-500" x-text="upld.result.feels_like+'°C'"></span>
+                    <span x-show="upld.result.heat_level && upld.result.heat_level!=='-'"
+                          :class="'badge-'+upld.result.heat_level"
+                          x-text="upld.result.heat_level"></span>
+                  </div>
+                </template>
+                <div>
+                  <label class="text-xs text-gray-400">조치사항</label>
+                  <select x-model="upld.result.action" class="mt-1">
+                    <option>N/A</option><option>추가휴식시간부여</option><option>보냉장구지급</option>
+                    <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs text-gray-400">날짜 확인</label>
+                  <input type="date" x-model="upld.date" class="mt-1">
+                </div>
+              </div>
+              <button @click="saveUpldDirect()" class="btn-primary w-full"
+                      :disabled="upld.saving || !meta.siteCode || !meta.location"
+                      x-text="upld.saving ? '저장 중...' : '💾 저장'">
+              </button>
+              <div x-show="!meta.siteCode || !meta.location"
+                   class="text-xs text-red-400 text-center mt-1">
+                ※ 현장코드와 위치를 입력해야 저장됩니다
+              </div>
+            </div>
+          </template>
+
+          <template x-if="upld.error && !upld.result">
+            <div class="text-center py-4">
+              <div class="text-xs text-gray-500 mb-2">AI 추출에 실패했습니다.</div>
+              <button @click="retryExtract('upld')" class="btn-primary text-xs py-2 px-4">🔄 다시 추출</button>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── 기간 조회 탭 ── -->
+    <div x-show="activeTab==='history'">
+      <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
+        <div class="text-xs font-extrabold text-blue-700 mb-2">📅 2026년 측정기간 선택</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label class="text-xs text-gray-500 font-bold">월</label>
+            <select x-model.number="meta.month" @change="buildWeeks" class="mt-1">
+              <template x-for="m in [5,6,7,8,9]" :key="m">
+                <option :value="m" x-text="m+'월'"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-bold">주차</label>
+            <select x-model="meta.weekLabel" @change="onWeekChange" class="mt-1">
+              <template x-for="w in weeks" :key="w.monday">
+                <option :value="w.label" x-text="w.label"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-bold">업체명</label>
+            <select x-model="hist.company" @change="onHistCompanyChange" class="mt-1">
+              <option value="">전체</option>
+              <template x-for="c in hist.companies" :key="c">
+                <option :value="c" x-text="c"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-bold">온습도계 위치</label>
+            <select x-model="hist.location" class="mt-1">
+              <option value="">전체</option>
+              <template x-for="l in hist.locations" :key="l">
+                <option :value="l" x-text="l"></option>
+              </template>
+            </select>
           </div>
         </div>
-      </template>
-    </div>
-
-    <!-- ── 업로드 탭 ── -->
-    <div x-show="activeTab==='upload'">
-      <p class="text-xs text-gray-400 mb-3">
-        파일명에 날짜가 포함되면 자동 인식됩니다.
-        <code class="bg-gray-100 px-1 rounded">20260506 (1).jpg</code> → 5/6일.
-        측정 구분은 AI 시간 인식으로 자동 판정.
-      </p>
-      <label class="drop-zone block cursor-pointer"
-             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-             @dragleave="$event.currentTarget.classList.remove('dragover')"
-             @drop.prevent="onDrop($event)">
-        <input type="file" accept="image/*" multiple class="hidden"
-               @change="onFileSelect($event.target.files)">
-        <div class="text-3xl mb-2">📁</div>
-        <div class="font-bold text-gray-700 text-sm">클릭하거나 파일을 여기에 드래그</div>
-        <div class="text-xs text-gray-400 mt-1">여러 장 동시 선택 가능 (JPG, PNG, BMP)</div>
-      </label>
-    </div>
-
-    <!-- ── 기간 조회·추가 탭 ── -->
-    <div x-show="activeTab==='history'">
-      <p class="text-xs text-gray-400 mb-3">저장된 이전 기간의 기록을 불러오거나 사진을 추가 등록합니다.</p>
-      <div class="flex gap-2 mb-3">
-        <select x-model="hist.selectedWeek" class="flex-1" @change="loadHistoryWeekInfo">
-          <option value="">-- 기간 선택 --</option>
-          <template x-for="w in hist.availableWeeks" :key="w">
-            <option :value="w" x-text="formatMonday(w)"></option>
-          </template>
-        </select>
-        <button @click="loadHistoryWeek" class="btn-primary whitespace-nowrap">📂 불러오기</button>
+        <button @click="loadRecords" class="btn-primary w-full text-sm">📂 기록 불러오기</button>
       </div>
-      <template x-if="hist.summary">
-        <div class="grid grid-cols-3 gap-2 mb-3">
-          <div class="kpi-card"><div class="kpi-val text-blue-600" x-text="hist.summary.count+'건'"></div><div class="kpi-lbl">기록 건수</div></div>
-          <div class="kpi-card"><div class="kpi-val" x-text="hist.summary.maxTemp"></div><div class="kpi-lbl">최고 온도</div></div>
-          <div class="kpi-card"><div class="kpi-val text-orange-500" x-text="hist.summary.maxFeels"></div><div class="kpi-lbl">최고 체감온도</div></div>
-        </div>
-      </template>
-      <template x-if="hist.selectedWeek">
+
+      <template x-if="currentMonday">
         <div>
-          <div class="text-xs font-bold text-gray-600 mb-2">➕ 이 기간에 사진 추가</div>
-          <label class="drop-zone block cursor-pointer">
+          <div class="text-xs font-bold text-gray-600 mb-2">➕ 이 기간에 사진 추가 (일괄)</div>
+          <label class="drop-zone block cursor-pointer"
+                 @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+                 @dragleave="$event.currentTarget.classList.remove('dragover')"
+                 @drop.prevent="onHistDrop($event)">
             <input type="file" accept="image/*" multiple class="hidden"
                    @change="onHistFileSelect($event.target.files)">
             <div class="text-2xl mb-1">📎</div>
-            <div class="text-sm text-gray-600">추가 사진 선택</div>
+            <div class="text-sm text-gray-600">추가 사진 선택 (여러 장 가능)</div>
           </label>
         </div>
       </template>
     </div>
   </div>
 
-  <!-- ══ 업로드 대기 사진 목록 ══════════════════════════════════════════════ -->
+  <!-- ══ 큐 (기간 조회 탭 일괄 추가용) ══════════════════════════════════════ -->
   <template x-if="queue.length > 0">
     <div class="card">
       <div class="flex items-center justify-between mb-3">
         <div class="font-bold text-gray-800 text-sm">
-          📸 업로드된 사진
+          📸 대기 사진
           <span class="text-xs text-gray-400 ml-1 font-normal" x-text="`(${queue.length}장)`"></span>
         </div>
         <div class="flex gap-2">
@@ -302,7 +534,12 @@
   <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday">
     <div>
       <div class="flex items-center justify-between mb-2">
-        <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
+          <template x-if="wkInfo.location">
+            <span class="text-xs font-bold text-gray-500" x-text="'📍 '+wkInfo.location"></span>
+          </template>
+        </div>
         <button @click="downloadExcel(wkInfo.monday)"
                 class="btn-primary text-xs py-2 px-3"
                 :disabled="!wkInfo.records.some(r=>r.temperature!=null)">
@@ -314,29 +551,50 @@
           <canvas :id="'chart-'+wi" height="110"></canvas>
         </div>
       </template>
-      <div class="card overflow-x-auto">
-        <table class="grid-table">
+      <div class="card overflow-x-auto" style="padding:0">
+        <table class="grid-table" style="table-layout:fixed;width:976px">
+          <colgroup>
+            <col style="width:30px">
+            <col style="width:80px">
+            <col style="width:56px">
+            <col style="width:72px">
+            <col style="width:68px">
+            <col style="width:65px">
+            <col style="width:90px">
+            <col style="width:60px">
+            <col style="width:170px">
+            <col style="width:110px">
+            <col style="width:80px">
+            <col style="width:95px">
+          </colgroup>
           <thead>
             <tr>
-              <th style="width:78px">날짜</th>
-              <th style="width:55px">구분</th>
-              <th style="width:72px">측정시각</th>
-              <th style="width:70px">온도(°C)</th>
-              <th style="width:65px">습도(%)</th>
-              <th style="width:82px">체감온도(°C)</th>
-              <th style="width:55px">단계</th>
-              <th style="width:140px">조치사항</th>
-              <th style="width:105px">기타내용</th>
-              <th style="width:72px">측정자</th>
-              <th style="width:95px">비고</th>
-              <th style="width:36px">삭제</th>
+              <th>삭제</th>
+              <th>날짜</th>
+              <th>구분</th>
+              <th>측정시각</th>
+              <th>온도(°C)</th>
+              <th>습도(%)</th>
+              <th>체감온도(°C)</th>
+              <th>단계</th>
+              <th>조치사항</th>
+              <th>기타내용</th>
+              <th>측정자</th>
+              <th>비고</th>
             </tr>
           </thead>
           <tbody>
             <template x-for="row in wkInfo.gridRows" :key="row.key">
-              <tr>
-                <td class="text-center text-xs font-bold" x-text="row.dateLabel"></td>
-                <td class="text-center text-xs" x-text="row.slot"></td>
+              <tr :class="{'day-sep': row.isFirstSlot, 'bg-white': row.temperature!=null||row.humidity!=null, 'bg-gray-100': row.temperature==null&&row.humidity==null}">
+                <td class="text-center">
+                  <template x-if="row.id">
+                    <button @click="deleteRow(row, wkInfo)"
+                            class="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 rounded text-xs">✕</button>
+                  </template>
+                </td>
+                <td class="text-center font-bold"
+                    x-text="row.isFirstSlot ? row.dateLabel : ''"></td>
+                <td class="text-center text-gray-500" x-text="row.slot"></td>
                 <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td><input type="number" x-model.number="row.temperature" step="0.1"
@@ -346,7 +604,7 @@
                            placeholder="-" @input="recalcRow(row)"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td class="text-center">
-                  <span class="font-bold text-sm"
+                  <span class="heat-dot" :style="heatDotStyle(row.feels_like)"></span><span class="font-bold"
                         x-text="row.feels_like != null ? row.feels_like.toFixed(1)+'°C' : '-'"></span>
                 </td>
                 <td class="text-center">
@@ -356,12 +614,8 @@
                 </td>
                 <td>
                   <select x-model="row.action" @change="autoSaveRow(row, wkInfo.monday)">
-                    <option>N/A</option>
-                    <option>추가휴식시간부여</option>
-                    <option>보냉장구지급</option>
-                    <option>작업시간대조정</option>
-                    <option>작업중지</option>
-                    <option>기타</option>
+                    <option>N/A</option><option>추가휴식시간부여</option><option>보냉장구지급</option>
+                    <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
                   </select>
                 </td>
                 <td><input type="text" x-model="row.other_content"
@@ -372,12 +626,6 @@
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td><input type="text" x-model="row.notes"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
-                <td class="text-center">
-                  <template x-if="row.id">
-                    <button @click="deleteRow(row, wkInfo)"
-                            class="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 rounded text-xs">✕</button>
-                  </template>
-                </td>
               </tr>
             </template>
           </tbody>
@@ -390,8 +638,11 @@
           </summary>
           <div class="flex flex-wrap gap-3 mt-3">
             <template x-for="ph in wkInfo.photos" :key="ph.photo_id">
-              <div class="text-center">
+              <div class="relative text-center">
                 <img :src="'/uploads/'+ph.photo_id" class="photo-thumb">
+                <button @click="deletePhoto(ph, wkInfo)"
+                        class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none"
+                        title="사진 삭제">✕</button>
                 <div class="text-xs text-gray-400 mt-1" x-text="ph.dateLabel+' '+ph.slot"></div>
                 <template x-if="ph.temperature">
                   <div class="text-xs font-bold" x-text="ph.temperature+'°C / '+ph.humidity+'%'"></div>
@@ -404,47 +655,13 @@
     </div>
   </template>
 
-  <!-- 기록 없을 때 -->
   <template x-if="records.length === 0 && queue.length === 0">
     <div class="card text-center py-10 text-gray-400">
       <div class="text-5xl mb-3">🌡</div>
-      <div class="font-bold text-sm">위 탭에서 사진을 등록하거나 아래에서 기록을 불러오세요</div>
+      <div class="font-bold text-sm">📸 촬영·업로드 탭에서 사진 등록 후 저장하거나</div>
+      <div class="text-sm mt-1">📋 기간 조회 탭에서 기록을 불러오세요</div>
     </div>
   </template>
-
-  <!-- ══ 측정기간 선택 및 기록 불러오기 (맨 아래) ══════════════════════════ -->
-  <div class="card">
-    <div class="text-xs font-extrabold text-blue-600 mb-3">📅 측정기간 선택 및 기록 불러오기</div>
-    <div class="grid grid-cols-2 gap-2 mb-2">
-      <div>
-        <label class="text-xs text-gray-500 font-bold">연도</label>
-        <select x-model.number="meta.year" @change="buildWeeks" class="mt-1">
-          <template x-for="y in [2024,2025,2026,2027,2028,2029]" :key="y">
-            <option :value="y" x-text="y+'년'"></option>
-          </template>
-        </select>
-      </div>
-      <div>
-        <label class="text-xs text-gray-500 font-bold">월</label>
-        <select x-model.number="meta.month" @change="buildWeeks" class="mt-1">
-          <template x-for="m in Array.from({length:12},(_,i)=>i+1)" :key="m">
-            <option :value="m" x-text="m+'월'"></option>
-          </template>
-        </select>
-      </div>
-    </div>
-    <div class="mb-3">
-      <label class="text-xs text-gray-500 font-bold">주차</label>
-      <select x-model="meta.weekLabel" @change="onWeekChange" class="mt-1">
-        <template x-for="w in weeks" :key="w.monday">
-          <option :value="w.label" x-text="w.label"></option>
-        </template>
-      </select>
-    </div>
-    <button @click="loadRecords" class="btn-primary w-full text-sm">
-      📂 기록 불러오기
-    </button>
-  </div>
 
   <!-- ══ KOSHA 범례 ════════════════════════════════════════════════════════ -->
   <div class="card">
@@ -459,51 +676,47 @@
 
 </div>
 
-<!-- 토스트 메시지 -->
 <div x-show="toast.show" x-transition
      class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-xl z-50"
      x-text="toast.msg"></div>
 
-<!-- ══ Alpine.js 앱 로직 ══════════════════════════════════════════════════ -->
 <script>
 const DAYS_KO = ["월","화","수","목","금","토","일"];
 const SLOTS   = ["오전1","오전2","오후1","오후2"];
 
-// File 객체는 Alpine 반응형 상태 밖에 보관 (Proxy 문제 방지)
-let _camFile = null;
+let _camFile   = null;
+let _upldFile  = null;
+let _upldFiles = [];
 
 function app() {
   return {
     meta: {
       siteCode:'', siteName:'', company:'', location:'',
       measurer: localStorage.getItem('measurer')||'',
-      year: new Date().getFullYear(),
-      month: new Date().getMonth()+1,
+      year: 2026,
+      month: (() => { const m = new Date().getMonth()+1; return m<5?5:m>9?9:m; })(),
       weekLabel:'',
     },
     weeks: [],
     currentMonday: '',
-
     ac: { siteCodes:[], companies:[], locations:[] },
+    activeTab: 'camera',
+    isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
 
-    activeTab: 'upload',
+    // 카메라 탭 상태
+    cam: { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false },
 
-    // 카메라 (slot은 AI 추출 후 자동 판정되므로 UI에서 제거)
-    cam: { date: todayStr(), preview:null },
+    // 업로드 탭 상태 (카메라와 동일 흐름)
+    upld: { date: todayStr(), preview:null, filename:'', photo_id:null, extracting:false, error:null, result:null, saving:false, current:0, total:0 },
 
+    // 큐 (기간 조회 탭 일괄 추가)
     queue: [],
     isExtracting: false,
     extractProgress: 0,
     extractStatus: '',
 
     records: [],
-
-    hist: {
-      availableWeeks: [],
-      selectedWeek: '',
-      summary: null,
-    },
-
+    hist: { company:'', companies:[], location:'', locations:[] },
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
     apiOk: false,
@@ -514,30 +727,40 @@ function app() {
       this.buildWeeks();
       await this.loadAutoComplete();
       await this.checkApi();
-      await this.loadAvailableWeeks();
     },
 
-    saveMeasurer() {
-      localStorage.setItem('measurer', this.meta.measurer);
-    },
+    saveMeasurer() { localStorage.setItem('measurer', this.meta.measurer); },
 
     async checkApi() {
-      try {
-        const r = await fetch('/api/autocomplete');
-        this.apiOk = r.ok;
-      } catch { this.apiOk = false; }
+      try { const r = await fetch('/api/autocomplete'); this.apiOk = r.ok; }
+      catch { this.apiOk = false; }
     },
 
     async loadAutoComplete() {
       try {
-        const r = await fetch('/api/autocomplete');
-        if (r.ok) this.ac = await r.json();
+        const q = new URLSearchParams({ site_code: this.meta.siteCode });
+        const r = await fetch('/api/autocomplete?' + q);
+        if (r.ok) {
+          const d = await r.json();
+          this.ac = {
+            siteCodes: d.site_codes || [],
+            companies: d.companies || [],
+            locations: d.locations || [],
+          };
+        }
       } catch {}
     },
 
-    onSiteCodeChange() {
-      const found = this.ac.siteCodes.find(s => s.code === this.meta.siteCode);
-      if (found && !this.meta.siteName) this.meta.siteName = found.name;
+    async onSiteCodeChange() {
+      this.meta.siteCode = this.meta.siteCode.toUpperCase();
+      const found = this.ac.siteCodes.find(s => s.code.toUpperCase() === this.meta.siteCode);
+      if (found) {
+        this.meta.siteName = found.name;
+        if (found.company && !this.meta.company) this.meta.company = found.company;
+      }
+      await this.loadAutoComplete();
+      this.hist.company = ''; this.hist.location = '';
+      await this.refreshHistFilters();
     },
 
     // ── 주차 계산 ──────────────────────────────────────────────────────
@@ -547,7 +770,6 @@ function app() {
       const last  = new Date(y, m, 0);
       const dow = first.getDay() === 0 ? 6 : first.getDay() - 1;
       const mon = new Date(first); mon.setDate(first.getDate() - dow);
-
       this.weeks = [];
       let n=1, cur=new Date(mon);
       while (cur <= last) {
@@ -559,7 +781,6 @@ function app() {
         }
         cur.setDate(cur.getDate()+7); n++;
       }
-
       if (!this.meta.weekLabel && this.weeks.length) {
         const today = todayStr();
         const cur2 = this.weeks.find(w => w.monday <= today && today <= w.sun);
@@ -571,13 +792,19 @@ function app() {
     onWeekChange() {
       const w = this.weeks.find(w => w.label === this.meta.weekLabel);
       if (w) this.currentMonday = w.monday;
+      this.refreshHistFilters();
     },
 
     // ── 기록 로드 ──────────────────────────────────────────────────────
     async loadRecords() {
       if (!this.currentMonday) { this.showToast('주차를 선택하세요'); return; }
       try {
-        const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: this.currentMonday });
+        const q = new URLSearchParams({
+          site_code: this.meta.siteCode,
+          week_monday: this.currentMonday,
+          location: this.hist.location,
+          company: this.hist.company,
+        });
         const r = await fetch('/api/records?'+q);
         const d = await r.json();
         this.records = d.records || [];
@@ -588,38 +815,39 @@ function app() {
       } catch(e) { this.showToast('❌ 로드 실패: '+e.message); }
     },
 
-    // ── 주별 그룹화 ────────────────────────────────────────────────────
     buildWeekGroups() {
       const mondays = [...new Set(this.records.map(r=>r.week_monday).filter(Boolean))].sort();
       if (mondays.length===0 && this.currentMonday) mondays.push(this.currentMonday);
-
       this.weekGroups = mondays.map(monday => {
         const mon = new Date(monday);
         const wkRecs = this.records.filter(r=>r.week_monday===monday);
         const photos = wkRecs.filter(r=>r.photo_id).map(r=>({
           photo_id: r.photo_id, slot: r.slot,
+          measure_date: r.measure_date,
           dateLabel: dateLabelOf(r.measure_date),
           temperature: r.temperature, humidity: r.humidity,
         }));
-
         const recMap = {};
         wkRecs.forEach(r => { recMap[r.measure_date+'_'+r.slot] = r; });
-
         const gridRows = [];
         for (let di=0; di<7; di++) {
           const d = new Date(monday); d.setDate(mon.getDate()+di);
           const ds = fmtDate(d);
-          SLOTS.forEach(slot => {
+          SLOTS.forEach((slot, si) => {
             const existing = recMap[ds+'_'+slot];
-            gridRows.push(existing ? { ...existing, key:ds+'_'+slot, dateLabel:dateLabelOf(ds) }
-              : { key:ds+'_'+slot, measure_date:ds, slot, week_monday:monday,
-                  dateLabel:dateLabelOf(ds), measure_time:'', temperature:null,
-                  humidity:null, feels_like:null, heat_level:'', action:'N/A',
-                  other_content:'', notes:'', measurer:this.meta.measurer, photo_id:'', id:null });
+            const base = { key:ds+'_'+slot, measure_date:ds, slot, week_monday:monday,
+                           dateLabel:dateLabelOf(ds), dayIndex:di, isFirstSlot:si===0,
+                           measure_time:'', temperature:null, humidity:null, feels_like:null,
+                           heat_level:'', action:'N/A', other_content:'', notes:'',
+                           measurer:this.meta.measurer, photo_id:'', id:null };
+            gridRows.push(existing
+              ? { ...base, ...existing, dayIndex:di, isFirstSlot:si===0 }
+              : base);
           });
         }
-
-        return { monday, label: formatMondayLabel(monday), records: wkRecs, gridRows, photos };
+        const locs = [...new Set(wkRecs.map(r=>r.location).filter(Boolean))];
+        const location = this.hist.location || (locs.length === 1 ? locs[0] : locs.join(' · '));
+        return { monday, label: formatMondayLabel(monday), location, records: wkRecs, gridRows, photos };
       });
     },
 
@@ -634,7 +862,6 @@ function app() {
       };
     },
 
-    // ── 차트 ──────────────────────────────────────────────────────────
     drawCharts() {
       this.weekGroups.forEach((wk, wi) => {
         const canvas = document.getElementById('chart-'+wi);
@@ -679,13 +906,11 @@ function app() {
         site_code: this.meta.siteCode, site_name: this.meta.siteName,
         company: this.meta.company,    location: this.meta.location,
         measurer: row.measurer || this.meta.measurer,
-        measure_date: row.measure_date, slot: row.slot,
-        week_monday: weekMonday,
+        measure_date: row.measure_date, slot: row.slot, week_monday: weekMonday,
         measure_time: row.measure_time, temperature: row.temperature,
         humidity: row.humidity, feels_like: row.feels_like,
         heat_level: row.heat_level, action: row.action,
-        other_content: row.other_content, notes: row.notes,
-        photo_id: row.photo_id||'',
+        other_content: row.other_content, notes: row.notes, photo_id: row.photo_id||'',
       };
       try {
         const method = row.id ? 'PUT' : 'POST';
@@ -693,13 +918,10 @@ function app() {
         const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
         const d = await res.json();
         if (!row.id && d.id) row.id = d.id;
-        if (!this.records.find(r=>r.id===row.id)) {
-          this.records.push({...payload, id:row.id});
-        } else {
-          Object.assign(this.records.find(r=>r.id===row.id), payload);
-        }
+        if (!this.records.find(r=>r.id===row.id)) this.records.push({...payload, id:row.id});
+        else Object.assign(this.records.find(r=>r.id===row.id), payload);
         this.calcKpi();
-      } catch(e) { this.showToast('❌ 저장 실패'); }
+      } catch { this.showToast('❌ 저장 실패'); }
     },
 
     recalcRow(row) {
@@ -709,111 +931,341 @@ function app() {
         if (!row.action || row.action==='N/A') {
           row.action = row.feels_like >= 31 ? '추가휴식시간부여' : 'N/A';
         }
-      } else {
-        row.feels_like = null; row.heat_level = '';
-      }
+      } else { row.feels_like = null; row.heat_level = ''; }
     },
 
     async deleteRow(row, wkInfo) {
       if (!row.id) return;
-      if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+      if (!confirm('이 기록을 삭제하시겠습니까?\n(연결된 사진도 함께 삭제됩니다)')) return;
       await fetch(`/api/records/${row.id}`, { method:'DELETE' });
+      if (row.photo_id) {
+        wkInfo.photos = wkInfo.photos.filter(p => p.photo_id !== row.photo_id);
+      }
       this.records = this.records.filter(r=>r.id!==row.id);
       wkInfo.records = wkInfo.records.filter(r=>r.id!==row.id);
       row.id=null; row.temperature=null; row.humidity=null; row.feels_like=null;
-      row.heat_level=''; row.measure_time=''; row.action='N/A';
+      row.heat_level=''; row.measure_time=''; row.action='N/A'; row.photo_id='';
       this.calcKpi();
-      this.showToast('삭제 완료');
+      this.showToast('삭제 완료 (사진 포함)');
+    },
+
+    async deletePhoto(ph, wkInfo) {
+      if (!confirm('이 사진을 삭제하시겠습니까?')) return;
+      await fetch(`/api/photos/${ph.photo_id}`, { method:'DELETE' });
+      wkInfo.photos = wkInfo.photos.filter(p => p.photo_id !== ph.photo_id);
+      const row = wkInfo.gridRows.find(r => r.measure_date === ph.measure_date && r.slot === ph.slot);
+      if (row) row.photo_id = '';
+      const rec = this.records.find(r => r.photo_id === ph.photo_id);
+      if (rec) rec.photo_id = '';
+      this.showToast('사진 삭제 완료');
     },
 
     // ── 카메라 탭 ─────────────────────────────────────────────────────
-    onCameraCapture(e) {
+    async onCameraCapture(e) {
       const file = e.target.files[0];
       if (!file) return;
       _camFile = file;
       this.cam.preview = URL.createObjectURL(file);
+      this.cam.result = null;
+      this.cam.error  = null;
+      this.cam.photo_id = null;
+      this.cam.extracting = true;
+      try {
+        const fname = `camera_${this.cam.date}_${Date.now()}.jpg`;
+        const fd = new FormData(); fd.append('file', file, fname);
+        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
+        if (!ur.ok) throw new Error(`업로드 실패 HTTP ${ur.status}`);
+        const ud = await ur.json();
+        this.cam.photo_id = ud.photo_id;
+
+        const er = await fetch('/api/photos/extract', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ photo_id: ud.photo_id })
+        });
+        if (!er.ok) throw new Error('AI 추출 실패');
+        const extracted = await er.json();
+        if (extracted.temperature != null && extracted.humidity != null) {
+          extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
+          extracted.heat_level = heatLabel(extracted.feels_like);
+        }
+        extracted.slot   = slotFromTime(extracted.time) || null;
+        extracted.action = extracted.action || 'N/A';
+        this.cam.result  = extracted;
+      } catch(err) {
+        this.cam.error = err.message;
+      } finally {
+        this.cam.extracting = false;
+      }
     },
 
-    async addCameraPhoto() {
-      if (!_camFile) { this.showToast('촬영된 사진이 없습니다'); return; }
-      if (!this.currentMonday) { this.showToast('아래에서 주차를 먼저 선택하세요'); return; }
-      const fname = `camera_${this.cam.date}.jpg`;
-      const file = _camFile;
+    camRecalc() {
+      if (!this.cam.result) return;
+      const r = this.cam.result;
+      if (r.temperature != null && r.humidity != null) {
+        r.feels_like = heatIndex(r.temperature, r.humidity);
+        r.heat_level = heatLabel(r.feels_like);
+      } else { r.feels_like = null; r.heat_level = ''; }
+      const s = slotFromTime(r.time);
+      if (s) r.slot = s;
+    },
+
+    async saveCamDirect() {
+      const r = this.cam.result;
+      if (!r || !this.meta.siteCode || !this.meta.location) return;
+      this.cam.saving = true;
+      try {
+        await this._saveRecord(r, this.cam.date, this.cam.photo_id);
+        this.showToast('✅ 저장 완료!');
+        this.resetCam();
+      } catch(err) { this.showToast('❌ 저장 실패: '+err.message); }
+      finally { this.cam.saving = false; }
+    },
+
+    resetCam() {
+      this.cam = { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false };
       _camFile = null;
-      this.cam.preview = null;
-      document.getElementById('cam-input').value = '';
-      await this.enqueueFile(file, fname, this.cam.date, '오전1', this.currentMonday);
-      this.showToast('📸 사진 추가됨 — AI 추출 후 구분 자동 판정');
     },
 
     // ── 업로드 탭 ─────────────────────────────────────────────────────
-    onFileSelect(files) {
-      [...files].forEach(f => {
-        const d = parseDateFromFilename(f.name) || todayStr();
-        const s = parseSlotFromFilename(f.name); // 파일명 힌트 (AI 추출 시 갱신)
-        this.enqueueFile(f, f.name, d, s, calcMonday(d));
-      });
+    async onUploadFileSelect(e) {
+      const files = [...e.target.files];
+      if (!files.length) return;
+      _upldFiles = files;
+      this.upld.total = files.length;
+      this.upld.current = 1;
+      await this._loadUpldFile(0);
     },
 
-    onDrop(e) {
+    async onUploadDrop(e) {
       e.currentTarget.classList.remove('dragover');
-      this.onFileSelect(e.dataTransfer.files);
+      const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+      _upldFiles = files;
+      this.upld.total = files.length;
+      this.upld.current = 1;
+      await this._loadUpldFile(0);
     },
 
-    // ── 기간 조회 탭 ──────────────────────────────────────────────────
-    async loadAvailableWeeks() {
+    async _loadUpldFile(idx) {
+      const file = _upldFiles[idx];
+      _upldFile = file;
+      this.upld.filename = file.name;
+      this.upld.preview  = URL.createObjectURL(file);
+      this.upld.result   = null;
+      this.upld.error    = null;
+      this.upld.photo_id = null;
+      this.upld.date = parseDateFromFilename(file.name) || todayStr();
+      await this.runUploadExtract();
+    },
+
+    async runUploadExtract() {
+      this.upld.extracting = true;
       try {
-        const q = new URLSearchParams({ site_code: this.meta.siteCode });
-        const r = await fetch('/api/weeks?'+q);
-        const d = await r.json();
-        this.hist.availableWeeks = d.weeks || [];
-      } catch {}
+        const fd = new FormData(); fd.append('file', _upldFile, this.upld.filename);
+        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
+        if (!ur.ok) throw new Error(`업로드 실패 HTTP ${ur.status}`);
+        const ud = await ur.json();
+        this.upld.photo_id = ud.photo_id;
+
+        const er = await fetch('/api/photos/extract', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ photo_id: ud.photo_id })
+        });
+        if (!er.ok) throw new Error('AI 추출 실패');
+        const extracted = await er.json();
+        if (extracted.temperature != null && extracted.humidity != null) {
+          extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
+          extracted.heat_level = heatLabel(extracted.feels_like);
+        }
+        extracted.slot   = slotFromTime(extracted.time) || parseSlotFromFilename(this.upld.filename) || null;
+        extracted.action = extracted.action || 'N/A';
+        this.upld.result = extracted;
+      } catch(err) {
+        this.upld.error = err.message;
+      } finally {
+        this.upld.extracting = false;
+      }
     },
 
-    async loadHistoryWeekInfo() {
-      if (!this.hist.selectedWeek) return;
-      const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: this.hist.selectedWeek });
-      const r = await fetch('/api/records?'+q);
-      const d = await r.json();
-      const recs = d.records || [];
-      const temps = recs.map(r=>r.temperature).filter(v=>v!=null);
-      const feels = recs.map(r=>r.feels_like).filter(v=>v!=null);
-      this.hist.summary = recs.length ? {
-        count: recs.length,
-        maxTemp:  temps.length ? Math.max(...temps).toFixed(1)+'°C' : '-',
-        maxFeels: feels.length ? Math.max(...feels).toFixed(1)+'°C' : '-',
-      } : null;
+    upldRecalc() {
+      if (!this.upld.result) return;
+      const r = this.upld.result;
+      if (r.temperature != null && r.humidity != null) {
+        r.feels_like = heatIndex(r.temperature, r.humidity);
+        r.heat_level = heatLabel(r.feels_like);
+      } else { r.feels_like = null; r.heat_level = ''; }
+      const s = slotFromTime(r.time);
+      if (s) r.slot = s;
     },
 
-    async loadHistoryWeek() {
-      if (!this.hist.selectedWeek) { this.showToast('기간을 선택하세요'); return; }
-      const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: this.hist.selectedWeek });
-      const r = await fetch('/api/records?'+q);
-      const d = await r.json();
-      const newRecs = (d.records||[]).filter(nr => !this.records.find(er=>er.id===nr.id));
-      this.records = [...this.records, ...newRecs];
+    async saveUpldDirect() {
+      const r = this.upld.result;
+      if (!r || !this.meta.siteCode || !this.meta.location) return;
+      this.upld.saving = true;
+      try {
+        await this._saveRecord(r, this.upld.date, this.upld.photo_id);
+        const next = this.upld.current; // current은 1-based, next 0-based idx
+        if (next < _upldFiles.length) {
+          this.showToast(`✅ 저장! (${this.upld.current}/${this.upld.total}) 다음 사진 로딩...`);
+          this.upld.current = next + 1;
+          await this._loadUpldFile(next);
+        } else {
+          this.showToast(`✅ 전체 ${this.upld.total}장 저장 완료!`);
+          this.resetUpld();
+        }
+      } catch(err) { this.showToast('❌ 저장 실패: '+err.message); }
+      finally { this.upld.saving = false; }
+    },
+
+    async skipUpld() {
+      const next = this.upld.current;
+      if (next < _upldFiles.length) {
+        this.upld.current = next + 1;
+        await this._loadUpldFile(next);
+      } else {
+        this.resetUpld();
+      }
+    },
+
+    resetUpld() {
+      this.upld = { date: todayStr(), preview:null, filename:'', photo_id:null, extracting:false, error:null, result:null, saving:false, current:0, total:0 };
+      _upldFile = null; _upldFiles = [];
+    },
+
+    // 재추출 (에러 후 재시도)
+    async retryExtract(tab) {
+      if (tab === 'cam') {
+        if (!this.cam.photo_id) return;
+        this.cam.error = null; this.cam.extracting = true;
+        try {
+          const er = await fetch('/api/photos/extract', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ photo_id: this.cam.photo_id })
+          });
+          if (!er.ok) throw new Error('AI 추출 실패');
+          const extracted = await er.json();
+          if (extracted.temperature != null && extracted.humidity != null) {
+            extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
+            extracted.heat_level = heatLabel(extracted.feels_like);
+          }
+          extracted.slot = slotFromTime(extracted.time) || null;
+          extracted.action = extracted.action || 'N/A';
+          this.cam.result = extracted;
+        } catch(err) { this.cam.error = err.message; }
+        finally { this.cam.extracting = false; }
+      } else {
+        if (!this.upld.photo_id) return;
+        this.upld.error = null; this.upld.extracting = true;
+        try {
+          const er = await fetch('/api/photos/extract', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ photo_id: this.upld.photo_id })
+          });
+          if (!er.ok) throw new Error('AI 추출 실패');
+          const extracted = await er.json();
+          if (extracted.temperature != null && extracted.humidity != null) {
+            extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
+            extracted.heat_level = heatLabel(extracted.feels_like);
+          }
+          extracted.slot = slotFromTime(extracted.time) || null;
+          extracted.action = extracted.action || 'N/A';
+          this.upld.result = extracted;
+        } catch(err) { this.upld.error = err.message; }
+        finally { this.upld.extracting = false; }
+      }
+    },
+
+    // 공통 저장 (cam/upld 모두 사용)
+    async _saveRecord(r, date, photo_id) {
+      const monday = calcMonday(date);
+      const slot   = r.slot || '오전1';
+      const payload = {
+        site_code: this.meta.siteCode, site_name: this.meta.siteName,
+        company: this.meta.company,    location: this.meta.location,
+        measurer: this.meta.measurer,
+        measure_date: date, slot, week_monday: monday,
+        measure_time: r.time || '',
+        temperature: r.temperature, humidity: r.humidity,
+        feels_like: r.feels_like, heat_level: r.heat_level || '',
+        action: r.action || 'N/A', other_content: '', notes: '',
+        photo_id: photo_id || '',
+      };
+      const res = await fetch('/api/records', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+      const existing = this.records.find(rec =>
+        rec.measure_date===date && rec.slot===slot && rec.week_monday===monday);
+      if (existing) Object.assign(existing, {...payload, id:d.id});
+      else this.records.push({...payload, id:d.id});
       this.buildWeekGroups();
       this.calcKpi();
-      this.showToast(`✅ ${newRecs.length}건 불러옴`);
-      this.$nextTick(()=>this.drawCharts());
+      this.$nextTick(() => this.drawCharts());
+    },
+
+    // ── 업체/위치 필터 ──────────────────────────────────────────────────
+    async refreshHistFilters() {
+      if (!this.meta.siteCode) {
+        this.hist.companies = []; this.hist.locations = []; return;
+      }
+      try {
+        const cq = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: this.currentMonday || '' });
+        const cr = await fetch('/api/companies?' + cq);
+        const cd = await cr.json();
+        this.hist.companies = cd.companies || [];
+        if (this.hist.companies.length === 1) {
+          this.hist.company = this.hist.companies[0];
+        } else if (!this.hist.companies.includes(this.hist.company)) {
+          this.hist.company = '';
+        }
+      } catch { this.hist.companies = []; }
+      await this._refreshHistLocations();
+    },
+
+    async _refreshHistLocations() {
+      try {
+        const lq = new URLSearchParams({
+          site_code: this.meta.siteCode,
+          company: this.hist.company,
+          week_monday: this.currentMonday || '',
+        });
+        const lr = await fetch('/api/locations?' + lq);
+        const ld = await lr.json();
+        this.hist.locations = ld.locations || [];
+        if (this.hist.locations.length === 1) {
+          this.hist.location = this.hist.locations[0];
+        } else if (!this.hist.locations.includes(this.hist.location)) {
+          this.hist.location = '';
+        }
+      } catch { this.hist.locations = []; }
+    },
+
+    async onHistCompanyChange() {
+      await this._refreshHistLocations();
     },
 
     onHistFileSelect(files) {
-      if (!this.hist.selectedWeek) { this.showToast('먼저 기간을 선택하세요'); return; }
+      if (!this.currentMonday) { this.showToast('먼저 기간을 선택하세요'); return; }
       [...files].forEach(f => {
-        const d = parseDateFromFilename(f.name) || this.hist.selectedWeek;
+        const d = parseDateFromFilename(f.name) || this.currentMonday;
         const s = parseSlotFromFilename(f.name);
-        this.enqueueFile(f, f.name, d, s, this.hist.selectedWeek);
+        this.enqueueFile(f, f.name, d, s, this.currentMonday);
       });
     },
 
-    // ── 큐 관리 ───────────────────────────────────────────────────────
+    onHistDrop(e) {
+      e.currentTarget.classList.remove('dragover');
+      this.onHistFileSelect(e.dataTransfer.files);
+    },
+
+    // ── 큐 관리 (기간 조회 일괄 추가용) ──────────────────────────────
     async enqueueFile(file, fname, dateStr, slot, weekMonday) {
       const id = crypto.randomUUID();
       const preview = URL.createObjectURL(file);
       this.queue.push({ id, filename:fname, date:dateStr, slot, weekMonday,
                         preview, status:'uploading', photo_id:null, result:null });
-
       try {
         const fd = new FormData(); fd.append('file', file, fname);
         const r = await fetch('/api/photos/upload', { method:'POST', body:fd });
@@ -831,14 +1283,11 @@ function app() {
     removeFromQueue(i) { this.queue.splice(i, 1); },
     clearQueue() { this.queue = []; },
 
-    // ── AI 자동 추출 (시간 → 측정구분 자동 판정) ──────────────────────
     async extractAll() {
       const pending = this.queue.filter(q=>q.status==='pending' && q.photo_id);
       if (!pending.length) { this.showToast('추출할 항목이 없습니다'); return; }
-      this.isExtracting = true;
-      this.extractProgress = 0;
+      this.isExtracting = true; this.extractProgress = 0;
       this.extractStatus = `⏳ ${pending.length}장 추출 중...`;
-
       for (let i=0; i<pending.length; i++) {
         const item = pending[i];
         try {
@@ -848,38 +1297,31 @@ function app() {
           });
           if (!r.ok) throw new Error(await r.text());
           item.result = await r.json();
-          // 추출된 시간으로 측정 구분 자동 판정
           const detectedSlot = slotFromTime(item.result?.time);
           if (detectedSlot) item.slot = detectedSlot;
           item.status = 'done';
-        } catch(e) {
-          item.status = 'error';
-        }
+        } catch { item.status = 'error'; }
         this.extractProgress = Math.round((i+1)/pending.length*100);
         this.extractStatus = `⏳ ${i+1}/${pending.length} – ${item.filename}`;
       }
       this.isExtracting = false;
       this.extractStatus = '✅ 추출 완료';
-      this.showToast('✅ AI 추출 완료 — 측정 구분 자동 판정됨');
+      this.showToast('✅ AI 추출 완료');
     },
 
-    // ── 큐 → DB 저장 ──────────────────────────────────────────────────
     async saveQueueToRecords() {
       const done = this.queue.filter(q=>q.status==='done' && q.result);
       let saved = 0;
       for (const item of done) {
         const r = item.result;
         const payload = {
-          site_code: this.meta.siteCode,   site_name: this.meta.siteName,
-          company:   this.meta.company,    location:  this.meta.location,
-          measurer:  this.meta.measurer,
-          measure_date: item.date,         slot: item.slot,
-          week_monday:  item.weekMonday,
-          measure_time: r.time||'',
-          temperature:  r.temperature,     humidity:  r.humidity,
-          feels_like:   r.feels_like,      heat_level: r.heat_level||'',
-          action:    r.action||'N/A',      other_content:'', notes:'',
-          photo_id:  item.photo_id,
+          site_code: this.meta.siteCode, site_name: this.meta.siteName,
+          company: this.meta.company,    location: this.meta.location,
+          measurer: this.meta.measurer,
+          measure_date: item.date, slot: item.slot, week_monday: item.weekMonday,
+          measure_time: r.time||'', temperature: r.temperature, humidity: r.humidity,
+          feels_like: r.feels_like, heat_level: r.heat_level||'',
+          action: r.action||'N/A', other_content:'', notes:'', photo_id: item.photo_id,
         };
         try {
           const res = await fetch('/api/records', {
@@ -893,10 +1335,8 @@ function app() {
           saved++;
         } catch {}
       }
-      this.buildWeekGroups();
-      this.calcKpi();
+      this.buildWeekGroups(); this.calcKpi();
       this.queue = this.queue.filter(q=>q.status!=='done');
-      await this.loadAvailableWeeks();
       this.showToast(`✅ ${saved}건 저장 완료`);
       this.$nextTick(()=>this.drawCharts());
     },
@@ -905,8 +1345,6 @@ function app() {
       const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: monday });
       window.location.href = '/api/excel?'+q;
     },
-
-    formatMonday(m) { return formatMondayLabel(m); },
 
     showToast(msg, ms=2800) {
       this.toast = { show:true, msg };
@@ -920,51 +1358,44 @@ function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
 function fmtDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
 function dateLabelOf(ds) {
   const d = new Date(ds+'T00:00:00');
   return `${d.getMonth()+1}/${d.getDate()}(${DAYS_KO[d.getDay()===0?6:d.getDay()-1]})`;
 }
-
 function calcMonday(ds) {
   const d = new Date(ds+'T00:00:00');
   const dow = d.getDay()===0?6:d.getDay()-1;
   d.setDate(d.getDate()-dow);
   return fmtDate(d);
 }
-
 function parseDateFromFilename(name) {
-  let m = name.match(/(?<!\d)(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?!\d)/);
+  // YYYYMMDD 형식 (예: 20260504 (4).jpg)
+  const m = name.match(/(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  m = name.match(/(20\d{2})[-./](0[1-9]|1[0-2])[-./](0[1-9]|[12]\d|3[01])/);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  // YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD 형식
+  const m2 = name.match(/(20\d{2})[-./](0[1-9]|1[0-2])[-./](0[1-9]|[12]\d|3[01])/);
+  if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
   return null;
 }
-
 function parseSlotFromFilename(name) {
   const m = name.match(/\((\d+)\)/);
   if (m) return {1:'오전1',2:'오전2',3:'오후1',4:'오후2'}[parseInt(m[1])] || '오전1';
   return '오전1';
 }
-
-// AI 추출 시간 → 측정 구분 자동 판정
-// 07:00~09:30 → 오전1 / 10:00~12:00 → 오전2 / 12:30~14:00 → 오후1 / 14:30~16:00 → 오후2
 function slotFromTime(timeStr) {
   if (!timeStr || timeStr === 'null') return null;
   const parts = timeStr.split(':');
   if (parts.length < 2) return null;
   const mins = parseInt(parts[0], 10) * 60 + (parseInt(parts[1], 10) || 0);
-  if (mins >= 420 && mins <= 570) return '오전1';   // 07:00~09:30
-  if (mins >= 600 && mins <= 720) return '오전2';   // 10:00~12:00
-  if (mins >= 750 && mins <= 840) return '오후1';   // 12:30~14:00
-  if (mins >= 870 && mins <= 960) return '오후2';   // 14:30~16:00
+  if (mins >= 420 && mins <= 570) return '오전1';
+  if (mins >= 600 && mins <= 720) return '오전2';
+  if (mins >= 750 && mins <= 840) return '오후1';
+  if (mins >= 870 && mins <= 960) return '오후2';
   return null;
 }
-
 function formatMondayLabel(mondayStr) {
   const d = new Date(mondayStr+'T00:00:00');
   const sun = new Date(d); sun.setDate(d.getDate()+6);
@@ -977,20 +1408,26 @@ function formatMondayLabel(mondayStr) {
   return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${names[Math.min(wkN-1,4)]}주 `
        + `(${d.getMonth()+1}/${d.getDate()}~${sun.getMonth()+1}/${sun.getDate()})`;
 }
-
 function heatIndex(Ta, RH) {
   const Tw = (Ta * Math.atan(0.151977*Math.sqrt(RH+8.313659))
     + Math.atan(Ta+RH) - Math.atan(RH-1.67633)
     + 0.00391838*Math.pow(RH,1.5)*Math.atan(0.023101*RH) - 4.686035);
   return Math.round((-0.2442+0.55399*Tw+0.45535*Ta-0.0022*Tw*Tw+0.00278*Tw*Ta+3.0)*10)/10;
 }
-
 function heatLabel(hi) {
   if (hi>=38) return '위험';
   if (hi>=35) return '경고';
   if (hi>=33) return '주의';
   if (hi>=31) return '관심';
   return '-';
+}
+function heatDotStyle(hi) {
+  if (hi == null) return 'background:#e5e7eb';
+  if (hi >= 38) return 'background:#ff3b30';
+  if (hi >= 35) return 'background:#ff9500';
+  if (hi >= 33) return 'background:#ffcc00';
+  if (hi >= 31) return 'background:#34c759';
+  return 'background:white;border:1.5px solid #d1d5db';
 }
 </script>
 </body>
