@@ -1,0 +1,17 @@
+[project]
+name = "thermohygrometer-server"
+version = "1.0.0"
+description = "체감온도 기록관리 대장 - 웹 서버"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.9",
+    "google-genai>=1.0.0",
+    "openpyxl>=3.1.0",
+    "Pillow>=10.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv]
+dev-dependencies = []
