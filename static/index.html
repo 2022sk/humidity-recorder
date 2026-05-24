@@ -273,6 +273,11 @@
 
     <!-- ── 업로드 탭: 일괄 업로드 → AI 자동 추출 → 전체 저장 ── -->
     <div x-show="activeTab==='upload'">
+      <div class="mb-3 flex items-center gap-2">
+        <label class="text-xs font-bold text-gray-600 whitespace-nowrap">기본 날짜</label>
+        <input type="date" x-model="upld.defaultDate" class="flex-1" style="padding:8px 12px!important;font-size:.85rem!important">
+        <span class="text-xs text-gray-400 whitespace-nowrap">파일명 날짜 우선</span>
+      </div>
       <label class="drop-zone block cursor-pointer mb-3"
              :style="upld.batch.length > 0 ? 'padding:12px' : 'padding:28px 16px'"
              @dragover.prevent="$event.currentTarget.classList.add('dragover')"
@@ -690,7 +695,7 @@ function app() {
     cam: { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false },
 
     // 업로드 탭 상태
-    upld: { batch: [], saving: false },
+    upld: { batch: [], saving: false, defaultDate: todayStr() },
 
     // 큐 (기간 조회 탭 일괄 추가)
     queue: [],
@@ -1028,7 +1033,7 @@ function app() {
         const item = {
           id, filename: file.name,
           preview: URL.createObjectURL(file),
-          date: parseDateFromFilename(file.name) || todayStr(),
+          date: parseDateFromFilename(file.name) || this.upld.defaultDate,
           photo_id: null, uploading: true, extracting: false,
           elapsed: 0, error: null, result: null,
         };
@@ -1119,7 +1124,7 @@ function app() {
       this.showToast(`✅ ${saved}장 저장 완료!`);
     },
 
-    resetUpld() { this.upld = { batch: [], saving: false }; },
+    resetUpld() { this.upld = { batch: [], saving: false, defaultDate: this.upld.defaultDate }; },
 
     // 재추출 (카메라 탭 에러 후 재시도)
     async retryExtract(tab) {
