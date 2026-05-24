@@ -299,9 +299,14 @@
                   <div class="flex-1 min-w-0">
                     <div class="text-xs text-gray-400 truncate mb-1 pr-6" x-text="item.filename"></div>
                     <div x-show="item.uploading" class="text-xs text-blue-500 font-bold animate-pulse">⬆️ 업로드 중...</div>
-                    <div x-show="item.extracting" class="text-xs text-blue-600 font-bold animate-pulse">🤖 AI 분석 중...</div>
-                    <div x-show="item.error && !item.uploading && !item.extracting"
-                         class="text-xs text-red-500 font-bold" x-text="'❌ '+item.error"></div>
+                    <div x-show="item.extracting" class="text-xs text-blue-600 font-bold animate-pulse">
+                      🤖 AI 분석 중... (<span x-text="item.elapsed||0"></span>초)
+                    </div>
+                    <div x-show="item.error && !item.uploading && !item.extracting" class="space-y-1">
+                      <div class="text-xs text-red-500 font-bold" x-text="'❌ '+item.error"></div>
+                      <button @click="retryUpldItem(item.id)"
+                              class="btn-secondary text-xs py-1 px-2">🔄 다시 분석</button>
+                    </div>
                     <template x-if="item.result">
                       <div class="space-y-1.5">
                         <div class="grid grid-cols-2 gap-1.5">
@@ -1018,7 +1023,6 @@ function app() {
     },
 
     addFilesToBatch(files) {
-      // 각 파일마다 upload → extract 파이프라인을 동시에 실행
       files.forEach(file => {
         const id = crypto.randomUUID();
         const item = {
@@ -1026,38 +1030,66 @@ function app() {
           preview: URL.createObjectURL(file),
           date: parseDateFromFilename(file.name) || todayStr(),
           photo_id: null, uploading: true, extracting: false,
-          error: null, result: null,
+          elapsed: 0, error: null, result: null,
         };
         this.upld.batch.push(item);
-        // 비동기 파이프라인 (결과를 기다리지 않고 UI 반응)
         (async () => {
+          // 업로드
           try {
             const fd = new FormData(); fd.append('file', file, file.name);
             const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
-            if (!ur.ok) throw new Error(`업로드 실패`);
+            if (!ur.ok) throw new Error();
             const ud = await ur.json();
-            item.photo_id = ud.photo_id;
-          } catch(e) { item.error = '업로드 실패'; item.uploading = false; return; }
-          item.uploading = false; item.extracting = true;
-          try {
-            const er = await fetch('/api/photos/extract', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ photo_id: item.photo_id })
-            });
-            if (!er.ok) throw new Error('AI 추출 실패');
-            const extracted = await er.json();
-            if (extracted.temperature != null && extracted.humidity != null) {
-              extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
-              extracted.heat_level = heatLabel(extracted.feels_like);
-            }
-            extracted.slot   = slotFromTime(extracted.time) || parseSlotFromFilename(file.name) || '오전1';
-            extracted.action = extracted.action || 'N/A';
-            item.result = extracted;
-          } catch(e) { item.error = 'AI 추출 실패'; }
-          finally { item.extracting = false; }
+            const bi = this.upld.batch.find(i => i.id === id);
+            if (bi) bi.photo_id = ud.photo_id;
+          } catch {
+            const bi = this.upld.batch.find(i => i.id === id);
+            if (bi) { bi.error = '업로드 실패'; bi.uploading = false; }
+            return;
+          }
+          const bi = this.upld.batch.find(i => i.id === id);
+          if (bi) bi.uploading = false;
+          // AI 추출
+          await this._runBatchExtract(id);
         })();
       });
     },
+
+    async _runBatchExtract(id) {
+      const TIMEOUT_S = 40;
+      const get = () => this.upld.batch.find(i => i.id === id);
+      let bi = get(); if (!bi || !bi.photo_id) return;
+      bi.error = null; bi.elapsed = 0; bi.extracting = true;
+      const timer = setInterval(() => { const b=get(); if(b) b.elapsed++; }, 1000);
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), TIMEOUT_S * 1000);
+      try {
+        const r = await fetch('/api/photos/extract', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ photo_id: bi.photo_id }),
+          signal: ctrl.signal,
+        });
+        if (!r.ok) throw new Error('추출 실패');
+        const ex = await r.json();
+        if (ex.temperature != null && ex.humidity != null) {
+          ex.feels_like = heatIndex(ex.temperature, ex.humidity);
+          ex.heat_level = heatLabel(ex.feels_like);
+        }
+        ex.slot = slotFromTime(ex.time) || parseSlotFromFilename(bi.filename) || '오전1';
+        ex.action = ex.action || 'N/A';
+        bi = get(); if (bi) bi.result = ex;
+      } catch(e) {
+        bi = get();
+        if (bi) bi.error = ctrl.signal.aborted
+          ? `시간 초과 (${TIMEOUT_S}초) — 다시 분석해 주세요`
+          : 'AI 추출 실패 — 다시 분석해 주세요';
+      } finally {
+        clearInterval(timer); clearTimeout(tid);
+        bi = get(); if (bi) bi.extracting = false;
+      }
+    },
+
+    retryUpldItem(id) { this._runBatchExtract(id); },
 
     upldItemRecalc(item) {
       if (!item.result) return;
