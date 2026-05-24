@@ -271,120 +271,100 @@
       </template>
     </div>
 
-    <!-- ── 업로드 탭: 파일 선택 → 즉시 AI 추출 → 수정 → 저장 ── -->
+    <!-- ── 업로드 탭: 일괄 업로드 → AI 자동 추출 → 전체 저장 ── -->
     <div x-show="activeTab==='upload'">
-      <template x-if="!upld.preview">
-        <div>
-          <div class="mb-3">
-            <label class="text-xs text-gray-500 font-bold">촬영 날짜</label>
-            <input type="date" x-model="upld.date" class="mt-1">
-          </div>
-          <label class="drop-zone block cursor-pointer"
-                 @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-                 @dragleave="$event.currentTarget.classList.remove('dragover')"
-                 @drop.prevent="onUploadDrop($event)">
-            <input type="file" accept="image/*" multiple class="hidden"
-                   @change="onUploadFileSelect($event)">
-            <div class="text-3xl mb-2">📁</div>
-            <div class="font-bold text-gray-700 text-sm">클릭하거나 파일을 여기에 드래그</div>
-            <div class="text-xs text-gray-400 mt-1">여러 장 동시 선택 가능 · 한 장씩 확인 후 저장</div>
-          </label>
+      <label class="drop-zone block cursor-pointer mb-3"
+             :style="upld.batch.length > 0 ? 'padding:12px' : 'padding:28px 16px'"
+             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+             @dragleave="$event.currentTarget.classList.remove('dragover')"
+             @drop.prevent="onUploadDrop($event)">
+        <input type="file" accept="image/*" multiple class="hidden" @change="onUploadFileSelect($event)">
+        <div class="text-2xl mb-1">📁</div>
+        <div class="font-bold text-gray-700 text-sm"
+             x-text="upld.batch.length > 0 ? '+ 사진 추가' : '클릭하거나 파일을 여기에 드래그'"></div>
+        <div class="text-xs text-gray-400 mt-1" x-show="upld.batch.length === 0">
+          여러 장 동시 선택 · AI가 자동 추출 · 한 번에 저장
         </div>
-      </template>
+      </label>
 
-      <template x-if="upld.preview">
+      <template x-if="upld.batch.length > 0">
         <div>
-          <div class="flex gap-3 items-start mb-3">
-            <img :src="upld.preview" class="w-32 h-32 object-cover rounded-xl border-2 border-blue-200 flex-shrink-0">
-            <div class="flex-1">
-              <template x-if="upld.total > 1">
-                <div class="text-xs font-bold text-blue-600 mb-1"
-                     x-text="`📸 ${upld.current} / ${upld.total}장`"></div>
-              </template>
-              <div class="text-xs text-gray-500 mb-1 truncate" x-text="upld.filename"></div>
-              <div class="text-xs text-gray-500 mb-1">📅 <span x-text="upld.date"></span></div>
-              <template x-if="upld.extracting">
-                <div class="text-sm text-blue-600 font-bold animate-pulse">🤖 AI 분석 중...</div>
-              </template>
-              <template x-if="upld.error">
-                <div class="text-sm text-red-500 font-bold" x-text="'❌ '+upld.error"></div>
-              </template>
-              <template x-if="!upld.extracting && !upld.error && upld.result">
-                <div class="text-xs text-green-600 font-bold">✅ 추출 완료 — 확인·수정 후 저장</div>
-              </template>
-              <div class="flex gap-2 mt-2">
-                <button @click="resetUpld()" class="btn-secondary text-xs py-1 px-3">↩ 처음으로</button>
-                <template x-if="upld.total > 1">
-                  <button @click="skipUpld()" class="btn-secondary text-xs py-1 px-3">건너뛰기 ›</button>
-                </template>
+          <div class="space-y-2 mb-3">
+            <template x-for="item in upld.batch" :key="item.id">
+              <div class="bg-gray-50 rounded-xl p-3 relative">
+                <button @click="removeUpldBatchItem(item.id)"
+                        class="absolute top-2 right-2 w-5 h-5 bg-red-100 hover:bg-red-200 text-red-500 rounded-full text-xs flex items-center justify-center">✕</button>
+                <div class="flex gap-3">
+                  <img :src="item.preview" class="w-20 h-20 object-cover rounded-lg flex-shrink-0 border border-gray-200">
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs text-gray-400 truncate mb-1 pr-6" x-text="item.filename"></div>
+                    <div x-show="item.uploading" class="text-xs text-blue-500 font-bold animate-pulse">⬆️ 업로드 중...</div>
+                    <div x-show="item.extracting" class="text-xs text-blue-600 font-bold animate-pulse">🤖 AI 분석 중...</div>
+                    <div x-show="item.error && !item.uploading && !item.extracting"
+                         class="text-xs text-red-500 font-bold" x-text="'❌ '+item.error"></div>
+                    <template x-if="item.result">
+                      <div class="space-y-1.5">
+                        <div class="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <label class="text-xs text-gray-400">온도(°C)</label>
+                            <input type="number" step="0.1" x-model.number="item.result.temperature"
+                                   @input="upldItemRecalc(item)" class="mt-0.5">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-400">습도(%)</label>
+                            <input type="number" step="1" x-model.number="item.result.humidity"
+                                   @input="upldItemRecalc(item)" class="mt-0.5">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-400">측정시각</label>
+                            <input type="text" placeholder="HH:MM" x-model="item.result.time"
+                                   @change="upldItemRecalc(item)" class="mt-0.5">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-400">구분</label>
+                            <input type="text" :value="item.result.slot||'미인식'"
+                                   class="mt-0.5 bg-blue-50 text-blue-700 font-bold" readonly>
+                          </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 items-end">
+                          <div>
+                            <label class="text-xs text-gray-400">날짜</label>
+                            <input type="date" x-model="item.date" class="mt-0.5">
+                          </div>
+                          <div class="flex items-center gap-1.5 pb-1">
+                            <template x-if="item.result.feels_like != null">
+                              <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-orange-500" x-text="item.result.feels_like+'°C'"></span>
+                                <span x-show="item.result.heat_level && item.result.heat_level!=='-'"
+                                      :class="'badge-'+item.result.heat_level" x-text="item.result.heat_level"></span>
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+                        <div>
+                          <label class="text-xs text-gray-400">조치사항</label>
+                          <select x-model="item.result.action" class="mt-0.5">
+                            <option>N/A</option><option>추가휴식시간부여</option><option>보냉장구지급</option>
+                            <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
+                          </select>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
               </div>
-            </div>
+            </template>
           </div>
-
-          <template x-if="upld.result">
-            <div>
-              <div class="bg-gray-50 rounded-xl p-3 space-y-2 mb-3">
-                <div class="text-xs font-extrabold text-gray-600 mb-2">측정값 확인 및 수정</div>
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <label class="text-xs text-gray-400">온도 (°C)</label>
-                    <input type="number" step="0.1" x-model.number="upld.result.temperature"
-                           @input="upldRecalc()" class="mt-1">
-                  </div>
-                  <div>
-                    <label class="text-xs text-gray-400">습도 (%)</label>
-                    <input type="number" step="1" x-model.number="upld.result.humidity"
-                           @input="upldRecalc()" class="mt-1">
-                  </div>
-                  <div>
-                    <label class="text-xs text-gray-400">측정시각</label>
-                    <input type="text" placeholder="HH:MM" x-model="upld.result.time"
-                           @change="upldRecalc()" class="mt-1">
-                  </div>
-                  <div>
-                    <label class="text-xs text-gray-400">측정 구분 (자동)</label>
-                    <input type="text" :value="upld.result.slot||'(시간 미인식)'"
-                           class="mt-1 bg-blue-50 text-blue-700 font-bold" readonly>
-                  </div>
-                </div>
-                <template x-if="upld.result.feels_like != null">
-                  <div class="flex items-center gap-3 pt-1 border-t border-gray-200">
-                    <span class="text-xs text-gray-500">체감온도</span>
-                    <span class="text-lg font-extrabold text-orange-500" x-text="upld.result.feels_like+'°C'"></span>
-                    <span x-show="upld.result.heat_level && upld.result.heat_level!=='-'"
-                          :class="'badge-'+upld.result.heat_level"
-                          x-text="upld.result.heat_level"></span>
-                  </div>
-                </template>
-                <div>
-                  <label class="text-xs text-gray-400">조치사항</label>
-                  <select x-model="upld.result.action" class="mt-1">
-                    <option>N/A</option><option>추가휴식시간부여</option><option>보냉장구지급</option>
-                    <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="text-xs text-gray-400">날짜 확인</label>
-                  <input type="date" x-model="upld.date" class="mt-1">
-                </div>
-              </div>
-              <button @click="saveUpldDirect()" class="btn-primary w-full"
-                      :disabled="upld.saving || !meta.siteCode || !meta.location"
-                      x-text="upld.saving ? '저장 중...' : '💾 저장'">
-              </button>
-              <div x-show="!meta.siteCode || !meta.location"
-                   class="text-xs text-red-400 text-center mt-1">
-                ※ 현장코드와 위치를 입력해야 저장됩니다
-              </div>
+          <div class="space-y-2">
+            <button @click="saveAllUpld()" class="btn-primary w-full"
+                    :disabled="upld.saving || !upld.batch.some(i=>i.result) || !meta.siteCode || !meta.location"
+                    x-text="upld.saving ? '저장 중...' : '💾 전체 저장 ('+upld.batch.filter(i=>i.result).length+'장)'">
+            </button>
+            <div x-show="!meta.siteCode || !meta.location" class="text-xs text-red-400 text-center">
+              ※ 현장코드와 위치를 입력해야 저장됩니다
             </div>
-          </template>
-
-          <template x-if="upld.error && !upld.result">
-            <div class="text-center py-4">
-              <div class="text-xs text-gray-500 mb-2">AI 추출에 실패했습니다.</div>
-              <button @click="retryExtract('upld')" class="btn-primary text-xs py-2 px-4">🔄 다시 추출</button>
-            </div>
-          </template>
+            <button @click="resetUpld()" class="btn-secondary w-full text-sm">↩ 초기화</button>
+          </div>
         </div>
       </template>
     </div>
@@ -684,9 +664,7 @@
 const DAYS_KO = ["월","화","수","목","금","토","일"];
 const SLOTS   = ["오전1","오전2","오후1","오후2"];
 
-let _camFile   = null;
-let _upldFile  = null;
-let _upldFiles = [];
+let _camFile = null;
 
 function app() {
   return {
@@ -706,8 +684,8 @@ function app() {
     // 카메라 탭 상태
     cam: { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false },
 
-    // 업로드 탭 상태 (카메라와 동일 흐름)
-    upld: { date: todayStr(), preview:null, filename:'', photo_id:null, extracting:false, error:null, result:null, saving:false, current:0, total:0 },
+    // 업로드 탭 상태
+    upld: { batch: [], saving: false },
 
     // 큐 (기간 조회 탭 일괄 추가)
     queue: [],
@@ -1026,70 +1004,64 @@ function app() {
       _camFile = null;
     },
 
-    // ── 업로드 탭 ─────────────────────────────────────────────────────
-    async onUploadFileSelect(e) {
-      const files = [...e.target.files];
-      if (!files.length) return;
-      _upldFiles = files;
-      this.upld.total = files.length;
-      this.upld.current = 1;
-      await this._loadUpldFile(0);
+    // ── 업로드 탭 (일괄 처리) ──────────────────────────────────────────
+    onUploadFileSelect(e) {
+      const files = [...e.target.files].filter(f => f.type.startsWith('image/'));
+      e.target.value = '';
+      if (files.length) this.addFilesToBatch(files);
     },
 
-    async onUploadDrop(e) {
+    onUploadDrop(e) {
       e.currentTarget.classList.remove('dragover');
       const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
-      if (!files.length) return;
-      _upldFiles = files;
-      this.upld.total = files.length;
-      this.upld.current = 1;
-      await this._loadUpldFile(0);
+      if (files.length) this.addFilesToBatch(files);
     },
 
-    async _loadUpldFile(idx) {
-      const file = _upldFiles[idx];
-      _upldFile = file;
-      this.upld.filename = file.name;
-      this.upld.preview  = URL.createObjectURL(file);
-      this.upld.result   = null;
-      this.upld.error    = null;
-      this.upld.photo_id = null;
-      this.upld.date = parseDateFromFilename(file.name) || todayStr();
-      await this.runUploadExtract();
+    addFilesToBatch(files) {
+      // 각 파일마다 upload → extract 파이프라인을 동시에 실행
+      files.forEach(file => {
+        const id = crypto.randomUUID();
+        const item = {
+          id, filename: file.name,
+          preview: URL.createObjectURL(file),
+          date: parseDateFromFilename(file.name) || todayStr(),
+          photo_id: null, uploading: true, extracting: false,
+          error: null, result: null,
+        };
+        this.upld.batch.push(item);
+        // 비동기 파이프라인 (결과를 기다리지 않고 UI 반응)
+        (async () => {
+          try {
+            const fd = new FormData(); fd.append('file', file, file.name);
+            const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
+            if (!ur.ok) throw new Error(`업로드 실패`);
+            const ud = await ur.json();
+            item.photo_id = ud.photo_id;
+          } catch(e) { item.error = '업로드 실패'; item.uploading = false; return; }
+          item.uploading = false; item.extracting = true;
+          try {
+            const er = await fetch('/api/photos/extract', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ photo_id: item.photo_id })
+            });
+            if (!er.ok) throw new Error('AI 추출 실패');
+            const extracted = await er.json();
+            if (extracted.temperature != null && extracted.humidity != null) {
+              extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
+              extracted.heat_level = heatLabel(extracted.feels_like);
+            }
+            extracted.slot   = slotFromTime(extracted.time) || parseSlotFromFilename(file.name) || '오전1';
+            extracted.action = extracted.action || 'N/A';
+            item.result = extracted;
+          } catch(e) { item.error = 'AI 추출 실패'; }
+          finally { item.extracting = false; }
+        })();
+      });
     },
 
-    async runUploadExtract() {
-      this.upld.extracting = true;
-      try {
-        const fd = new FormData(); fd.append('file', _upldFile, this.upld.filename);
-        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
-        if (!ur.ok) throw new Error(`업로드 실패 HTTP ${ur.status}`);
-        const ud = await ur.json();
-        this.upld.photo_id = ud.photo_id;
-
-        const er = await fetch('/api/photos/extract', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ photo_id: ud.photo_id })
-        });
-        if (!er.ok) throw new Error('AI 추출 실패');
-        const extracted = await er.json();
-        if (extracted.temperature != null && extracted.humidity != null) {
-          extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
-          extracted.heat_level = heatLabel(extracted.feels_like);
-        }
-        extracted.slot   = slotFromTime(extracted.time) || parseSlotFromFilename(this.upld.filename) || null;
-        extracted.action = extracted.action || 'N/A';
-        this.upld.result = extracted;
-      } catch(err) {
-        this.upld.error = err.message;
-      } finally {
-        this.upld.extracting = false;
-      }
-    },
-
-    upldRecalc() {
-      if (!this.upld.result) return;
-      const r = this.upld.result;
+    upldItemRecalc(item) {
+      if (!item.result) return;
+      const r = item.result;
       if (r.temperature != null && r.humidity != null) {
         r.feels_like = heatIndex(r.temperature, r.humidity);
         r.heat_level = heatLabel(r.feels_like);
@@ -1098,81 +1070,45 @@ function app() {
       if (s) r.slot = s;
     },
 
-    async saveUpldDirect() {
-      const r = this.upld.result;
-      if (!r || !this.meta.siteCode || !this.meta.location) return;
+    removeUpldBatchItem(id) { this.upld.batch = this.upld.batch.filter(i => i.id !== id); },
+
+    async saveAllUpld() {
+      if (!this.meta.siteCode || !this.meta.location) return;
       this.upld.saving = true;
-      try {
-        await this._saveRecord(r, this.upld.date, this.upld.photo_id);
-        const next = this.upld.current; // current은 1-based, next 0-based idx
-        if (next < _upldFiles.length) {
-          this.showToast(`✅ 저장! (${this.upld.current}/${this.upld.total}) 다음 사진 로딩...`);
-          this.upld.current = next + 1;
-          await this._loadUpldFile(next);
-        } else {
-          this.showToast(`✅ 전체 ${this.upld.total}장 저장 완료!`);
-          this.resetUpld();
-        }
-      } catch(err) { this.showToast('❌ 저장 실패: '+err.message); }
-      finally { this.upld.saving = false; }
-    },
-
-    async skipUpld() {
-      const next = this.upld.current;
-      if (next < _upldFiles.length) {
-        this.upld.current = next + 1;
-        await this._loadUpldFile(next);
-      } else {
-        this.resetUpld();
+      let saved = 0;
+      for (const item of this.upld.batch.filter(i => i.result)) {
+        try {
+          await this._saveRecord(item.result, item.date, item.photo_id);
+          saved++;
+        } catch(e) { this.showToast('❌ 저장 실패: '+e.message); }
       }
+      this.upld.batch = [];
+      this.upld.saving = false;
+      this.showToast(`✅ ${saved}장 저장 완료!`);
     },
 
-    resetUpld() {
-      this.upld = { date: todayStr(), preview:null, filename:'', photo_id:null, extracting:false, error:null, result:null, saving:false, current:0, total:0 };
-      _upldFile = null; _upldFiles = [];
-    },
+    resetUpld() { this.upld = { batch: [], saving: false }; },
 
-    // 재추출 (에러 후 재시도)
+    // 재추출 (카메라 탭 에러 후 재시도)
     async retryExtract(tab) {
-      if (tab === 'cam') {
-        if (!this.cam.photo_id) return;
-        this.cam.error = null; this.cam.extracting = true;
-        try {
-          const er = await fetch('/api/photos/extract', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ photo_id: this.cam.photo_id })
-          });
-          if (!er.ok) throw new Error('AI 추출 실패');
-          const extracted = await er.json();
-          if (extracted.temperature != null && extracted.humidity != null) {
-            extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
-            extracted.heat_level = heatLabel(extracted.feels_like);
-          }
-          extracted.slot = slotFromTime(extracted.time) || null;
-          extracted.action = extracted.action || 'N/A';
-          this.cam.result = extracted;
-        } catch(err) { this.cam.error = err.message; }
-        finally { this.cam.extracting = false; }
-      } else {
-        if (!this.upld.photo_id) return;
-        this.upld.error = null; this.upld.extracting = true;
-        try {
-          const er = await fetch('/api/photos/extract', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ photo_id: this.upld.photo_id })
-          });
-          if (!er.ok) throw new Error('AI 추출 실패');
-          const extracted = await er.json();
-          if (extracted.temperature != null && extracted.humidity != null) {
-            extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
-            extracted.heat_level = heatLabel(extracted.feels_like);
-          }
-          extracted.slot = slotFromTime(extracted.time) || null;
-          extracted.action = extracted.action || 'N/A';
-          this.upld.result = extracted;
-        } catch(err) { this.upld.error = err.message; }
-        finally { this.upld.extracting = false; }
-      }
+      if (tab !== 'cam' || !this.cam.photo_id) return;
+      this.cam.error = null; this.cam.extracting = true;
+      try {
+        const er = await fetch('/api/photos/extract', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ photo_id: this.cam.photo_id })
+        });
+        if (!er.ok) throw new Error('AI 추출 실패');
+        const extracted = await er.json();
+        if (extracted.temperature != null && extracted.humidity != null) {
+          extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
+          extracted.heat_level = heatLabel(extracted.feels_like);
+        }
+        extracted.slot = slotFromTime(extracted.time) || null;
+        extracted.action = extracted.action || 'N/A';
+        this.cam.result = extracted;
+      } catch(err) { this.cam.error = err.message; }
+      finally { this.cam.extracting = false; }
     },
 
     // 공통 저장 (cam/upld 모두 사용)
@@ -1372,12 +1308,15 @@ function calcMonday(ds) {
   return fmtDate(d);
 }
 function parseDateFromFilename(name) {
-  // YYYYMMDD 형식 (예: 20260504 (4).jpg)
+  // YYYYMMDD 형식 (예: 20260523.jpg)
   const m = name.match(/(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  // YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD 형식
+  // YYYY-MM-DD / YYYY.MM.DD 형식
   const m2 = name.match(/(20\d{2})[-./](0[1-9]|1[0-2])[-./](0[1-9]|[12]\d|3[01])/);
   if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+  // YYMMDD 형식 (예: 260523.jpg → 2026-05-23)
+  const m3 = name.match(/(?<![0-9])(2\d)(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?![0-9])/);
+  if (m3) return `20${m3[1]}-${m3[2]}-${m3[3]}`;
   return null;
 }
 function parseSlotFromFilename(name) {
