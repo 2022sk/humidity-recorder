@@ -521,16 +521,18 @@
   </template>
 
   <!-- ══ 주별 섹션 ═════════════════════════════════════════════════════════ -->
-  <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday">
+  <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday+'_'+wkInfo.location">
     <div>
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
           <template x-if="wkInfo.location">
-            <span class="text-xs font-bold text-gray-500" x-text="'📍 '+wkInfo.location"></span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style="background:#e8f0fe;color:#0062cc;border:1px solid #b8d0f7"
+                  x-text="'📍 '+wkInfo.location"></span>
           </template>
         </div>
-        <button @click="downloadExcel(wkInfo.monday)"
+        <button @click="downloadExcel(wkInfo.monday, wkInfo.location)"
                 class="btn-primary text-xs py-2 px-3"
                 :disabled="!wkInfo.records.some(r=>r.temperature!=null)">
           💾 엑셀 다운로드
@@ -804,11 +806,23 @@ function app() {
     },
 
     buildWeekGroups() {
-      const mondays = [...new Set(this.records.map(r=>r.week_monday).filter(Boolean))].sort();
-      if (mondays.length===0 && this.currentMonday) mondays.push(this.currentMonday);
-      this.weekGroups = mondays.map(monday => {
+      // Split by (week_monday, location) to avoid date+slot collisions across locations
+      const pairMap = new Map();
+      this.records.forEach(r => {
+        if (!r.week_monday) return;
+        const key = r.week_monday + '|' + (r.location || '');
+        if (!pairMap.has(key)) pairMap.set(key, { monday: r.week_monday, location: r.location || '' });
+      });
+      let pairs = [...pairMap.values()].sort((a, b) =>
+        a.monday < b.monday ? -1 : a.monday > b.monday ? 1
+          : (a.location || '') < (b.location || '') ? -1 : 1
+      );
+      if (pairs.length === 0 && this.currentMonday)
+        pairs = [{ monday: this.currentMonday, location: this.hist.location || '' }];
+
+      this.weekGroups = pairs.map(({ monday, location }) => {
         const mon = new Date(monday);
-        const wkRecs = this.records.filter(r=>r.week_monday===monday);
+        const wkRecs = this.records.filter(r => r.week_monday === monday && (r.location || '') === location);
         const photos = wkRecs.filter(r=>r.photo_id).map(r=>({
           photo_id: r.photo_id, slot: r.slot,
           measure_date: r.measure_date,
@@ -833,8 +847,6 @@ function app() {
               : base);
           });
         }
-        const locs = [...new Set(wkRecs.map(r=>r.location).filter(Boolean))];
-        const location = this.hist.location || (locs.length === 1 ? locs[0] : locs.join(' · '));
         return { monday, label: formatMondayLabel(monday), location, records: wkRecs, gridRows, photos };
       });
     },
@@ -1314,8 +1326,8 @@ function app() {
       this.$nextTick(()=>this.drawCharts());
     },
 
-    downloadExcel(monday) {
-      const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: monday });
+    downloadExcel(monday, location) {
+      const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: monday, location: location || '' });
       window.location.href = '/api/excel?'+q;
     },
 

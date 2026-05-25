@@ -166,8 +166,8 @@ def get_available_weeks(site_code: str = ""):
 
 # ── 엑셀 다운로드 ──────────────────────────────────────────────────────────────
 @app.get("/api/excel")
-def download_excel(site_code: str = "", week_monday: str = ""):
-    records = db.get_records(site_code=site_code, week_monday=week_monday)
+def download_excel(site_code: str = "", week_monday: str = "", location: str = ""):
+    records = db.get_records(site_code=site_code, week_monday=week_monday, location=location)
     if not records:
         raise HTTPException(404, "해당 기간의 기록이 없습니다")
 
@@ -175,7 +175,7 @@ def download_excel(site_code: str = "", week_monday: str = ""):
     meta = {
         "현장명": rec0.get("site_name",""),
         "업체명": rec0.get("company",""),
-        "위치":   rec0.get("location",""),
+        "위치":   location or rec0.get("location",""),
         "현장코드": rec0.get("site_code",""),
     }
 
