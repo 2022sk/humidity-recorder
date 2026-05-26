@@ -67,11 +67,11 @@ async def upload_photo(file: UploadFile = File(...)):
     img = Image.open(io.BytesIO(content))
     img = ImageOps.exif_transpose(img)
     w, h = img.size
-    if max(w, h) > 1568:
-        s = 1568 / max(w, h)
+    if max(w, h) > 800:
+        s = 800 / max(w, h)
         img = img.resize((int(w*s), int(h*s)), Image.LANCZOS)
     buf = io.BytesIO()
-    img.convert("RGB").save(buf, format="JPEG", quality=85)
+    img.convert("RGB").save(buf, format="JPEG", quality=75)
     save_path.write_bytes(buf.getvalue())
 
     db.save_photo(photo_id, file.filename or "photo.jpg", str(save_path))

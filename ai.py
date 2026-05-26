@@ -41,7 +41,7 @@ async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
     for attempt in range(3):
         try:
             resp = client.models.generate_content(
-                model="gemini-2.5-flash", contents=[PROMPT, img]
+                model="gemini-2.5-flash-lite", contents=[PROMPT, img]
             )
             break
         except Exception as e:
