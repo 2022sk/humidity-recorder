@@ -115,8 +115,8 @@ def get_locations(site_code: str = "", company: str = "", week_monday: str = "")
 
 
 @app.post("/api/records")
-def upsert_record(rec: RecordIn):
-    rec_id = db.upsert_record(rec.model_dump())
+def create_record(rec: RecordIn):
+    rec_id = db.insert_record(rec.model_dump())
     return {"id": rec_id}
 
 

@@ -25,7 +25,8 @@
   .btn-primary:disabled{background:#b0b0b5;cursor:not-allowed}
   .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
   .btn-secondary:hover{background:#e5e5ea}
-  input,select,textarea{box-sizing:border-box;border:1px solid #d1d5db;border-radius:12px;padding:12px 16px 12px 14px!important;font-size:.85rem!important;line-height:1.4;width:100%;max-width:100%;outline:none;transition:border-color .15s;font-family:inherit}
+  input,select,textarea{box-sizing:border-box;border:1px solid #d1d5db;border-radius:12px;padding:12px 16px 12px 14px!important;font-size:.85rem!important;line-height:1.4;width:100%;max-width:100%;min-width:0;outline:none;transition:border-color .15s;font-family:inherit}
+  input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0}
   input:focus,select:focus,textarea:focus{border-color:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
   input::placeholder,textarea::placeholder{font-size:.85rem!important;color:#b0b0b8}
   .tab-btn{transition:all .2s;border-radius:9px;padding:8px 10px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent;font-family:inherit}
@@ -830,21 +831,37 @@ function app() {
           temperature: r.temperature, humidity: r.humidity,
         }));
         const recMap = {};
-        wkRecs.forEach(r => { recMap[r.measure_date+'_'+r.slot] = r; });
+        wkRecs.forEach(r => {
+          const key = r.measure_date+'_'+r.slot;
+          if (!recMap[key]) recMap[key] = [];
+          recMap[key].push(r);
+        });
         const gridRows = [];
         for (let di=0; di<7; di++) {
           const d = new Date(monday); d.setDate(mon.getDate()+di);
           const ds = fmtDate(d);
-          SLOTS.forEach((slot, si) => {
-            const existing = recMap[ds+'_'+slot];
-            const base = { key:ds+'_'+slot, measure_date:ds, slot, week_monday:monday,
-                           dateLabel:dateLabelOf(ds), dayIndex:di, isFirstSlot:si===0,
+          let dayFirstRow = true;
+          SLOTS.forEach((slot) => {
+            const recs = recMap[ds+'_'+slot] || [];
+            const base = { measure_date:ds, slot, week_monday:monday,
+                           dateLabel:dateLabelOf(ds), dayIndex:di,
                            measure_time:'', temperature:null, humidity:null, feels_like:null,
                            heat_level:'', action:'N/A', other_content:'', notes:'',
                            measurer:this.meta.measurer, photo_id:'', id:null };
-            gridRows.push(existing
-              ? { ...base, ...existing, dayIndex:di, isFirstSlot:si===0 }
-              : base);
+            if (recs.length === 0) {
+              gridRows.push({ ...base, key:ds+'_'+slot+'_empty', isFirstSlot:dayFirstRow });
+              dayFirstRow = false;
+            } else {
+              recs.forEach((rec, ri) => {
+                gridRows.push({
+                  ...base, ...rec,
+                  key: ds+'_'+slot+'_'+(rec.id||ri),
+                  dayIndex: di,
+                  isFirstSlot: dayFirstRow,
+                });
+                dayFirstRow = false;
+              });
+            }
           });
         }
         return { monday, label: formatMondayLabel(monday), location, records: wkRecs, gridRows, photos };
@@ -1181,10 +1198,7 @@ function app() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
-      const existing = this.records.find(rec =>
-        rec.measure_date===date && rec.slot===slot && rec.week_monday===monday);
-      if (existing) Object.assign(existing, {...payload, id:d.id});
-      else this.records.push({...payload, id:d.id});
+      this.records.push({...payload, id:d.id});
       this.buildWeekGroups();
       this.calcKpi();
       this.$nextTick(() => this.drawCharts());
@@ -1378,10 +1392,10 @@ function slotFromTime(timeStr) {
   const parts = timeStr.split(':');
   if (parts.length < 2) return null;
   const mins = parseInt(parts[0], 10) * 60 + (parseInt(parts[1], 10) || 0);
-  if (mins >= 420 && mins <= 570) return '오전1';
-  if (mins >= 600 && mins <= 720) return '오전2';
-  if (mins >= 750 && mins <= 840) return '오후1';
-  if (mins >= 870 && mins <= 960) return '오후2';
+  if (mins >= 420 && mins <= 599) return '오전1';
+  if (mins >= 600 && mins <= 749) return '오전2';
+  if (mins >= 750 && mins <= 869) return '오후1';
+  if (mins >= 870 && mins <= 1020) return '오후2';
   return null;
 }
 function formatMondayLabel(mondayStr) {

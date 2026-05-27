@@ -26,7 +26,42 @@ class Database:
             con.close()
 
     def _init(self):
-        with self.conn() as con:
+        # Run outside the managed connection so executescript's implicit commits are safe
+        con = sqlite3.connect(self.db_path)
+        con.execute("PRAGMA journal_mode=WAL")
+        try:
+            row = con.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='records'"
+            ).fetchone()
+            if row and "UNIQUE" in (row[0] or ""):
+                # Migrate: drop the unique constraint by recreating the table
+                con.executescript("""
+                    ALTER TABLE records RENAME TO _records_bak;
+                    CREATE TABLE IF NOT EXISTS records (
+                        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                        site_code     TEXT    DEFAULT '',
+                        site_name     TEXT    DEFAULT '',
+                        company       TEXT    DEFAULT '',
+                        location      TEXT    DEFAULT '',
+                        measurer      TEXT    DEFAULT '',
+                        measure_date  TEXT    NOT NULL,
+                        slot          TEXT    NOT NULL,
+                        week_monday   TEXT    DEFAULT '',
+                        measure_time  TEXT    DEFAULT '',
+                        temperature   REAL,
+                        humidity      REAL,
+                        feels_like    REAL,
+                        heat_level    TEXT    DEFAULT '',
+                        action        TEXT    DEFAULT 'N/A',
+                        other_content TEXT    DEFAULT '',
+                        notes         TEXT    DEFAULT '',
+                        photo_id      TEXT    DEFAULT '',
+                        created_at    TEXT    DEFAULT (datetime('now','localtime')),
+                        updated_at    TEXT    DEFAULT (datetime('now','localtime'))
+                    );
+                    INSERT INTO records SELECT * FROM _records_bak;
+                    DROP TABLE _records_bak;
+                """)
             con.executescript("""
                 CREATE TABLE IF NOT EXISTS photos (
                     id       TEXT PRIMARY KEY,
@@ -34,7 +69,6 @@ class Database:
                     filepath TEXT,
                     uploaded_at TEXT DEFAULT (datetime('now','localtime'))
                 );
-
                 CREATE TABLE IF NOT EXISTS records (
                     id            INTEGER PRIMARY KEY AUTOINCREMENT,
                     site_code     TEXT    DEFAULT '',
@@ -55,10 +89,11 @@ class Database:
                     notes         TEXT    DEFAULT '',
                     photo_id      TEXT    DEFAULT '',
                     created_at    TEXT    DEFAULT (datetime('now','localtime')),
-                    updated_at    TEXT    DEFAULT (datetime('now','localtime')),
-                    UNIQUE(site_code, location, measure_date, slot)
+                    updated_at    TEXT    DEFAULT (datetime('now','localtime'))
                 );
             """)
+        finally:
+            con.close()
 
     # ── Photos ────────────────────────────────────────────────────────────────
     def save_photo(self, photo_id: str, filename: str, filepath: str):
@@ -92,7 +127,7 @@ class Database:
                 q += " AND location=?"; p.append(location)
             if company:
                 q += " AND company=?"; p.append(company)
-            q += " ORDER BY measure_date, slot"
+            q += " ORDER BY measure_date, slot, id"
             return [dict(r) for r in con.execute(q, p).fetchall()]
 
     def get_companies(self, site_code: str = "", week_monday: str = "") -> list:
@@ -117,25 +152,16 @@ class Database:
             q += " ORDER BY location"
             return [r[0] for r in con.execute(q, p).fetchall()]
 
-    def upsert_record(self, data: dict) -> int:
+    def insert_record(self, data: dict) -> int:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with self.conn() as con:
-            con.execute("""
+            cur = con.execute("""
                 INSERT INTO records (
                     site_code,site_name,company,location,measurer,
                     measure_date,slot,week_monday,measure_time,
                     temperature,humidity,feels_like,heat_level,
-                    action,other_content,notes,photo_id,updated_at
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                ON CONFLICT(site_code,location,measure_date,slot) DO UPDATE SET
-                    site_name=excluded.site_name, company=excluded.company,
-                    measurer=excluded.measurer, week_monday=excluded.week_monday,
-                    measure_time=excluded.measure_time,
-                    temperature=excluded.temperature, humidity=excluded.humidity,
-                    feels_like=excluded.feels_like, heat_level=excluded.heat_level,
-                    action=excluded.action, other_content=excluded.other_content,
-                    notes=excluded.notes, photo_id=excluded.photo_id,
-                    updated_at=excluded.updated_at
+                    action,other_content,notes,photo_id,created_at,updated_at
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 data.get("site_code",""), data.get("site_name",""),
                 data.get("company",""),   data.get("location",""),
@@ -145,14 +171,9 @@ class Database:
                 data.get("temperature"),  data.get("humidity"),
                 data.get("feels_like"),   data.get("heat_level",""),
                 data.get("action","N/A"), data.get("other_content",""),
-                data.get("notes",""),     data.get("photo_id",""), now,
+                data.get("notes",""),     data.get("photo_id",""), now, now,
             ))
-            row = con.execute(
-                "SELECT id FROM records WHERE site_code=? AND location=? AND measure_date=? AND slot=?",
-                (data.get("site_code",""), data.get("location",""),
-                 data["measure_date"], data["slot"]),
-            ).fetchone()
-            return row[0] if row else -1
+            return cur.lastrowid
 
     def update_record(self, rec_id: int, data: dict):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
