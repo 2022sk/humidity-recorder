@@ -252,12 +252,16 @@
                 </div>
               </div>
               <button @click="saveCamDirect()" class="btn-primary w-full"
-                      :disabled="cam.saving || !meta.siteCode || !meta.location"
+                      :disabled="cam.saving || !meta.siteCode || !meta.location || !camIsReady()"
                       x-text="cam.saving ? '저장 중...' : '💾 저장'">
               </button>
               <div x-show="!meta.siteCode || !meta.location"
                    class="text-xs text-red-400 text-center mt-1">
                 ※ 현장코드와 위치를 입력해야 저장됩니다
+              </div>
+              <div x-show="meta.siteCode && meta.location && !camIsReady()"
+                   class="text-xs text-orange-500 text-center mt-1">
+                ※ 온도·습도·측정시각·구분을 모두 확인해주세요
               </div>
             </div>
           </template>
@@ -359,6 +363,10 @@
                             <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
                           </select>
                         </div>
+                        <div x-show="!upldItemIsReady(item)"
+                             class="text-xs text-orange-500 font-bold text-center py-1 bg-orange-50 rounded-lg">
+                          ⚠️ 온도·습도·측정시각·구분·날짜 필요
+                        </div>
                       </div>
                     </template>
                   </div>
@@ -368,8 +376,8 @@
           </div>
           <div class="space-y-2">
             <button @click="saveAllUpld()" class="btn-primary w-full"
-                    :disabled="upld.saving || !upld.batch.some(i=>i.result) || !meta.siteCode || !meta.location"
-                    x-text="upld.saving ? '저장 중...' : '💾 전체 저장 ('+upld.batch.filter(i=>i.result).length+'장)'">
+                    :disabled="upld.saving || !upld.batch.some(i=>upldItemIsReady(i)) || !meta.siteCode || !meta.location"
+                    x-text="upld.saving ? '저장 중...' : '💾 전체 저장 ('+upld.batch.filter(i=>upldItemIsReady(i)).length+'장 / 전체 '+upld.batch.filter(i=>i.result).length+'장)'">
             </button>
             <div x-show="!meta.siteCode || !meta.location" class="text-xs text-red-400 text-center">
               ※ 현장코드와 위치를 입력해야 저장됩니다
@@ -1141,9 +1149,21 @@ function app() {
       if (s) r.slot = s;
     },
 
+    camIsReady() {
+      const r = this.cam.result;
+      if (!r) return false;
+      return r.temperature != null && r.humidity != null && r.time && r.slot && this.cam.date;
+    },
+
+    upldItemIsReady(item) {
+      const r = item.result;
+      if (!r) return false;
+      return r.temperature != null && r.humidity != null && r.time && r.slot && item.date;
+    },
+
     async saveCamDirect() {
       const r = this.cam.result;
-      if (!r || !this.meta.siteCode || !this.meta.location) return;
+      if (!r || !this.meta.siteCode || !this.meta.location || !this.camIsReady()) return;
       this.cam.saving = true;
       try {
         await this._saveRecord(r, this.cam.date, this.cam.photo_id);
@@ -1257,7 +1277,7 @@ function app() {
       if (!this.meta.siteCode || !this.meta.location) return;
       this.upld.saving = true;
       let saved = 0;
-      for (const item of this.upld.batch.filter(i => i.result)) {
+      for (const item of this.upld.batch.filter(i => this.upldItemIsReady(i))) {
         try {
           await this._saveRecord(item.result, item.date, item.photo_id);
           saved++;
