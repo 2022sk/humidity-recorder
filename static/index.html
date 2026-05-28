@@ -47,6 +47,7 @@
   .grid-table tr:hover td{background:#f0f5ff}
   .grid-table input,.grid-table select{border:none;background:transparent;padding:3px 6px!important;font-size:.82rem!important;border-radius:4px;font-family:inherit;width:100%;box-sizing:border-box;white-space:nowrap}
   .grid-table input:focus,.grid-table select:focus{background:white;border:1px solid #0071e3;box-shadow:0 0 0 2px rgba(0,113,227,.1)}
+  .grid-table input:disabled,.grid-table select:disabled{opacity:.7;cursor:default;-webkit-text-fill-color:inherit}
   .heat-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;vertical-align:middle;margin-right:3px}
   .photo-thumb{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e8e8ed}
   .progress-bar{height:4px;background:#e8e8ed;border-radius:2px;overflow:hidden}
@@ -390,6 +391,56 @@
 
     <!-- ── 기간 조회 탭 ── -->
     <div x-show="activeTab==='history'">
+      <!-- 관리자 PIN 잠금/해제 -->
+      <div class="flex items-center gap-2 mb-3 px-3 py-2.5 rounded-xl"
+           :class="hist.unlocked ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'">
+        <template x-if="!hist.unlocked">
+          <div class="flex items-center gap-2 w-full">
+            <span class="text-base flex-shrink-0">🔒</span>
+            <template x-if="hist.pinHasValue">
+              <div class="flex gap-1.5 flex-1">
+                <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN"
+                       @keydown.enter="verifyPin()"
+                       style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
+                <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
+              </div>
+            </template>
+            <template x-if="!hist.pinHasValue">
+              <div class="flex items-center justify-between flex-1">
+                <span class="text-xs text-gray-400">PIN 미설정 — 수정·삭제 잠김</span>
+                <button @click="hist.pinChanging=true" class="btn-secondary text-xs" style="padding:5px 10px">🔑 PIN 등록</button>
+              </div>
+            </template>
+          </div>
+        </template>
+        <template x-if="hist.unlocked">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-xs font-bold text-green-700">🔓 관리자 모드 — 수정·삭제 활성</span>
+            <div class="flex gap-1.5">
+              <button @click="hist.pinChanging=!hist.pinChanging" class="btn-secondary text-xs" style="padding:5px 10px">PIN 변경</button>
+              <button @click="lockHist()" class="btn-secondary text-xs" style="padding:5px 10px">🔒 잠금</button>
+            </div>
+          </div>
+        </template>
+      </div>
+      <!-- PIN 설정/변경 폼 -->
+      <template x-if="hist.pinChanging">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3 space-y-1.5">
+          <div class="text-xs font-bold text-yellow-800" x-text="'🔑 관리자 PIN ' + (hist.pinHasValue ? '변경' : '등록')"></div>
+          <template x-if="hist.pinHasValue && !hist.unlocked">
+            <input type="password" x-model="hist.currentPin" placeholder="현재 PIN"
+                   style="padding:8px 12px!important;font-size:.85rem!important" class="w-full">
+          </template>
+          <input type="password" x-model="hist.newPin" placeholder="새 PIN (4자리 이상)"
+                 style="padding:8px 12px!important;font-size:.85rem!important" class="w-full">
+          <div class="flex gap-1.5">
+            <button @click="setPin()" class="btn-primary text-xs flex-1" style="padding:7px">저장</button>
+            <button @click="hist.pinChanging=false; hist.newPin=''; hist.currentPin=''"
+                    class="btn-secondary text-xs flex-1" style="padding:7px">취소</button>
+          </div>
+        </div>
+      </template>
+
       <!-- 날짜별 / 주차별 토글 -->
       <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
         <button class="tab-btn flex-1" :class="{active:hist.mode==='date'}"
@@ -656,21 +707,27 @@
             <template x-for="row in wkInfo.gridRows" :key="row.key">
               <tr :class="{'day-sep': row.isFirstSlot, 'bg-white': row.temperature!=null||row.humidity!=null, 'bg-gray-100': row.temperature==null&&row.humidity==null}">
                 <td class="text-center">
-                  <template x-if="row.id">
+                  <template x-if="row.id && hist.unlocked">
                     <button @click="deleteRow(row, wkInfo)"
                             class="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 rounded text-xs">✕</button>
+                  </template>
+                  <template x-if="row.id && !hist.unlocked">
+                    <span class="text-gray-300 text-xs">🔒</span>
                   </template>
                 </td>
                 <td class="text-center font-bold"
                     x-text="row.isFirstSlot ? row.dateLabel : ''"></td>
                 <td class="text-center text-gray-500" x-text="row.slot"></td>
                 <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
+                           :disabled="!hist.unlocked"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td><input type="number" x-model.number="row.temperature" step="0.1"
-                           placeholder="-" @input="recalcRow(row)"
+                           placeholder="-" :disabled="!hist.unlocked"
+                           @input="recalcRow(row)"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td><input type="number" x-model.number="row.humidity" step="1"
-                           placeholder="-" @input="recalcRow(row)"
+                           placeholder="-" :disabled="!hist.unlocked"
+                           @input="recalcRow(row)"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td class="text-center">
                   <span class="heat-dot" :style="heatDotStyle(row.feels_like)"></span><span class="font-bold"
@@ -682,18 +739,21 @@
                   <span x-show="!row.heat_level || row.heat_level==='-'" class="text-gray-300">-</span>
                 </td>
                 <td>
-                  <select x-model="row.action" @change="autoSaveRow(row, wkInfo.monday)">
+                  <select x-model="row.action" :disabled="!hist.unlocked"
+                          @change="autoSaveRow(row, wkInfo.monday)">
                     <option>N/A</option><option>추가휴식시간부여</option><option>보냉장구지급</option>
                     <option>작업시간대조정</option><option>작업중지</option><option>기타</option>
                   </select>
                 </td>
                 <td><input type="text" x-model="row.other_content"
                            :placeholder="row.action==='기타'?'내용 입력':''"
-                           :disabled="row.action!=='기타'"
+                           :disabled="!hist.unlocked || row.action!=='기타'"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td><input type="text" x-model="row.measurer"
+                           :disabled="!hist.unlocked"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
                 <td><input type="text" x-model="row.notes"
+                           :disabled="!hist.unlocked"
                            @change="autoSaveRow(row, wkInfo.monday)"></td>
               </tr>
             </template>
@@ -709,9 +769,11 @@
             <template x-for="ph in wkInfo.photos" :key="ph.photo_id">
               <div class="relative text-center">
                 <img :src="'/uploads/'+ph.photo_id" class="photo-thumb">
-                <button @click="deletePhoto(ph, wkInfo)"
-                        class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none"
-                        title="사진 삭제">✕</button>
+                <template x-if="hist.unlocked">
+                  <button @click="deletePhoto(ph, wkInfo)"
+                          class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none"
+                          title="사진 삭제">✕</button>
+                </template>
                 <div class="text-xs text-gray-400 mt-1" x-text="ph.dateLabel+' '+ph.slot"></div>
                 <template x-if="ph.temperature">
                   <div class="text-xs font-bold" x-text="ph.temperature+'°C / '+ph.humidity+'%'"></div>
@@ -783,7 +845,8 @@ function app() {
     extractStatus: '',
 
     records: [],
-    hist: { mode:'date', date: todayStr(), dateGroups:[], company:'', companies:[], location:'', locations:[] },
+    hist: { mode:'date', date: todayStr(), dateGroups:[], company:'', companies:[], location:'', locations:[],
+            unlocked:false, pinInput:'', pinHasValue:false, pinChanging:false, newPin:'', currentPin:'' },
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
     apiOk: false,
@@ -794,6 +857,7 @@ function app() {
       this.buildWeeks();
       await this.loadAutoComplete();
       await this.checkApi();
+      await this.checkPin();
     },
 
     saveMeasurer() { localStorage.setItem('measurer', this.meta.measurer); },
@@ -827,7 +891,8 @@ function app() {
       }
       await this.loadAutoComplete();
       this.hist.company = ''; this.hist.location = '';
-      await this.refreshHistFilters();
+      this.hist.unlocked = false; this.hist.pinInput = '';
+      await Promise.all([this.refreshHistFilters(), this.checkPin()]);
     },
 
     // ── 주차 계산 ──────────────────────────────────────────────────────
@@ -889,6 +954,62 @@ function app() {
         }
         this.showToast(`✅ ${this.records.length}건 불러옴`);
       } catch(e) { this.showToast('❌ 로드 실패: '+e.message); }
+    },
+
+    async checkPin() {
+      if (!this.meta.siteCode) return;
+      try {
+        const r = await fetch(`/api/pin/status?site_code=${this.meta.siteCode}`);
+        const d = await r.json();
+        this.hist.pinHasValue = d.has_pin;
+      } catch {}
+    },
+
+    async verifyPin() {
+      if (!this.hist.pinInput) return;
+      const r = await fetch('/api/pin/verify', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ site_code: this.meta.siteCode, pin: this.hist.pinInput }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        this.hist.unlocked = true;
+        this.hist.pinInput = '';
+        this.showToast('🔓 관리자 모드 활성화');
+      } else {
+        this.showToast('❌ PIN이 올바르지 않습니다');
+        this.hist.pinInput = '';
+      }
+    },
+
+    async setPin() {
+      if (!this.hist.newPin || this.hist.newPin.trim().length < 4) {
+        this.showToast('PIN은 4자리 이상 입력해주세요'); return;
+      }
+      const r = await fetch('/api/pin/set', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          site_code: this.meta.siteCode,
+          current_pin: this.hist.currentPin,
+          new_pin: this.hist.newPin,
+        }),
+      });
+      if (r.ok) {
+        this.hist.pinHasValue = true;
+        this.hist.unlocked = true;
+        this.hist.pinChanging = false;
+        this.hist.newPin = ''; this.hist.currentPin = '';
+        this.showToast('✅ PIN이 설정되었습니다');
+      } else {
+        const e = await r.json();
+        this.showToast('❌ ' + (e.detail || '오류'));
+      }
+    },
+
+    lockHist() {
+      this.hist.unlocked = false;
+      this.hist.pinInput = '';
+      this.hist.pinChanging = false;
     },
 
     onHistTabActivate() {

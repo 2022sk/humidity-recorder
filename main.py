@@ -153,6 +153,36 @@ def delete_photo(photo_id: str):
     return {"ok": True}
 
 
+# ── PIN 관리 ──────────────────────────────────────────────────────────────────
+class PinVerifyIn(BaseModel):
+    site_code: str
+    pin: str
+
+class PinSetIn(BaseModel):
+    site_code: str
+    current_pin: str = ""
+    new_pin: str
+
+@app.get("/api/pin/status")
+def pin_status(site_code: str = ""):
+    if not site_code:
+        raise HTTPException(400, "site_code required")
+    return {"has_pin": db.has_pin(site_code)}
+
+@app.post("/api/pin/verify")
+def verify_pin(body: PinVerifyIn):
+    return {"ok": db.verify_pin(body.site_code, body.pin)}
+
+@app.post("/api/pin/set")
+def set_pin(body: PinSetIn):
+    if not body.new_pin or len(body.new_pin.strip()) < 4:
+        raise HTTPException(400, "PIN은 4자리 이상이어야 합니다")
+    if db.has_pin(body.site_code) and not db.verify_pin(body.site_code, body.current_pin):
+        raise HTTPException(403, "현재 PIN이 올바르지 않습니다")
+    db.set_pin(body.site_code, body.new_pin)
+    return {"ok": True}
+
+
 # ── 자동완성 / 이력 ────────────────────────────────────────────────────────────
 @app.get("/api/autocomplete")
 def get_autocomplete(site_code: str = ""):

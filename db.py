@@ -1,5 +1,6 @@
 """SQLite 데이터베이스 레이어"""
 
+import hashlib
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
@@ -68,6 +69,11 @@ class Database:
                     filename TEXT,
                     filepath TEXT,
                     uploaded_at TEXT DEFAULT (datetime('now','localtime'))
+                );
+                CREATE TABLE IF NOT EXISTS site_pins (
+                    site_code  TEXT PRIMARY KEY,
+                    pin_hash   TEXT NOT NULL,
+                    updated_at TEXT DEFAULT (datetime('now','localtime'))
                 );
                 CREATE TABLE IF NOT EXISTS records (
                     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -204,6 +210,33 @@ class Database:
     def delete_record(self, rec_id: int):
         with self.conn() as con:
             con.execute("DELETE FROM records WHERE id=?", (rec_id,))
+
+    # ── PIN 관리 ──────────────────────────────────────────────────────────────
+    @staticmethod
+    def _hash(pin: str) -> str:
+        return hashlib.sha256(pin.strip().encode()).hexdigest()
+
+    def has_pin(self, site_code: str) -> bool:
+        with self.conn() as con:
+            row = con.execute(
+                "SELECT 1 FROM site_pins WHERE UPPER(site_code)=UPPER(?)", (site_code,)
+            ).fetchone()
+            return row is not None
+
+    def verify_pin(self, site_code: str, pin: str) -> bool:
+        with self.conn() as con:
+            row = con.execute(
+                "SELECT pin_hash FROM site_pins WHERE UPPER(site_code)=UPPER(?)", (site_code,)
+            ).fetchone()
+            return bool(row and row[0] == self._hash(pin))
+
+    def set_pin(self, site_code: str, pin: str):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self.conn() as con:
+            con.execute(
+                "INSERT OR REPLACE INTO site_pins (site_code, pin_hash, updated_at) VALUES (UPPER(?),?,?)",
+                (site_code, self._hash(pin), now),
+            )
 
     # ── Autocomplete / History ─────────────────────────────────────────────────
     def get_autocomplete(self, site_code: str = "") -> dict:
