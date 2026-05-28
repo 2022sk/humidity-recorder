@@ -116,13 +116,15 @@ class Database:
             con.execute("UPDATE records SET photo_id='' WHERE photo_id=?", (photo_id,))
 
     # ── Records ───────────────────────────────────────────────────────────────
-    def get_records(self, site_code: str = "", week_monday: str = "", location: str = "", company: str = "") -> list:
+    def get_records(self, site_code: str = "", week_monday: str = "", location: str = "", company: str = "", measure_date: str = "") -> list:
         with self.conn() as con:
             q, p = "SELECT * FROM records WHERE 1=1", []
             if site_code:
                 q += " AND UPPER(site_code)=UPPER(?)"; p.append(site_code)
             if week_monday:
                 q += " AND week_monday=?"; p.append(week_monday)
+            if measure_date:
+                q += " AND measure_date=?"; p.append(measure_date)
             if location:
                 q += " AND location=?"; p.append(location)
             if company:

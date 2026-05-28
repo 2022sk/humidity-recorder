@@ -156,18 +156,18 @@
 
   <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
   <div class="card relative">
-    <template x-if="!meta.siteCode || !meta.siteName">
+    <template x-if="!meta.siteCode || !meta.siteName || !meta.company || !meta.location">
       <div class="absolute inset-0 rounded-xl z-10 flex flex-col items-center justify-center gap-2"
            style="background:rgba(255,255,255,.88);backdrop-filter:blur(3px)">
         <div class="text-4xl">🏗</div>
-        <div class="font-bold text-sm text-gray-600">현장코드를 먼저 입력해주세요</div>
-        <div class="text-xs text-gray-400">현장 기본 정보를 입력하면 활성화됩니다</div>
+        <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
+        <div class="text-xs text-gray-400">현장코드 · 업체명 · 온습도계 위치 필수</div>
       </div>
     </template>
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
       <button class="tab-btn flex-1" :class="{active:activeTab==='camera'}"  @click="activeTab='camera'">📸 촬영</button>
       <button class="tab-btn flex-1" :class="{active:activeTab==='upload'}"  @click="activeTab='upload'">📁 업로드</button>
-      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}" @click="activeTab='history'">📋 이전 기록</button>
+      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}" @click="activeTab='history'; onHistTabActivate()">📋 이전 기록</button>
     </div>
 
     <!-- ── 카메라 탭: 촬영 → 즉시 AI 추출 → 수정 → 저장 ── -->
@@ -382,61 +382,80 @@
 
     <!-- ── 기간 조회 탭 ── -->
     <div x-show="activeTab==='history'">
-      <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
-        <div class="text-xs font-extrabold text-blue-700 mb-2">📅 2026년 측정기간 선택</div>
-        <div class="grid grid-cols-2 gap-2 mb-2">
-          <div>
-            <label class="text-xs text-gray-500 font-bold">월</label>
-            <select x-model.number="meta.month" @change="buildWeeks" class="mt-1">
-              <template x-for="m in [5,6,7,8,9]" :key="m">
-                <option :value="m" x-text="m+'월'"></option>
-              </template>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 font-bold">주차</label>
-            <select x-model="meta.weekLabel" @change="onWeekChange" class="mt-1">
-              <template x-for="w in weeks" :key="w.monday">
-                <option :value="w.label" x-text="w.label"></option>
-              </template>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 font-bold">업체명</label>
-            <select x-model="hist.company" @change="onHistCompanyChange" class="mt-1">
-              <option value="">전체</option>
-              <template x-for="c in hist.companies" :key="c">
-                <option :value="c" x-text="c"></option>
-              </template>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 font-bold">온습도계 위치</label>
-            <select x-model="hist.location" class="mt-1">
-              <option value="">전체</option>
-              <template x-for="l in hist.locations" :key="l">
-                <option :value="l" x-text="l"></option>
-              </template>
-            </select>
-          </div>
-        </div>
-        <button @click="loadRecords" class="btn-primary w-full text-sm">📂 기록 불러오기</button>
+      <!-- 날짜별 / 주차별 토글 -->
+      <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
+        <button class="tab-btn flex-1" :class="{active:hist.mode==='date'}"
+                @click="switchHistMode('date')">📆 날짜별</button>
+        <button class="tab-btn flex-1" :class="{active:hist.mode==='week'}"
+                @click="switchHistMode('week')">📅 주차별</button>
       </div>
 
-      <template x-if="currentMonday">
-        <div>
-          <div class="text-xs font-bold text-gray-600 mb-2">➕ 이 기간에 사진 추가 (일괄)</div>
-          <label class="drop-zone block cursor-pointer"
-                 @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-                 @dragleave="$event.currentTarget.classList.remove('dragover')"
-                 @drop.prevent="onHistDrop($event)">
-            <input type="file" accept="image/*" multiple class="hidden"
-                   @change="onHistFileSelect($event.target.files)">
-            <div class="text-2xl mb-1">📎</div>
-            <div class="text-sm text-gray-600">추가 사진 선택 (여러 장 가능)</div>
-          </label>
+      <!-- 날짜별 -->
+      <div x-show="hist.mode==='date'" class="mb-3">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+          <div class="text-xs font-extrabold text-blue-700 mb-2">📆 날짜 선택</div>
+          <input type="date" x-model="hist.date" @change="loadRecords()" class="w-full">
         </div>
-      </template>
+      </div>
+
+      <!-- 주차별 -->
+      <div x-show="hist.mode==='week'">
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
+          <div class="text-xs font-extrabold text-blue-700 mb-2">📅 2026년 측정기간 선택</div>
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <div>
+              <label class="text-xs text-gray-500 font-bold">월</label>
+              <select x-model.number="meta.month" @change="buildWeeks" class="mt-1">
+                <template x-for="m in [5,6,7,8,9]" :key="m">
+                  <option :value="m" x-text="m+'월'"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 font-bold">주차</label>
+              <select x-model="meta.weekLabel" @change="onWeekChange" class="mt-1">
+                <template x-for="w in weeks" :key="w.monday">
+                  <option :value="w.label" x-text="w.label"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 font-bold">업체명</label>
+              <select x-model="hist.company" @change="onHistCompanyChange" class="mt-1">
+                <option value="">전체</option>
+                <template x-for="c in hist.companies" :key="c">
+                  <option :value="c" x-text="c"></option>
+                </template>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-gray-500 font-bold">온습도계 위치</label>
+              <select x-model="hist.location" class="mt-1">
+                <option value="">전체</option>
+                <template x-for="l in hist.locations" :key="l">
+                  <option :value="l" x-text="l"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+          <button @click="loadRecords()" class="btn-primary w-full text-sm">📂 기록 불러오기</button>
+        </div>
+
+        <template x-if="currentMonday">
+          <div>
+            <div class="text-xs font-bold text-gray-600 mb-2">➕ 이 기간에 사진 추가 (일괄)</div>
+            <label class="drop-zone block cursor-pointer"
+                   @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+                   @dragleave="$event.currentTarget.classList.remove('dragover')"
+                   @drop.prevent="onHistDrop($event)">
+              <input type="file" accept="image/*" multiple class="hidden"
+                     @change="onHistFileSelect($event.target.files)">
+              <div class="text-2xl mb-1">📎</div>
+              <div class="text-sm text-gray-600">추가 사진 선택 (여러 장 가능)</div>
+            </label>
+          </div>
+        </template>
+      </div>
     </div>
   </div>
 
@@ -499,8 +518,57 @@
     </div>
   </template>
 
+  <!-- ══ 날짜별 결과 ════════════════════════════════════════════════════════ -->
+  <template x-if="activeTab==='history' && hist.mode==='date'">
+    <div>
+      <template x-if="hist.dateGroups.length > 0">
+        <div class="space-y-2">
+          <div class="text-xs text-gray-400 font-bold px-1" x-text="records.length+'건 조회'"></div>
+          <template x-for="g in hist.dateGroups" :key="g.key">
+            <div class="card" style="padding:12px">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="font-extrabold text-blue-700" style="font-size:.85rem" x-text="'📍 '+g.location"></span>
+                <span x-show="g.company" class="text-xs text-gray-400" x-text="g.company"></span>
+              </div>
+              <div class="grid grid-cols-4 gap-1.5 text-center text-xs">
+                <template x-for="sl in ['오전1','오전2','오후1','오후2']" :key="sl">
+                  <div class="rounded-lg p-2"
+                       :class="g.slotMap[sl].length > 0 ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50'">
+                    <div class="font-bold text-gray-500 mb-1" x-text="sl"></div>
+                    <template x-if="g.slotMap[sl].length === 0">
+                      <div class="text-gray-300 text-sm">─</div>
+                    </template>
+                    <template x-if="g.slotMap[sl].length > 0">
+                      <div>
+                        <template x-for="(rec, ri) in g.slotMap[sl]" :key="rec.id">
+                          <div :class="ri > 0 ? 'mt-1 pt-1 border-t border-blue-100' : ''">
+                            <div x-show="rec.measure_time" class="text-gray-400" x-text="rec.measure_time"></div>
+                            <div class="font-bold text-gray-800" x-text="rec.temperature!=null ? rec.temperature+'°C' : '?'"></div>
+                            <div x-show="rec.heat_level && rec.heat_level!=='-'"
+                                 :class="'badge-'+rec.heat_level" x-text="rec.heat_level"></div>
+                            <div class="text-gray-400" x-show="rec.measurer" x-text="rec.measurer"></div>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+      <template x-if="hist.dateGroups.length === 0">
+        <div class="card text-center py-8 text-gray-400">
+          <div class="text-4xl mb-2">📋</div>
+          <div class="text-sm font-bold">이 날짜에 기록이 없습니다</div>
+        </div>
+      </template>
+    </div>
+  </template>
+
   <!-- ══ KPI 요약 ══════════════════════════════════════════════════════════ -->
-  <template x-if="records.length > 0">
+  <template x-if="records.length > 0 && hist.mode==='week'">
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
       <div class="kpi-card" style="background:linear-gradient(135deg,#e8f4fd,#dbeafe);border-color:#bfdbfe">
         <div class="kpi-val" style="color:#1e40af" x-text="records.length+'건'"></div>
@@ -648,7 +716,7 @@
     </div>
   </template>
 
-  <template x-if="records.length === 0 && queue.length === 0">
+  <template x-if="records.length === 0 && queue.length === 0 && !(activeTab==='history' && hist.mode==='date')">
     <div class="card text-center py-10 text-gray-400">
       <div class="text-5xl mb-3">🌡</div>
       <div class="font-bold text-sm">📸 촬영·업로드 탭에서 사진 등록 후 저장하거나</div>
@@ -707,7 +775,7 @@ function app() {
     extractStatus: '',
 
     records: [],
-    hist: { company:'', companies:[], location:'', locations:[] },
+    hist: { mode:'date', date: todayStr(), dateGroups:[], company:'', companies:[], location:'', locations:[] },
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
     apiOk: false,
@@ -788,22 +856,69 @@ function app() {
 
     // ── 기록 로드 ──────────────────────────────────────────────────────
     async loadRecords() {
-      if (!this.currentMonday) { this.showToast('주차를 선택하세요'); return; }
       try {
-        const q = new URLSearchParams({
-          site_code: this.meta.siteCode,
-          week_monday: this.currentMonday,
-          location: this.hist.location,
-          company: this.hist.company,
-        });
+        const q = new URLSearchParams({ site_code: this.meta.siteCode });
+        if (this.hist.mode === 'date') {
+          if (!this.hist.date) { this.showToast('날짜를 선택하세요'); return; }
+          q.set('measure_date', this.hist.date);
+        } else {
+          if (!this.currentMonday) { this.showToast('주차를 선택하세요'); return; }
+          q.set('week_monday', this.currentMonday);
+          if (this.hist.location) q.set('location', this.hist.location);
+          if (this.hist.company)  q.set('company',  this.hist.company);
+        }
         const r = await fetch('/api/records?'+q);
         const d = await r.json();
         this.records = d.records || [];
-        this.buildWeekGroups();
-        this.calcKpi();
+        if (this.hist.mode === 'date') {
+          this.buildDateGroups();
+          this.weekGroups = [];
+        } else {
+          this.hist.dateGroups = [];
+          this.buildWeekGroups();
+          this.calcKpi();
+          this.$nextTick(() => this.drawCharts());
+        }
         this.showToast(`✅ ${this.records.length}건 불러옴`);
-        this.$nextTick(() => this.drawCharts());
       } catch(e) { this.showToast('❌ 로드 실패: '+e.message); }
+    },
+
+    onHistTabActivate() {
+      if (this.hist.mode === 'date') {
+        this.hist.date = todayStr();
+        this.loadRecords();
+      }
+    },
+
+    switchHistMode(mode) {
+      if (this.hist.mode === mode) return;
+      this.hist.mode = mode;
+      this.records = [];
+      this.weekGroups = [];
+      this.hist.dateGroups = [];
+      this.kpi = { maxTemp:'-', maxHumid:'-', maxFeels:'-' };
+      if (mode === 'date') {
+        this.hist.date = todayStr();
+        this.loadRecords();
+      }
+    },
+
+    buildDateGroups() {
+      const map = new Map();
+      this.records.forEach(r => {
+        const key = (r.location||'미입력') + '||' + (r.company||'');
+        if (!map.has(key)) map.set(key, {
+          key,
+          location: r.location || '미입력',
+          company:  r.company  || '',
+          slotMap:  { '오전1':[], '오전2':[], '오후1':[], '오후2':[] },
+        });
+        const g = map.get(key);
+        if (g.slotMap[r.slot]) g.slotMap[r.slot].push(r);
+      });
+      this.hist.dateGroups = [...map.values()].sort((a, b) =>
+        a.location.localeCompare(b.location, 'ko')
+      );
     },
 
     buildWeekGroups() {

@@ -100,8 +100,8 @@ async def extract_photo(body: dict):
 
 # ── 기록 CRUD ─────────────────────────────────────────────────────────────────
 @app.get("/api/records")
-def get_records(site_code: str = "", week_monday: str = "", location: str = "", company: str = ""):
-    return {"records": db.get_records(site_code=site_code, week_monday=week_monday, location=location, company=company)}
+def get_records(site_code: str = "", week_monday: str = "", location: str = "", company: str = "", measure_date: str = ""):
+    return {"records": db.get_records(site_code=site_code, week_monday=week_monday, location=location, company=company, measure_date=measure_date)}
 
 
 @app.get("/api/companies")
