@@ -930,8 +930,20 @@
   </template>
 
   <!-- ══ 주별 섹션 ═════════════════════════════════════════════════════════ -->
+  <!-- 탭 바: 위치·업체 탭 -->
+  <template x-if="weekGroups.length > 1">
+    <div class="flex gap-1 flex-nowrap overflow-x-auto pb-1 mb-2" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      <template x-for="(wkInfo, wi) in weekGroups" :key="'tab_'+wi">
+        <button @click="wkActiveIdx=wi"
+                class="text-xs py-1.5 px-3 rounded-lg font-bold whitespace-nowrap flex-shrink-0 transition-all border-0"
+                :class="wkActiveIdx===wi ? 'btn-primary' : 'btn-secondary'"
+                x-text="(wkInfo.location||'위치미정') + (wkInfo.company ? ' · '+wkInfo.company : '')"></button>
+      </template>
+    </div>
+  </template>
+
   <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday+'_'+wkInfo.location+'_'+wkInfo.company">
-    <div>
+    <div x-show="wi === wkActiveIdx">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
@@ -1050,9 +1062,14 @@
                         x-text="row.feels_like != null ? row.feels_like.toFixed(1)+'°C' : '-'"></span>
                 </td>
                 <td class="text-center">
-                  <span x-show="row.heat_level && row.heat_level!=='-'"
-                        :class="'badge-'+row.heat_level" x-text="row.heat_level"></span>
-                  <span x-show="!row.heat_level || row.heat_level==='-'" class="text-gray-300">-</span>
+                  <template x-if="['관심','주의','경고','위험'].includes(row.heat_level)">
+                    <button @click="openHealthPanel(row)"
+                            :class="'badge-'+row.heat_level"
+                            style="cursor:pointer;border:none;font-family:inherit"
+                            :title="'🩺 건강관리 기록 열기'"
+                            x-text="row.heat_level"></button>
+                  </template>
+                  <span x-show="!['관심','주의','경고','위험'].includes(row.heat_level)" class="text-gray-300">-</span>
                 </td>
                 <td>
                   <select x-model="row.action" :disabled="!hist.unlocked"
@@ -1160,6 +1177,7 @@ function app() {
             unlocked:false, pinInput:'', pinHasValue:false, pinChanging:false, newPin:'', currentPin:'' },
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
+    wkActiveIdx: 0,
     apiOk: false,
     aiKeyModal: { show:false, key:'', pin:'', needPin:false, saving:false, error:'', success:false },
     toast: { show:false, msg:'' },
@@ -1484,7 +1502,7 @@ function app() {
     },
 
     buildWeekGroups() {
-      // Split by (week_monday, location, company) to keep each company's data separate
+      this.wkActiveIdx = 0;
       const pairMap = new Map();
       this.records.forEach(r => {
         if (!r.week_monday) return;
