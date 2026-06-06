@@ -934,7 +934,7 @@
   <template x-if="weekGroups.length > 1">
     <div class="flex gap-1 flex-nowrap overflow-x-auto pb-1 mb-2" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
       <template x-for="(wkInfo, wi) in weekGroups" :key="'tab_'+wi">
-        <button @click="wkActiveIdx=wi"
+        <button @click="switchWeekTab(wi)"
                 class="text-xs py-1.5 px-3 rounded-lg font-bold whitespace-nowrap flex-shrink-0 transition-all border-0"
                 :class="wkActiveIdx===wi ? 'btn-primary' : 'btn-secondary'"
                 x-text="(wkInfo.location||'위치미정') + (wkInfo.company ? ' · '+wkInfo.company : '')"></button>
@@ -979,8 +979,8 @@
         </button>
       </div>
       <template x-if="wkInfo.records.some(r=>r.feels_like!=null)">
-        <div class="card mb-2" style="padding:10px">
-          <canvas :id="'chart-'+wi" height="110"></canvas>
+        <div class="card mb-2" style="padding:10px;height:140px;position:relative">
+          <canvas :id="'chart-'+wi" style="position:absolute;inset:10px"></canvas>
         </div>
       </template>
       <div class="card overflow-x-auto" style="padding:0">
@@ -1499,6 +1499,14 @@ function app() {
       this.hist.dateGroups = [...map.values()].sort((a, b) =>
         a.location.localeCompare(b.location, 'ko')
       );
+    },
+
+    switchWeekTab(idx) {
+      this.wkActiveIdx = idx;
+      this.$nextTick(() => {
+        const canvas = document.getElementById('chart-' + idx);
+        if (canvas && canvas._chartInst) canvas._chartInst.resize();
+      });
     },
 
     buildWeekGroups() {
