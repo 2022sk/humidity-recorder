@@ -51,6 +51,11 @@
   .temp-warn{color:#ff9500;font-weight:800}
   .temp-danger{color:#ff3b30;font-weight:800}
   .exemption-alert{background:linear-gradient(135deg,#fff0f0,#ffe8e8);border:1.5px solid #ff4d4d;border-radius:12px;padding:10px 12px}
+  .info-tag{display:inline-flex;align-items:center;background:#f2f2f7;color:#3c3c43;border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;letter-spacing:-.01em}
+  .disease-tag{display:inline-flex;align-items:center;background:#fff3e8;color:#cc5500;border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;border:1px solid #ffd3a8}
+  .company-header{font-size:.78rem;font-weight:800;color:#86868b;letter-spacing:.03em;padding:4px 2px;margin-bottom:4px;border-bottom:1px solid #e8e8ed}
+  .modal-tab-btn{flex:1;padding:8px 4px;font-size:.82rem;font-weight:700;border:none;background:transparent;cursor:pointer;font-family:inherit;border-radius:8px;transition:all .15s;color:#86868b}
+  .modal-tab-btn.active{background:white;color:#0071e3;box-shadow:0 1px 5px rgba(0,0,0,.1)}
   ::-webkit-scrollbar{width:5px;height:5px}
   ::-webkit-scrollbar-track{background:#f1f1f1}
   ::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:3px}
@@ -186,35 +191,54 @@
                   class="text-xs py-1.5 px-3 rounded-lg" x-text="c"></button>
         </template>
       </div>
-      <!-- 근로자 목록 -->
-      <div class="space-y-2">
-        <template x-for="w in filteredWorkers" :key="w.id">
-          <div class="worker-card" :class="w.is_vulnerable ? 'vulnerable' : ''">
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span x-show="w.is_vulnerable" class="text-red-500 font-black text-sm">🔴</span>
-                  <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
-                  <span x-show="w.name_korean && w.name" class="text-xs text-gray-400" x-text="w.name"></span>
-                  <span class="text-xs text-gray-400" x-text="w.company"></span>
-                  <span x-show="w.birth_date" class="text-xs text-gray-400"
-                        x-text="w.birth_date ? '('+(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세)' : ''"></span>
-                  <span x-show="w.gender" class="text-xs text-gray-400" x-text="w.gender"></span>
+      <!-- 근로자 목록 (업체별 그룹) -->
+      <div class="space-y-4">
+        <template x-for="grp in groupedWorkers" :key="grp.company">
+          <div>
+            <div class="company-header" x-text="'🏢 ' + grp.company + '  (' + grp.workers.length + '명)'"></div>
+            <div class="space-y-2">
+              <template x-for="w in grp.workers" :key="w.id">
+                <div class="worker-card" :class="w.is_vulnerable ? 'vulnerable' : ''">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex-1 min-w-0">
+                      <!-- 이름 행 -->
+                      <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                        <span x-show="w.is_vulnerable" class="text-red-500 font-black text-sm leading-none">🔴</span>
+                        <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                        <span x-show="w.name_korean && w.name" class="text-xs text-gray-400" x-text="w.name"></span>
+                      </div>
+                      <!-- 정보 태그 행 -->
+                      <div class="flex flex-wrap gap-1 mb-1.5">
+                        <span x-show="w.job_type" class="info-tag" x-text="w.job_type"></span>
+                        <span x-show="w.gender" class="info-tag" x-text="w.gender"></span>
+                        <span x-show="w.nationality && w.nationality !== '대한민국'" class="info-tag" x-text="w.nationality"></span>
+                        <span x-show="w.birth_date" class="info-tag"
+                              x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
+                        <span x-show="w.last_exam_date" class="info-tag" style="background:#e8f4e8;color:#1a7a1a"
+                              x-text="'건강진단 ' + (w.last_exam_date||'')"></span>
+                        <span x-show="w.work_restrictions" class="info-tag" style="background:#fff3e8;color:#cc5500"
+                              x-text="'⚠ ' + w.work_restrictions"></span>
+                      </div>
+                      <!-- 취약 태그 -->
+                      <div x-show="(w.vulnerability_types||[]).length > 0" class="flex flex-wrap gap-1 mb-1">
+                        <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                          <span class="vul-tag" x-text="vt"></span>
+                        </template>
+                      </div>
+                      <!-- 질환 태그 -->
+                      <div x-show="w.diseases" class="flex flex-wrap gap-1">
+                        <template x-for="ds in parseDiseases(w.diseases)" :key="ds">
+                          <span class="disease-tag" x-text="ds"></span>
+                        </template>
+                      </div>
+                    </div>
+                    <div class="flex gap-1 flex-shrink-0 mt-0.5">
+                      <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2.5">편집</button>
+                      <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
+                    </div>
+                  </div>
                 </div>
-                <div class="mt-1 flex flex-wrap gap-1">
-                  <template x-for="vt in w.vulnerability_types" :key="vt">
-                    <span class="vul-tag" :class="'vul-tag-'+vt" x-text="vt"></span>
-                  </template>
-                </div>
-                <div x-show="w.diseases" class="text-xs text-gray-500 mt-1" x-text="'질환: '+w.diseases"></div>
-                <div x-show="w.last_exam_date" class="text-xs text-gray-400 mt-0.5" x-text="'건강진단: '+w.last_exam_date"></div>
-                <div x-show="w.work_restrictions" class="text-xs text-orange-600 mt-0.5" x-text="'⚠ '+w.work_restrictions"></div>
-              </div>
-              <div class="flex gap-1 flex-shrink-0">
-                <button @click="openExamModal(w)" class="btn-secondary text-xs py-1 px-2">진단</button>
-                <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2">수정</button>
-                <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
-              </div>
+              </template>
             </div>
           </div>
         </template>
@@ -591,17 +615,28 @@
 
 </div>
 
-<!-- ══ 모달: 근로자 추가/수정 ══ -->
+<!-- ══ 모달: 근로자 편집 (기본정보 + 건강진단 탭) ══ -->
 <div x-show="workerModal.show" x-cloak class="modal-bg" @click.self="workerModal.show=false">
   <div class="modal">
     <div class="modal-handle sm:hidden"></div>
-    <div class="flex items-center justify-between mb-5">
-      <div class="font-extrabold text-gray-800" style="font-size:1.1rem"
-           x-text="workerModal.editing ? '근로자 수정' : '근로자 추가'"></div>
+    <!-- 헤더 -->
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="font-extrabold text-gray-800" style="font-size:1.05rem"
+             x-text="workerModal.editing ? (workerModal.editing.name_korean||workerModal.editing.name) : '근로자 추가'"></div>
+        <div class="text-xs text-gray-400 mt-0.5" x-show="workerModal.editing" x-text="workerModal.editing?.company"></div>
+      </div>
       <button @click="workerModal.show=false" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg leading-none">✕</button>
     </div>
-    <div class="space-y-4">
-      <!-- 기본 정보 -->
+    <!-- 탭 -->
+    <div class="flex gap-1 p-1 rounded-xl mb-4" style="background:#f2f2f7">
+      <button class="modal-tab-btn" :class="{active:workerModal.tab==='info'}" @click="workerModal.tab='info'">📋 기본정보</button>
+      <button class="modal-tab-btn" :class="{active:workerModal.tab==='exam'}" @click="workerModal.tab='exam'"
+              :disabled="!workerModal.editing">🩺 건강진단</button>
+    </div>
+
+    <!-- ── 기본정보 탭 ── -->
+    <div x-show="workerModal.tab==='info'" class="space-y-4">
       <div>
         <div class="section-label">기본 정보</div>
         <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
@@ -641,7 +676,6 @@
           </div>
         </div>
       </div>
-      <!-- 신원 정보 -->
       <div>
         <div class="section-label">신원 정보</div>
         <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
@@ -679,15 +713,12 @@
           </div>
         </div>
       </div>
-      <!-- 취약구분 -->
       <div>
         <div class="section-label">취약구분 <span style="font-size:.68rem;color:#86868b;font-weight:400;letter-spacing:0">(해당 항목 모두 선택)</span></div>
         <div class="grid grid-cols-2 gap-1.5">
           <template x-for="vt in vtypeOptions" :key="vt">
             <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border transition-all"
-                   :class="workerModal.data.vulnerability_types.includes(vt)
-                     ? 'border-red-400 bg-red-50'
-                     : 'border-gray-200 bg-white hover:border-gray-300'">
+                   :class="workerModal.data.vulnerability_types.includes(vt) ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'">
               <input type="checkbox" :value="vt" x-model="workerModal.data.vulnerability_types"
                      class="accent-red-500 flex-shrink-0" style="width:15px;min-width:15px;padding:0!important">
               <span class="text-xs font-bold leading-tight" x-text="vt"></span>
@@ -695,13 +726,12 @@
           </template>
         </div>
       </div>
-      <!-- 추가 정보 -->
       <div>
         <div class="section-label">추가 정보</div>
         <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
           <div>
-            <label class="text-xs font-bold text-gray-500">기저질환 상세</label>
-            <input type="text" x-model="workerModal.data.diseases" placeholder="고혈압, 당뇨 등" class="mt-1">
+            <label class="text-xs font-bold text-gray-500">기저질환 상세 <span class="font-normal text-gray-400">(쉼표로 구분)</span></label>
+            <input type="text" x-model="workerModal.data.diseases" placeholder="혈압, 당뇨 등" class="mt-1">
           </div>
           <div>
             <label class="text-xs font-bold text-gray-500">작업 제한사항</label>
@@ -717,6 +747,86 @@
         <span x-text="workerModal.saving ? '저장 중...' : '저장하기'"></span>
       </button>
     </div>
+
+    <!-- ── 건강진단 탭 ── -->
+    <div x-show="workerModal.tab==='exam'">
+      <!-- 새 진단 추가 -->
+      <div class="p-3 rounded-xl mb-4" style="background:#f9f9fb;border:1px solid #e8e8ed">
+        <div class="text-xs font-bold text-gray-600 mb-2">새 건강진단 추가</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label class="text-xs text-gray-500">진단 종류</label>
+            <select x-model="workerModal.newExam.exam_type" class="mt-0.5" style="padding:6px 8px!important">
+              <option>배치전건강진단</option>
+              <option>특수건강진단</option>
+              <option>일반건강진단</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">진단일</label>
+            <input type="date" x-model="workerModal.newExam.exam_date" class="mt-0.5" style="padding:6px 8px!important">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label class="text-xs text-gray-500">혈압 (수축기/이완기)</label>
+            <input type="text" x-model="workerModal.newExam.key_values.bp" placeholder="120/80" class="mt-0.5" style="padding:6px 8px!important">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500">혈당 (mg/dL)</label>
+            <input type="text" x-model="workerModal.newExam.key_values.glucose" placeholder="95" class="mt-0.5" style="padding:6px 8px!important">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="text-xs text-gray-500">판정 결과</label>
+          <select x-model="workerModal.newExam.key_values.result" class="mt-0.5" style="padding:6px 8px!important">
+            <option value="">선택</option>
+            <option>정상</option>
+            <option>주의</option>
+            <option>질환의심</option>
+            <option>유소견</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="text-xs text-gray-500">비고</label>
+          <input type="text" x-model="workerModal.newExam.notes" placeholder="특이사항" class="mt-0.5" style="padding:6px 8px!important">
+        </div>
+        <label class="block border border-dashed border-gray-300 rounded-lg p-2 text-center cursor-pointer hover:border-blue-400 text-xs text-gray-400">
+          <input type="file" accept="image/*,.pdf" class="hidden" @change="uploadWorkerExamPhoto($event)">
+          📎 결과지 사진/PDF 첨부 <span x-show="workerModal.newExam.photo_id" class="text-green-600">✅</span>
+        </label>
+        <button @click="saveWorkerExam()" class="btn-primary w-full mt-2 text-sm py-2" :disabled="workerModal.examSaving">
+          <span x-text="workerModal.examSaving ? '저장 중...' : '진단 기록 추가'"></span>
+        </button>
+      </div>
+      <!-- 기존 진단 목록 -->
+      <div class="space-y-2 max-h-52 overflow-y-auto">
+        <template x-for="ex in workerModal.exams" :key="ex.id">
+          <div class="p-2.5 rounded-xl border border-gray-200 text-sm bg-white">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="font-bold" x-text="ex.exam_type"></span>
+                <span class="text-xs text-gray-400 ml-2" x-text="ex.exam_date"></span>
+              </div>
+              <button @click="deleteWorkerExam(ex)" class="text-red-400 text-xs hover:text-red-600">삭제</button>
+            </div>
+            <div class="text-xs text-gray-600 mt-1 flex flex-wrap gap-2">
+              <span x-show="ex.key_values?.bp" x-text="'혈압 ' + ex.key_values.bp"></span>
+              <span x-show="ex.key_values?.glucose" x-text="'혈당 ' + ex.key_values.glucose"></span>
+              <span x-show="ex.key_values?.result"
+                    :class="ex.key_values.result==='정상'?'text-green-600':ex.key_values.result==='유소견'?'text-red-600':'text-orange-600'"
+                    x-text="ex.key_values.result" class="font-bold"></span>
+            </div>
+            <div x-show="ex.notes" class="text-xs text-gray-400 mt-0.5" x-text="ex.notes"></div>
+            <div x-show="ex.photo_id" class="mt-1">
+              <img :src="API_BASE+'/uploads/'+ex.photo_id" class="h-12 rounded-lg object-cover border border-gray-200">
+            </div>
+          </div>
+        </template>
+        <div x-show="workerModal.exams.length===0" class="text-gray-400 text-xs text-center py-4">건강진단 기록 없음</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1172,8 +1282,10 @@ function app() {
     workerFilter: '',
     workerCompanies: [],
     vtypeOptions: ['고령(만60세이상)','초고령(만66세이상)','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
-    workerModal: { show:false, editing:null,
+    workerModal: { show:false, editing:null, tab:'info',
       data:{worker_code:'',education_date:'',name:'',name_korean:'',company:'',job_type:'',nationality:'',birth_date:'',birth_year:'',phone:'',residence_status:'',residence_expiry:'',gender:'',last_exam_date:'',vulnerability_types:[],diseases:'',work_restrictions:'',notes:''},
+      exams:[], examSaving:false,
+      newExam:{ exam_type:'배치전건강진단', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' },
       saving:false },
     examModal: { show:false, worker:null, exams:[], saving:false,
                  newExam:{ exam_type:'배치전건강진단', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' } },
@@ -1300,7 +1412,25 @@ function app() {
       return this.workers.filter(w => w.company === this.workerFilter);
     },
 
-    openWorkerModal(w) {
+    get groupedWorkers() {
+      const groups = {};
+      this.filteredWorkers.forEach(w => {
+        const c = w.company || '미지정';
+        if (!groups[c]) groups[c] = [];
+        groups[c].push(w);
+      });
+      return Object.entries(groups).map(([company, workers]) => ({ company, workers }));
+    },
+
+    parseDiseases(str) {
+      if (!str) return [];
+      return str.split(',').map(s => s.trim()).filter(Boolean);
+    },
+
+    async openWorkerModal(w) {
+      this.workerModal.tab = 'info';
+      this.workerModal.exams = [];
+      this.workerModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
       if (w) {
         this.workerModal.editing = w;
         this.workerModal.data = {
@@ -1310,15 +1440,20 @@ function app() {
           nationality: w.nationality||'', birth_date: w.birth_date||'',
           birth_year: w.birth_year||'', phone: w.phone||'',
           residence_status: w.residence_status||'', residence_expiry: w.residence_expiry||'',
+          gender: w.gender||'', last_exam_date: w.last_exam_date||'',
           vulnerability_types: [...(w.vulnerability_types||[])],
           diseases: w.diseases||'', work_restrictions: w.work_restrictions||'', notes: w.notes||''
         };
+        const r = await fetch(API_BASE+'/api/vw/workers/'+w.id+'/exams');
+        const d = await r.json();
+        this.workerModal.exams = d.exams || [];
       } else {
         this.workerModal.editing = null;
         this.workerModal.data = {
           worker_code:'', education_date:'', name:'', name_korean:'',
           company: this.workerFilter||'', job_type:'', nationality:'', birth_date:'',
           birth_year:'', phone:'', residence_status:'', residence_expiry:'',
+          gender:'', last_exam_date:'',
           vulnerability_types:[], diseases:'', work_restrictions:'', notes:''
         };
       }
@@ -1356,6 +1491,42 @@ function app() {
       await fetch(API_BASE+'/api/vw/workers/'+w.id, { method:'DELETE' });
       await this.loadWorkers();
       this.showToast('삭제되었습니다');
+    },
+
+    async saveWorkerExam() {
+      if (!this.workerModal.newExam.exam_date) { this.showToast('진단일을 입력하세요'); return; }
+      this.workerModal.examSaving = true;
+      try {
+        await fetch(API_BASE+'/api/vw/exams', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ worker_id: this.workerModal.editing.id, site_code: this.siteCode, ...this.workerModal.newExam })
+        });
+        const r = await fetch(API_BASE+'/api/vw/workers/'+this.workerModal.editing.id+'/exams');
+        const d = await r.json();
+        this.workerModal.exams = d.exams || [];
+        this.workerModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+        // Update last_exam_date in data if newer
+        if (this.workerModal.exams.length > 0) {
+          const latest = this.workerModal.exams.reduce((a,b) => a.exam_date > b.exam_date ? a : b);
+          this.workerModal.data.last_exam_date = latest.exam_date;
+        }
+        this.showToast('진단 기록 저장됨');
+      } finally { this.workerModal.examSaving = false; }
+    },
+
+    async deleteWorkerExam(ex) {
+      if (!confirm('삭제하시겠습니까?')) return;
+      await fetch(API_BASE+'/api/vw/exams/'+ex.id, { method:'DELETE' });
+      this.workerModal.exams = this.workerModal.exams.filter(e=>e.id!==ex.id);
+      this.showToast('삭제되었습니다');
+    },
+
+    async uploadWorkerExamPhoto(ev) {
+      const file = ev.target.files[0]; if (!file) return;
+      const form = new FormData(); form.append('file', file);
+      const r = await fetch(API_BASE+'/api/photos/upload', { method:'POST', body:form });
+      const d = await r.json();
+      this.workerModal.newExam.photo_id = d.photo_id;
     },
 
     // ── 관리자: 건강진단 ──────────────────────────────────────────────────────
