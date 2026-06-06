@@ -1459,7 +1459,7 @@ function app() {
       const ELDERLY = '고령(만60세이상)';
       const SUPER   = '초고령(만66세이상)';
       const vtypes = this.workerModal.data.vulnerability_types.filter(v => v !== ELDERLY && v !== SUPER);
-      if (age >= 66) { vtypes.push(ELDERLY); vtypes.push(SUPER); }
+      if (age >= 66) { vtypes.push(SUPER); }
       else if (age >= 60) { vtypes.push(ELDERLY); }
       this.workerModal.data.vulnerability_types = vtypes;
     },
