@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>근로자 건강관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Square:wght@400;700;800&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+  [x-cloak]{display:none!important}
+  body{font-family:'Nanum Square','NanumSquare','Apple SD Gothic Neo','맑은 고딕',sans-serif;background:#f5f5f7}
+  .card{background:white;border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8e8ed}
+  .btn-primary{background:#0071e3;color:white;border-radius:10px;padding:9px 16px;font-weight:700;font-size:.85rem;cursor:pointer;border:none;font-family:inherit;transition:background .15s}
+  .btn-primary:hover{background:#005bbf}
+  .btn-primary:disabled{background:#b0b0b5;cursor:not-allowed}
+  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;border:none;font-family:inherit;transition:background .15s}
+  .btn-secondary:hover{background:#e5e5ea}
+  .btn-danger{background:#ff3b30;color:white;border-radius:8px;padding:6px 12px;font-weight:700;font-size:.8rem;cursor:pointer;border:none;font-family:inherit;transition:background .15s}
+  .btn-danger:hover{background:#d92e24}
+  input,select,textarea{box-sizing:border-box;border:1px solid #d1d5db;border-radius:12px;padding:12px 16px 12px 14px!important;font-size:.85rem!important;line-height:1.4;width:100%;max-width:100%;min-width:0;outline:none;transition:border-color .15s;font-family:inherit}
+  input[type="date"]{-webkit-appearance:none;appearance:none}
+  input:focus,select:focus,textarea:focus{border-color:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
+  input::placeholder,textarea::placeholder{font-size:.85rem!important;color:#b0b0b8}
+  .tab-btn{transition:all .2s;border-radius:9px;padding:8px 10px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent;font-family:inherit}
+  .tab-btn.active{background:white;box-shadow:0 1px 6px rgba(0,0,0,.12);color:#0071e3}
+  .tab-btn:not(.active){color:#86868b}
+  .tab-btn:not(.active):hover{background:rgba(255,255,255,.6)}
+  .badge-위험{background:#ff3b30;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .badge-경고{background:#ff9500;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .badge-주의{background:#ffcc00;color:#1c1c1e;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  .badge-관심{background:#34c759;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
+  /* 취약유형 태그 — 단일 색상으로 통일, 크기만 조정 */
+  .vul-tag{display:inline-block;background:#ff3b30;color:white;border-radius:6px;padding:2px 8px;font-size:.68rem;font-weight:800;letter-spacing:-.01em}
+  .worker-card{border:1px solid #e8e8ed;border-radius:14px;padding:14px 16px;background:white;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:box-shadow .15s}
+  .worker-card:hover{box-shadow:0 2px 14px rgba(0,0,0,.09)}
+  .worker-card.vulnerable{border-color:#ffb3b3;background:linear-gradient(135deg,#fff8f8,#fff)}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:0}
+  @media(min-width:640px){.modal-bg{align-items:center;padding:16px}}
+  .modal{background:white;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 -4px 40px rgba(0,0,0,.18)}
+  @media(min-width:640px){.modal{border-radius:20px;padding:28px 24px;max-height:88vh}}
+  .modal-handle{width:36px;height:4px;background:#d1d5db;border-radius:2px;margin:0 auto 16px}
+  .section-label{font-size:.72rem;font-weight:800;color:#86868b;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+  .info-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .temp-ok{}
+  .temp-warn{color:#ff9500;font-weight:800}
+  .temp-danger{color:#ff3b30;font-weight:800}
+  .exemption-alert{background:linear-gradient(135deg,#fff0f0,#ffe8e8);border:1.5px solid #ff4d4d;border-radius:12px;padding:10px 12px}
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:#f1f1f1}
+  ::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:3px}
+</style>
+</head>
+
+<body x-data="app()" x-init="init()" x-cloak>
+
+<!-- ── 헤더 ── -->
+<header class="sticky top-0 z-40" style="background:linear-gradient(135deg,#0062cc,#0071e3,#0096c7);box-shadow:0 2px 12px rgba(0,100,200,.2)">
+  <div class="max-w-3xl lg:max-w-[1200px] mx-auto px-4" style="padding-top:14px;padding-bottom:14px">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg">🦺</span>
+          <h1 class="font-extrabold text-white" style="font-size:1.2rem;letter-spacing:-.02em">근로자 건강관리</h1>
+        </div>
+        <div class="pl-7">
+          <template x-if="siteCode">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-xs px-1.5 py-0.5 rounded font-bold"
+                    style="background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.3)"
+                    x-text="siteCode"></span>
+              <span x-show="siteName" class="text-xs px-1.5 py-0.5 rounded font-bold"
+                    style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.25)"
+                    x-text="siteName"></span>
+              <span x-show="role==='company' && company" class="text-xs"
+                    style="color:rgba(255,255,255,.75)" x-text="company"></span>
+            </div>
+          </template>
+          <template x-if="!siteCode">
+            <span class="text-xs" style="color:rgba(255,255,255,.6)">현장코드를 입력하세요</span>
+          </template>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 mt-0.5">
+        <template x-if="authed && mode !== 'health'">
+          <button @click="logout()" class="text-xs px-3 py-1.5 rounded-lg font-bold"
+                  style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.25)">로그아웃</button>
+        </template>
+        <a :href="API_BASE||'/#'" class="text-xs px-3 py-1.5 rounded-lg font-bold"
+           style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.25)">🌡 체감온도</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-3xl lg:max-w-[1200px] mx-auto p-3 pb-10 space-y-3">
+
+<!-- ══ 로그인 ══ -->
+<template x-if="!authed && mode !== 'health'">
+  <div class="max-w-sm mx-auto mt-8">
+    <div class="card">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-3"
+             style="background:linear-gradient(135deg,#0062cc,#0096c7)">
+          <span class="text-3xl">🦺</span>
+        </div>
+        <div class="font-extrabold text-gray-800" style="font-size:1.15rem">근로자 건강관리</div>
+        <div class="text-xs text-gray-400 mt-1">현장코드와 역할을 선택하세요</div>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <label class="text-xs font-bold text-gray-500">현장코드</label>
+            <span x-show="siteLocked" x-cloak class="text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5 font-bold">🔒 현장 고정</span>
+          </div>
+          <input type="text" x-model="siteCode" placeholder="예: J881" class="mt-1"
+                 :readonly="siteLocked"
+                 :class="siteLocked ? 'bg-gray-50 text-gray-700 font-bold cursor-not-allowed' : ''"
+                 @input="!siteLocked && (siteCode=siteCode.toUpperCase())">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-gray-500">접속 유형</label>
+          <div class="grid grid-cols-2 gap-2 mt-1">
+            <button @click="loginRole='admin'"
+                    :class="loginRole==='admin' ? 'btn-primary' : 'btn-secondary'"
+                    class="py-2.5 text-sm rounded-xl font-bold">🔑 관리자</button>
+            <button @click="loginRole='company'"
+                    :class="loginRole==='company' ? 'btn-primary' : 'btn-secondary'"
+                    class="py-2.5 text-sm rounded-xl font-bold">🏢 업체</button>
+          </div>
+        </div>
+        <template x-if="loginRole==='company'">
+          <div>
+            <label class="text-xs font-bold text-gray-500">업체명</label>
+            <input type="text" x-model="loginCompany" placeholder="업체명 입력" class="mt-1">
+          </div>
+        </template>
+        <div>
+          <label class="text-xs font-bold text-gray-500">PIN</label>
+          <input type="password" x-model="loginPin" placeholder="PIN 번호 입력"
+                 @keydown.enter="doLogin()" class="mt-1">
+        </div>
+        <template x-if="loginError">
+          <div class="text-red-500 text-xs text-center font-bold py-1" x-text="loginError"></div>
+        </template>
+        <button @click="doLogin()" class="btn-primary w-full py-3" :disabled="loginLoading">
+          <span x-text="loginLoading ? '확인 중...' : '접속하기'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ══ 관리자 화면 ══ -->
+<template x-if="authed && role==='admin'">
+  <div>
+    <!-- 탭 -->
+    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
+      <button class="tab-btn flex-1" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
+      <button class="tab-btn flex-1" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
+      <button class="tab-btn flex-1" :class="{active:adminTab==='locations'}" @click="adminTab='locations';loadLocations()">📍 위치</button>
+      <button class="tab-btn flex-1" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins()">🔐 업체PIN</button>
+    </div>
+
+    <!-- 근로자 탭 -->
+    <div x-show="adminTab==='workers'">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm font-bold text-gray-700">전체 근로자 <span class="text-blue-600" x-text="workers.length+'명'"></span></div>
+        <div class="flex gap-2">
+          <button @click="pasteModal.show=true;pasteModal.raw='';pasteModal.headers=[];pasteModal.rows=[];pasteModal.preview=[];pasteModal.result=null"
+                  class="btn-secondary text-sm py-2">📋 일괄 붙여넣기</button>
+          <button @click="openWorkerModal(null)" class="btn-primary text-sm py-2">+ 근로자 추가</button>
+        </div>
+      </div>
+      <!-- 업체 필터 -->
+      <div class="flex gap-2 mb-3 flex-wrap">
+        <button @click="workerFilter=''" :class="workerFilter==='' ? 'btn-primary' : 'btn-secondary'"
+                class="text-xs py-1.5 px-3 rounded-lg">전체</button>
+        <template x-for="c in workerCompanies" :key="c">
+          <button @click="workerFilter=c" :class="workerFilter===c ? 'btn-primary' : 'btn-secondary'"
+                  class="text-xs py-1.5 px-3 rounded-lg" x-text="c"></button>
+        </template>
+      </div>
+      <!-- 근로자 목록 -->
+      <div class="space-y-2">
+        <template x-for="w in filteredWorkers" :key="w.id">
+          <div class="worker-card" :class="w.is_vulnerable ? 'vulnerable' : ''">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span x-show="w.is_vulnerable" class="text-red-500 font-black text-sm">🔴</span>
+                  <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+                  <span x-show="w.name_korean && w.name" class="text-xs text-gray-400" x-text="w.name"></span>
+                  <span class="text-xs text-gray-400" x-text="w.company"></span>
+                  <span x-show="w.birth_date" class="text-xs text-gray-400"
+                        x-text="w.birth_date ? '('+(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세)' : ''"></span>
+                  <span x-show="w.gender" class="text-xs text-gray-400" x-text="w.gender"></span>
+                </div>
+                <div class="mt-1 flex flex-wrap gap-1">
+                  <template x-for="vt in w.vulnerability_types" :key="vt">
+                    <span class="vul-tag" :class="'vul-tag-'+vt" x-text="vt"></span>
+                  </template>
+                </div>
+                <div x-show="w.diseases" class="text-xs text-gray-500 mt-1" x-text="'질환: '+w.diseases"></div>
+                <div x-show="w.last_exam_date" class="text-xs text-gray-400 mt-0.5" x-text="'건강진단: '+w.last_exam_date"></div>
+                <div x-show="w.work_restrictions" class="text-xs text-orange-600 mt-0.5" x-text="'⚠ '+w.work_restrictions"></div>
+              </div>
+              <div class="flex gap-1 flex-shrink-0">
+                <button @click="openExamModal(w)" class="btn-secondary text-xs py-1 px-2">진단</button>
+                <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2">수정</button>
+                <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <div x-show="filteredWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">근로자가 없습니다</div>
+      </div>
+    </div>
+
+    <!-- 출근 탭 -->
+    <div x-show="adminTab==='attendance'">
+      <div class="card mb-3">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-bold text-gray-500">날짜</label>
+            <input type="date" x-model="attDate" @change="loadAttendance()" class="mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500">업체</label>
+            <select x-model="attCompany" @change="loadAttendance()" class="mt-1">
+              <option value="">전체</option>
+              <template x-for="c in workerCompanies" :key="c">
+                <option :value="c" x-text="c"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <template x-for="a in attendance" :key="a.id">
+          <div class="worker-card flex items-center gap-3" :class="a.is_vulnerable ? 'vulnerable' : ''">
+            <span x-show="a.is_vulnerable" class="text-red-500">🔴</span>
+            <div class="flex-1">
+              <span class="font-bold" x-text="a.name_korean||a.name"></span>
+              <span class="text-xs text-gray-400 ml-2" x-text="a.company"></span>
+              <div class="flex flex-wrap gap-1 mt-0.5">
+                <template x-for="vt in a.vulnerability_types" :key="vt">
+                  <span class="vul-tag" x-text="vt"></span>
+                </template>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 font-bold" x-text="a.work_location || '위치미정'"></div>
+          </div>
+        </template>
+        <div x-show="attendance.length===0" class="text-center text-gray-400 py-8 text-sm">출근 기록이 없습니다</div>
+      </div>
+    </div>
+
+    <!-- 위치 탭 -->
+    <div x-show="adminTab==='locations'">
+      <div class="card mb-3">
+        <div class="flex gap-2">
+          <input type="text" x-model="newLocationName" placeholder="위치명 입력 (예: GATE2, A동, 지하1층)" class="flex-1">
+          <button @click="addLocation()" class="btn-primary">추가</button>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <template x-for="loc in locations" :key="loc.id">
+          <div class="worker-card flex items-center justify-between">
+            <span class="font-bold text-gray-700" x-text="'📍 '+loc.location_name"></span>
+            <button @click="deleteLocation(loc)" class="btn-danger text-xs py-1 px-2">삭제</button>
+          </div>
+        </template>
+        <div x-show="locations.length===0" class="text-center text-gray-400 py-8 text-sm">등록된 위치가 없습니다</div>
+      </div>
+    </div>
+
+    <!-- 업체 PIN 탭 -->
+    <div x-show="adminTab==='pins'">
+      <div class="text-xs text-gray-600 mb-3 p-3 rounded-xl font-bold" style="background:#f0f5ff;border:1px solid #bfdbfe">
+        💡 업체 담당자가 출근체크 시 사용할 PIN을 설정합니다. 업체명은 근로자 등록된 업체에서 자동으로 나타납니다.
+      </div>
+      <div class="space-y-2">
+        <template x-for="c in workerCompanies" :key="c">
+          <div class="worker-card flex items-center justify-between">
+            <div>
+              <span class="font-bold text-gray-700" x-text="c"></span>
+              <span class="text-xs ml-2" :class="companyPinSet.includes(c) ? 'text-green-600' : 'text-gray-400'"
+                    x-text="companyPinSet.includes(c) ? '✅ PIN 설정됨' : '⚪ PIN 미설정'"></span>
+            </div>
+            <button @click="openPinModal(c)" class="btn-secondary text-xs py-1 px-2">PIN 설정</button>
+          </div>
+        </template>
+        <div x-show="workerCompanies.length===0" class="text-center text-gray-400 py-8 text-sm">
+          먼저 근로자를 등록해주세요
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ══ 업체 담당자 화면 ══ -->
+<template x-if="authed && role==='company'">
+  <div>
+    <div class="card mb-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <div class="font-extrabold text-gray-800" x-text="company"></div>
+          <div class="text-xs text-gray-400" x-text="attDate + ' 출근체크'"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="date" x-model="attDate" @change="loadCompanyWorkers()" class="text-sm" style="width:auto;padding:6px 10px!important">
+          <button @click="saveAttendance()" class="btn-primary text-sm py-2" :disabled="attSaving">
+            <span x-text="attSaving ? '저장 중...' : '출근 저장'"></span>
+          </button>
+        </div>
+      </div>
+      <div class="mt-3">
+        <label class="text-xs font-bold text-gray-500">작업 위치</label>
+        <select x-model="attWorkLocation" class="mt-1">
+          <option value="">위치 선택</option>
+          <template x-for="loc in locations" :key="loc.id">
+            <option :value="loc.location_name" x-text="loc.location_name"></option>
+          </template>
+        </select>
+      </div>
+    </div>
+
+    <!-- 취약근로자 -->
+    <template x-if="companyWorkers.filter(w=>w.is_vulnerable).length > 0">
+      <div class="mb-2">
+        <div class="text-xs font-extrabold text-red-600 mb-2">🔴 취약근로자</div>
+        <div class="space-y-2">
+          <template x-for="w in companyWorkers.filter(w=>w.is_vulnerable)" :key="w.id">
+            <label class="worker-card vulnerable flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" :value="w.id" x-model="checkedIds" class="w-5 h-5 accent-red-500" style="width:20px;min-width:20px;padding:0!important">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+                  <span x-show="w.birth_date" class="text-xs text-gray-400"
+                        x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
+                </div>
+                <div class="flex flex-wrap gap-1 mt-0.5">
+                  <template x-for="vt in w.vulnerability_types" :key="vt">
+                    <span class="vul-tag" x-text="vt"></span>
+                  </template>
+                </div>
+                <div x-show="w.work_restrictions" class="text-xs text-orange-600 mt-0.5" x-text="'⚠ '+w.work_restrictions"></div>
+              </div>
+            </label>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- 일반 근로자 -->
+    <div>
+      <div class="text-xs font-extrabold text-gray-500 mb-2">일반 근로자</div>
+      <div class="space-y-2">
+        <template x-for="w in companyWorkers.filter(w=>!w.is_vulnerable)" :key="w.id">
+          <label class="worker-card flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" :value="w.id" x-model="checkedIds" class="w-5 h-5 accent-blue-500" style="width:20px;min-width:20px;padding:0!important">
+            <div class="flex-1">
+              <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+              <span x-show="w.birth_date" class="text-xs text-gray-400 ml-2"
+                    x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
+            </div>
+          </label>
+        </template>
+      </div>
+    </div>
+    <div x-show="companyWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
+  </div>
+</template>
+
+<!-- ══ 건강기록 패널 (체감온도 앱에서 연계) ══ -->
+<template x-if="mode==='health'">
+  <div>
+    <!-- 헤더 정보 -->
+    <div class="card mb-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <div class="font-extrabold text-gray-800 text-sm" x-text="healthDate + ' · ' + healthSlot"></div>
+          <div class="text-xs text-gray-500 mt-0.5" x-text="company"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span x-show="heatLevel" :class="'badge-'+heatLevel" x-text="heatLevel"></span>
+          <span x-show="feelsLike" class="font-bold text-gray-700" x-text="feelsLike+'°C'"></span>
+        </div>
+      </div>
+      <template x-if="heatLevel==='관심'||heatLevel==='주의'">
+        <div class="mt-2 p-2 rounded-lg text-xs font-bold" style="background:#fff3cd;color:#856404">
+          🔴 취약근로자 시간당 15분 휴식 | 일반 10분 휴식 적용
+        </div>
+      </template>
+      <template x-if="heatLevel==='경고'">
+        <div class="mt-2 p-2 rounded-lg text-xs font-bold" style="background:#ffe0cc;color:#7c3400">
+          🔴 취약근로자 옥외작업 금지 | 시간당 15분 이상 휴식
+        </div>
+      </template>
+      <template x-if="heatLevel==='위험'">
+        <div class="mt-2 p-2 rounded-lg text-xs font-bold" style="background:#ffd0d0;color:#7c0000">
+          🔴 취약근로자 즉시 작업 중단 · 그늘 이동 조치
+        </div>
+      </template>
+    </div>
+
+    <!-- PIN 확인 (미인증 시) -->
+    <template x-if="!authed">
+      <div class="card max-w-sm mx-auto">
+        <div class="text-sm font-bold text-gray-700 mb-3">관리자 PIN 확인</div>
+        <input type="password" x-model="loginPin" placeholder="관리자 PIN"
+               @keydown.enter="verifyHealthPin()" class="mb-2">
+        <template x-if="loginError">
+          <div class="text-red-500 text-xs mb-2" x-text="loginError"></div>
+        </template>
+        <button @click="verifyHealthPin()" class="btn-primary w-full" :disabled="loginLoading">
+          <span x-text="loginLoading ? '확인 중...' : '확인'"></span>
+        </button>
+      </div>
+    </template>
+
+    <!-- 인증 후 건강기록 -->
+    <template x-if="authed">
+      <div class="space-y-3">
+        <!-- 체온 기록 테이블 -->
+        <div class="card">
+          <div class="text-sm font-extrabold text-gray-700 mb-3">체온 측정 기록</div>
+          <div x-show="healthAttendance.length===0" class="text-gray-400 text-sm text-center py-4">
+            오늘 출근 체크된 근로자가 없습니다
+          </div>
+          <div class="space-y-2">
+            <!-- 취약근로자 -->
+            <template x-if="healthAttendance.filter(a=>a.is_vulnerable).length > 0">
+              <div>
+                <div class="text-xs font-extrabold text-red-600 mb-2">🔴 취약근로자</div>
+                <template x-for="a in healthAttendance.filter(a=>a.is_vulnerable)" :key="a.worker_id">
+                  <div class="rounded-xl p-3 mb-2" style="background:#fff8f8;border:1px solid #ffc9c9">
+                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                      <span class="font-bold text-gray-800" x-text="a.name_korean||a.name"></span>
+                      <template x-for="vt in a.vulnerability_types" :key="vt">
+                        <span class="vul-tag" x-text="vt"></span>
+                      </template>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <div>
+                        <label class="text-xs text-gray-500 font-bold">체온(°C)</label>
+                        <input type="number" step="0.1" placeholder="36.5"
+                               :value="healthRecs[a.worker_id]?.body_temp||''"
+                               @input="setHealthRec(a.worker_id,'body_temp',$event.target.value)"
+                               :class="getTempClass(healthRecs[a.worker_id]?.body_temp)"
+                               class="mt-0.5" style="padding:6px 8px!important;font-size:.85rem!important">
+                      </div>
+                      <div>
+                        <label class="text-xs text-gray-500 font-bold">측정시각</label>
+                        <input type="text" placeholder="09:00"
+                               :value="healthRecs[a.worker_id]?.measure_time||''"
+                               @input="setHealthRec(a.worker_id,'measure_time',$event.target.value)"
+                               @change="formatTime(a.worker_id)"
+                               class="mt-0.5" style="padding:6px 8px!important;font-size:.85rem!important">
+                      </div>
+                      <div>
+                        <label class="text-xs text-gray-500 font-bold">건강상태</label>
+                        <select :value="healthRecs[a.worker_id]?.health_status||'양호'"
+                                @change="setHealthRec(a.worker_id,'health_status',$event.target.value)"
+                                class="mt-0.5" style="padding:6px 4px!important;font-size:.8rem!important">
+                          <option>양호</option>
+                          <option>주의</option>
+                          <option>불량</option>
+                        </select>
+                      </div>
+                    </div>
+                    <!-- 작업열외권: 체온 38도 이상 또는 건강상태 불량 -->
+                    <template x-if="parseFloat(healthRecs[a.worker_id]?.body_temp)>=38 || healthRecs[a.worker_id]?.health_status==='불량'">
+                      <div class="mt-2 p-2 rounded-lg flex items-center justify-between gap-2" style="background:#fff0f0;border:1px solid #ff4d4d">
+                        <div class="text-xs font-bold text-red-700">🚨 체온 38°C 이상 또는 이상증상 — 작업열외 조치 필요</div>
+                        <button @click="openExemptionLink(a)" class="flex-shrink-0 text-xs font-bold rounded-lg px-2 py-1 border-0 cursor-pointer" style="background:#ff4d4d;color:white">
+                          📋 작업열외권
+                        </button>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <!-- 일반 근로자 -->
+            <template x-if="healthAttendance.filter(a=>!a.is_vulnerable).length > 0">
+              <div>
+                <div class="text-xs font-extrabold text-gray-500 mb-2">일반 근로자</div>
+                <template x-for="a in healthAttendance.filter(a=>!a.is_vulnerable)" :key="a.worker_id">
+                  <div class="rounded-xl p-3 mb-2" style="background:#f9f9fb;border:1px solid #e8e8ed">
+                    <div class="font-bold text-gray-800 mb-2 text-sm" x-text="a.name_korean||a.name"></div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <div>
+                        <label class="text-xs text-gray-500 font-bold">체온(°C)</label>
+                        <input type="number" step="0.1" placeholder="36.5"
+                               :value="healthRecs[a.worker_id]?.body_temp||''"
+                               @input="setHealthRec(a.worker_id,'body_temp',$event.target.value)"
+                               :class="getTempClass(healthRecs[a.worker_id]?.body_temp)"
+                               class="mt-0.5" style="padding:6px 8px!important;font-size:.85rem!important">
+                      </div>
+                      <div>
+                        <label class="text-xs text-gray-500 font-bold">측정시각</label>
+                        <input type="text" placeholder="09:00"
+                               :value="healthRecs[a.worker_id]?.measure_time||''"
+                               @input="setHealthRec(a.worker_id,'measure_time',$event.target.value)"
+                               @change="formatTime(a.worker_id)"
+                               class="mt-0.5" style="padding:6px 8px!important;font-size:.85rem!important">
+                      </div>
+                      <div>
+                        <label class="text-xs text-gray-500 font-bold">건강상태</label>
+                        <select :value="healthRecs[a.worker_id]?.health_status||'양호'"
+                                @change="setHealthRec(a.worker_id,'health_status',$event.target.value)"
+                                class="mt-0.5" style="padding:6px 4px!important;font-size:.8rem!important">
+                          <option>양호</option>
+                          <option>주의</option>
+                          <option>불량</option>
+                        </select>
+                      </div>
+                    </div>
+                    <template x-if="parseFloat(healthRecs[a.worker_id]?.body_temp)>=38 || healthRecs[a.worker_id]?.health_status==='불량'">
+                      <div class="mt-2 p-2 rounded-lg flex items-center justify-between gap-2" style="background:#fff0f0;border:1px solid #ff4d4d">
+                        <div class="text-xs font-bold text-red-700">🚨 체온 38°C 이상 또는 이상증상 — 작업열외 조치 필요</div>
+                        <button @click="openExemptionLink(a)" class="flex-shrink-0 text-xs font-bold rounded-lg px-2 py-1 border-0 cursor-pointer" style="background:#ff4d4d;color:white">
+                          📋 작업열외권
+                        </button>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 증빙사진 -->
+        <div class="card">
+          <div class="text-sm font-extrabold text-gray-700 mb-3">증빙 사진</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- 휴식 증빙 -->
+            <div>
+              <div class="text-xs font-bold text-gray-600 mb-2">🛋 휴식 증빙사진</div>
+              <label class="block border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                <input type="file" accept="image/*" class="hidden" @change="uploadHealthPhoto('휴식증빙', $event)">
+                <div class="text-2xl mb-1">📷</div>
+                <div class="text-xs text-gray-400">탭하여 사진 추가</div>
+              </label>
+              <div class="mt-2 grid grid-cols-3 gap-1">
+                <template x-for="p in healthPhotos.filter(p=>p.photo_type==='휴식증빙')" :key="p.photo_id">
+                  <div class="relative">
+                    <img :src="API_BASE+'/uploads/'+p.photo_id" class="w-full aspect-square object-cover rounded-lg border border-gray-200">
+                    <button @click="deleteHealthPhoto(p)" class="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none">✕</button>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <!-- 보냉장구 -->
+            <div>
+              <div class="text-xs font-bold text-gray-600 mb-2">🧊 보냉장구 착용사진</div>
+              <label class="block border-2 border-dashed border-gray-300 rounded-xl p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
+                <input type="file" accept="image/*" class="hidden" @change="uploadHealthPhoto('보냉장구', $event)">
+                <div class="text-2xl mb-1">📷</div>
+                <div class="text-xs text-gray-400">탭하여 사진 추가</div>
+              </label>
+              <div class="mt-2 grid grid-cols-3 gap-1">
+                <template x-for="p in healthPhotos.filter(p=>p.photo_type==='보냉장구')" :key="p.photo_id">
+                  <div class="relative">
+                    <img :src="API_BASE+'/uploads/'+p.photo_id" class="w-full aspect-square object-cover rounded-lg border border-gray-200">
+                    <button @click="deleteHealthPhoto(p)" class="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none">✕</button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 저장 -->
+        <button @click="saveHealthRecords()" class="btn-primary w-full py-3 text-base" :disabled="healthSaving">
+          <span x-text="healthSaving ? '저장 중...' : '💾 건강기록 저장'"></span>
+        </button>
+        <div x-show="healthSaved" class="text-center text-green-600 font-bold text-sm py-2">✅ 저장되었습니다</div>
+      </div>
+    </template>
+  </div>
+</template>
+
+</div>
+
+<!-- ══ 모달: 근로자 추가/수정 ══ -->
+<div x-show="workerModal.show" x-cloak class="modal-bg" @click.self="workerModal.show=false">
+  <div class="modal">
+    <div class="modal-handle sm:hidden"></div>
+    <div class="flex items-center justify-between mb-5">
+      <div class="font-extrabold text-gray-800" style="font-size:1.1rem"
+           x-text="workerModal.editing ? '근로자 수정' : '근로자 추가'"></div>
+      <button @click="workerModal.show=false" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg leading-none">✕</button>
+    </div>
+    <div class="space-y-4">
+      <!-- 기본 정보 -->
+      <div>
+        <div class="section-label">기본 정보</div>
+        <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="text-xs font-bold text-gray-500">식별코드</label>
+              <input type="text" x-model="workerModal.data.worker_code" placeholder="W-001" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">신규교육일</label>
+              <input type="date" x-model="workerModal.data.education_date" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">건강진단일</label>
+              <input type="date" x-model="workerModal.data.last_exam_date" class="mt-1">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-xs font-bold text-gray-500">이름(영문/외국어) <span class="text-red-500">*</span></label>
+              <input type="text" x-model="workerModal.data.name" placeholder="HONG GIL DONG" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">근로자명(한글)</label>
+              <input type="text" x-model="workerModal.data.name_korean" placeholder="홍길동" class="mt-1">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-xs font-bold text-gray-500">협력사명 <span class="text-red-500">*</span></label>
+              <input type="text" x-model="workerModal.data.company" placeholder="업체명" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">직종</label>
+              <input type="text" x-model="workerModal.data.job_type" placeholder="형틀목수, 철근공…" class="mt-1">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 신원 정보 -->
+      <div>
+        <div class="section-label">신원 정보</div>
+        <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label class="text-xs font-bold text-gray-500">국가</label>
+              <input type="text" x-model="workerModal.data.nationality" placeholder="대한민국" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">생년월일</label>
+              <input type="date" x-model="workerModal.data.birth_date" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">성별</label>
+              <select x-model="workerModal.data.gender" class="mt-1">
+                <option value="">선택</option>
+                <option value="남자">남자</option>
+                <option value="여자">여자</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500">연락처</label>
+            <input type="tel" x-model="workerModal.data.phone" placeholder="010-0000-0000" class="mt-1">
+          </div>
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-xs font-bold text-gray-500">체류자격</label>
+              <input type="text" x-model="workerModal.data.residence_status" placeholder="E-9, H-2…" class="mt-1">
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-500">체류만료일</label>
+              <input type="date" x-model="workerModal.data.residence_expiry" class="mt-1">
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 취약구분 -->
+      <div>
+        <div class="section-label">취약구분 <span style="font-size:.68rem;color:#86868b;font-weight:400;letter-spacing:0">(해당 항목 모두 선택)</span></div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <template x-for="vt in vtypeOptions" :key="vt">
+            <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border transition-all"
+                   :class="workerModal.data.vulnerability_types.includes(vt)
+                     ? 'border-red-400 bg-red-50'
+                     : 'border-gray-200 bg-white hover:border-gray-300'">
+              <input type="checkbox" :value="vt" x-model="workerModal.data.vulnerability_types"
+                     class="accent-red-500 flex-shrink-0" style="width:15px;min-width:15px;padding:0!important">
+              <span class="text-xs font-bold leading-tight" x-text="vt"></span>
+            </label>
+          </template>
+        </div>
+      </div>
+      <!-- 추가 정보 -->
+      <div>
+        <div class="section-label">추가 정보</div>
+        <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
+          <div>
+            <label class="text-xs font-bold text-gray-500">기저질환 상세</label>
+            <input type="text" x-model="workerModal.data.diseases" placeholder="고혈압, 당뇨 등" class="mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500">작업 제한사항</label>
+            <input type="text" x-model="workerModal.data.work_restrictions" placeholder="고소작업 금지 등" class="mt-1">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500">비고</label>
+            <textarea x-model="workerModal.data.notes" placeholder="추가 메모" rows="2" class="mt-1"></textarea>
+          </div>
+        </div>
+      </div>
+      <button @click="saveWorker()" class="btn-primary w-full py-3" :disabled="workerModal.saving">
+        <span x-text="workerModal.saving ? '저장 중...' : '저장하기'"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 모달: 건강진단 ══ -->
+<div x-show="examModal.show" x-cloak class="modal-bg" @click.self="examModal.show=false">
+  <div class="modal">
+    <div class="modal-handle sm:hidden"></div>
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <div class="font-extrabold text-gray-800" style="font-size:1.05rem"
+             x-text="(examModal.worker?.name_korean||examModal.worker?.name) + ' 건강진단'"></div>
+        <div class="text-xs text-gray-400 mt-0.5" x-text="examModal.worker?.company"></div>
+      </div>
+      <button @click="examModal.show=false" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg leading-none flex-shrink-0">✕</button>
+    </div>
+
+    <!-- 진단 추가 폼 -->
+    <div class="p-3 rounded-xl mb-4" style="background:#f9f9fb;border:1px solid #e8e8ed">
+      <div class="text-xs font-bold text-gray-600 mb-2">새 건강진단 추가</div>
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <div>
+          <label class="text-xs text-gray-500">진단 종류</label>
+          <select x-model="examModal.newExam.exam_type" class="mt-0.5" style="padding:6px 8px!important">
+            <option>배치전건강진단</option>
+            <option>특수건강진단</option>
+            <option>일반건강진단</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-500">진단일</label>
+          <input type="date" x-model="examModal.newExam.exam_date" class="mt-0.5" style="padding:6px 8px!important">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <div>
+          <label class="text-xs text-gray-500">혈압 (수축기/이완기)</label>
+          <input type="text" x-model="examModal.newExam.key_values.bp" placeholder="120/80" class="mt-0.5" style="padding:6px 8px!important">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500">혈당 (mg/dL)</label>
+          <input type="text" x-model="examModal.newExam.key_values.glucose" placeholder="95" class="mt-0.5" style="padding:6px 8px!important">
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="text-xs text-gray-500">판정 결과</label>
+        <select x-model="examModal.newExam.key_values.result" class="mt-0.5" style="padding:6px 8px!important">
+          <option value="">선택</option>
+          <option>정상</option>
+          <option>주의</option>
+          <option>질환의심</option>
+          <option>유소견</option>
+        </select>
+      </div>
+      <div class="mb-2">
+        <label class="text-xs text-gray-500">비고</label>
+        <input type="text" x-model="examModal.newExam.notes" placeholder="특이사항" class="mt-0.5" style="padding:6px 8px!important">
+      </div>
+      <label class="block border border-dashed border-gray-300 rounded-lg p-2 text-center cursor-pointer hover:border-blue-400 text-xs text-gray-400">
+        <input type="file" accept="image/*,.pdf" class="hidden" @change="uploadExamPhoto($event)">
+        📎 결과지 사진/PDF 첨부 <span x-show="examModal.newExam.photo_id" class="text-green-600">✅</span>
+      </label>
+      <button @click="saveExam()" class="btn-primary w-full mt-2 text-sm py-2" :disabled="examModal.saving">
+        <span x-text="examModal.saving ? '저장 중...' : '진단 기록 추가'"></span>
+      </button>
+    </div>
+
+    <!-- 기존 진단 목록 -->
+    <div class="space-y-2 max-h-48 overflow-y-auto">
+      <template x-for="ex in examModal.exams" :key="ex.id">
+        <div class="p-2 rounded-lg border border-gray-200 text-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-bold" x-text="ex.exam_type"></span>
+              <span class="text-xs text-gray-400 ml-2" x-text="ex.exam_date"></span>
+            </div>
+            <button @click="deleteExam(ex)" class="text-red-400 text-xs hover:text-red-600">삭제</button>
+          </div>
+          <div class="text-xs text-gray-600 mt-1">
+            <span x-show="ex.key_values?.bp" x-text="'혈압: '+ex.key_values.bp"></span>
+            <span x-show="ex.key_values?.glucose" x-text="' | 혈당: '+ex.key_values.glucose"></span>
+            <span x-show="ex.key_values?.result" :class="ex.key_values.result==='정상'?'text-green-600':ex.key_values.result==='유소견'?'text-red-600':'text-orange-600'"
+                  x-text="' → '+ex.key_values.result" class="font-bold"></span>
+          </div>
+          <div x-show="ex.notes" class="text-xs text-gray-400 mt-0.5" x-text="ex.notes"></div>
+          <div x-show="ex.photo_id" class="mt-1">
+            <img :src="API_BASE+'/uploads/'+ex.photo_id" class="h-12 rounded-lg object-cover border border-gray-200">
+          </div>
+        </div>
+      </template>
+      <div x-show="examModal.exams.length===0" class="text-gray-400 text-xs text-center py-3">건강진단 기록 없음</div>
+    </div>
+    <button @click="examModal.show=false" class="btn-secondary w-full mt-3">닫기</button>
+  </div>
+</div>
+
+<!-- ══ 모달: 업체 PIN 설정 ══ -->
+<div x-show="pinModal.show" x-cloak class="modal-bg" @click.self="pinModal.show=false">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-handle sm:hidden"></div>
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <div class="font-extrabold text-gray-800" style="font-size:1.05rem" x-text="pinModal.company+' PIN 설정'"></div>
+        <div class="text-xs text-gray-400 mt-0.5">관리자 PIN으로 확인 후 업체 PIN을 설정합니다</div>
+      </div>
+      <button @click="pinModal.show=false" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg leading-none">✕</button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-bold text-gray-500">관리자 PIN (현재)</label>
+        <input type="password" x-model="pinModal.adminPin" placeholder="관리자 PIN" class="mt-1">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-500">새 업체 PIN (4자리 이상)</label>
+        <input type="password" x-model="pinModal.newPin" placeholder="새 PIN" class="mt-1">
+      </div>
+      <template x-if="pinModal.error">
+        <div class="text-red-500 text-xs font-bold" x-text="pinModal.error"></div>
+      </template>
+      <button @click="saveCompanyPin()" class="btn-primary w-full py-3" :disabled="pinModal.saving">
+        <span x-text="pinModal.saving?'저장 중...':'PIN 저장하기'"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 모달: 일괄 붙여넣기 ══ -->
+<div x-show="pasteModal.show" x-cloak class="modal-bg" @click.self="pasteModal.show=false">
+  <div class="modal" style="max-width:900px;width:100%">
+    <div class="modal-handle sm:hidden"></div>
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="font-extrabold text-gray-800" style="font-size:1.1rem">📋 일괄 등록 — 붙여넣기</div>
+        <div class="text-xs text-gray-400 mt-0.5">Excel에서 셀을 복사(Ctrl+C) 후 아래 영역에 붙여넣기(Ctrl+V)하세요</div>
+      </div>
+      <button @click="pasteModal.show=false" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg leading-none flex-shrink-0">✕</button>
+    </div>
+
+    <!-- 결과 표시 -->
+    <template x-if="pasteModal.result">
+      <div class="mb-4 p-3 rounded-xl font-bold text-sm"
+           :class="pasteModal.result.errors.length ? 'bg-yellow-50 border border-yellow-300 text-yellow-800' : 'bg-green-50 border border-green-300 text-green-800'">
+        <div x-text="'✅ ' + pasteModal.result.success + '명 등록 완료'"></div>
+        <template x-if="pasteModal.result.errors.length">
+          <div class="text-xs mt-1 font-normal" x-text="'오류 ' + pasteModal.result.errors.length + '건: ' + pasteModal.result.errors.slice(0,3).join(', ')"></div>
+        </template>
+      </div>
+    </template>
+
+    <!-- STEP 1: 붙여넣기 영역 (데이터 없을 때) -->
+    <template x-if="pasteModal.rows.length === 0">
+      <div>
+        <textarea
+          x-ref="pasteArea"
+          @paste="handlePaste($event)"
+          @input="handlePasteInput($event.target.value)"
+          placeholder="여기에 Excel 데이터를 붙여넣으세요 (Ctrl+V)&#10;&#10;첫 행이 컬럼명(이름, 업체명 등)이면 자동으로 인식합니다."
+          rows="8"
+          class="w-full font-mono text-sm"
+          style="border-radius:12px;border:2px dashed #0071e3;background:#f0f5ff;resize:vertical"
+        ></textarea>
+        <div class="mt-2 p-3 rounded-xl text-xs text-gray-500" style="background:#f9f9fb;border:1px solid #e8e8ed">
+          <div class="font-bold text-gray-600 mb-1">💡 사용법</div>
+          <div>① Excel에서 데이터 범위 선택 → Ctrl+C</div>
+          <div>② 위 영역 클릭 후 Ctrl+V</div>
+          <div>③ 컬럼 매핑 확인 후 "가져오기" 클릭</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- STEP 2: 미리보기 + 컬럼 매핑 -->
+    <template x-if="pasteModal.rows.length > 0">
+      <div>
+        <!-- 헤더 토글 -->
+        <div class="flex items-center gap-3 mb-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" x-model="pasteModal.hasHeader" @change="reParsePaste()"
+                   class="accent-blue-500" style="width:16px;min-width:16px;padding:0!important">
+            <span class="text-sm font-bold text-gray-700">첫 행을 컬럼명으로 사용</span>
+          </label>
+          <button @click="pasteModal.rows=[];pasteModal.headers=[];pasteModal.preview=[];pasteModal.result=null"
+                  class="btn-secondary text-xs py-1 px-3">다시 붙여넣기</button>
+        </div>
+
+        <!-- 컬럼 매핑 -->
+        <div class="mb-3 overflow-x-auto">
+          <div class="section-label mb-2">컬럼 매핑 (자동 인식, 필요 시 수정)</div>
+          <div class="flex gap-2 flex-nowrap pb-1">
+            <template x-for="(hdr, i) in pasteModal.headers" :key="i">
+              <div class="flex-shrink-0" style="min-width:100px">
+                <div class="text-xs text-gray-500 mb-1 truncate font-bold" x-text="hdr||('열'+(i+1))"></div>
+                <select x-model="pasteModal.colMap[i]" @change="rebuildPreview()"
+                        class="text-xs" style="padding:4px 6px!important;font-size:.72rem!important;border-radius:8px">
+                  <option value="">무시</option>
+                  <optgroup label="─ 기본 정보">
+                    <option value="worker_code">식별코드</option>
+                    <option value="company">협력사명</option>
+                    <option value="job_type">직종</option>
+                    <option value="name_korean">근로자명(한글)</option>
+                    <option value="name">근로자명(영문)</option>
+                    <option value="birth_date">생년월일</option>
+                    <option value="gender">성별</option>
+                    <option value="nationality">국가</option>
+                    <option value="residence_status">체류자격</option>
+                    <option value="residence_expiry">체류만료일</option>
+                    <option value="phone">연락처</option>
+                  </optgroup>
+                  <optgroup label="─ 교육/진단">
+                    <option value="education_date">신규교육일</option>
+                    <option value="last_exam_date">건강진단일</option>
+                  </optgroup>
+                  <optgroup label="─ 유질환">
+                    <option value="has_disease">유질환유무(유→취약추가)</option>
+                    <option value="diseases">유질환 상세</option>
+                    <option value="work_restrictions">작업제한</option>
+                  </optgroup>
+                  <optgroup label="─ 취약유형(직접지정)">
+                    <option value="vtype:고령(만60세이상)">취약-고령</option>
+                    <option value="vtype:초고령(만66세이상)">취약-초고령</option>
+                    <option value="vtype:혈압">취약-혈압</option>
+                    <option value="vtype:당뇨">취약-당뇨</option>
+                    <option value="vtype:기타유질환">취약-기타유질환</option>
+                    <option value="vtype:신규배치자">취약-신규배치자</option>
+                    <option value="vtype:특정약물복용자">취약-특정약물</option>
+                    <option value="vtype:온열질환병력">취약-온열병력</option>
+                    <option value="vtype:신장질환">취약-신장질환</option>
+                    <option value="vtype:비만">취약-비만</option>
+                    <option value="vtype:심뇌혈관질환">취약-심뇌혈관</option>
+                  </optgroup>
+                  <optgroup label="─ 기타">
+                    <option value="notes">비고</option>
+                  </optgroup>
+                </select>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 미리보기 테이블 (파싱 결과를 고정 순서로 표시) -->
+        <div class="overflow-x-auto rounded-xl" style="border:1px solid #e8e8ed;max-height:320px;overflow-y:auto">
+          <table class="w-full text-xs" style="border-collapse:collapse;min-width:900px">
+            <thead style="position:sticky;top:0;z-index:1">
+              <tr style="background:#0071e3">
+                <th class="text-white px-2 py-2 text-center font-bold" style="min-width:24px">#</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">식별코드</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">협력사명</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">직종</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">근로자명</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">생년월일</th>
+                <th class="text-white px-2 py-2 text-center font-bold whitespace-nowrap">유질환유무</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">유질환 상세</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">건강진단일</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">신규교육일</th>
+                <th class="text-white px-2 py-2 text-center font-bold whitespace-nowrap">성별</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">국가</th>
+                <th class="text-white px-2 py-2 text-left font-bold whitespace-nowrap">체류자격</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(w, ri) in pasteModal.preview" :key="ri">
+                <tr :style="ri%2===0?'background:white':'background:#f9f9fb'">
+                  <td class="px-2 py-1.5 text-gray-400 font-bold text-center" x-text="ri+1"></td>
+                  <td class="px-2 py-1.5 text-gray-500 whitespace-nowrap" x-text="w.worker_code"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.company"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.job_type"></td>
+                  <td class="px-2 py-1.5 font-bold text-gray-800 whitespace-nowrap" x-text="w.name_korean||w.name"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.birth_date"></td>
+                  <td class="px-2 py-1.5 text-center font-bold whitespace-nowrap"
+                      :class="w.vulnerability_types.includes('기타유질환') ? 'text-red-500' : 'text-gray-300'"
+                      x-text="w.vulnerability_types.includes('기타유질환') ? '유' : '무'"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.diseases"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.last_exam_date"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.education_date"></td>
+                  <td class="px-2 py-1.5 text-gray-700 text-center whitespace-nowrap" x-text="w.gender"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.nationality"></td>
+                  <td class="px-2 py-1.5 text-gray-700 whitespace-nowrap" x-text="w.residence_status"></td>
+                </tr>
+              </template>
+              <template x-if="pasteModal.preview.length===0 && pasteModal.rows.length>0">
+                <tr>
+                  <td colspan="13" class="px-3 py-6 text-center text-gray-400 text-sm">이름이 있는 행이 없습니다 — 컬럼 매핑을 확인하세요</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-xs text-gray-400 mt-1 text-right" x-text="pasteModal.rows.length + '행 감지'"></div>
+
+        <!-- 가져오기 버튼 -->
+        <div class="mt-4 flex items-center gap-3">
+          <div class="flex-1 text-xs text-gray-500">
+            <span class="font-bold text-blue-600" x-text="pasteModal.preview.length + '명'"></span>
+            등록 예정
+            <span x-show="pasteModal.rows.length > pasteModal.preview.length"
+                  class="text-red-500 ml-1"
+                  x-text="'(' + (pasteModal.rows.length - pasteModal.preview.length) + '행 이름 없어 제외)'"></span>
+          </div>
+          <button @click="doBulkImport()" class="btn-primary px-6 py-2.5" :disabled="pasteModal.importing || pasteModal.preview.length===0">
+            <span x-text="pasteModal.importing ? '등록 중...' : '📥 가져오기 (' + pasteModal.preview.length + '명)'"></span>
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div x-show="toast.show" x-cloak
+     class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-white text-sm font-bold"
+     style="background:rgba(28,28,30,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);min-width:180px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.3)"
+     x-text="toast.msg"></div>
+
+<script>
+// 별도 서비스로 배포될 때 heat2026 백엔드 절대경로 사용
+const API_BASE = (() => {
+  const h = location.hostname;
+  if (h === 'workers2026-production.up.railway.app') {
+    return 'https://heat2026-production.up.railway.app';
+  }
+  return '';
+})();
+
+// 컬럼명 → worker 필드 자동 매핑 사전
+const COL_DICT = {
+  // 근로자명
+  '이름':'name_korean','성명':'name_korean','근로자명':'name_korean',
+  '근로자명(한글)':'name_korean','한글이름':'name_korean','한글명':'name_korean',
+  'name':'name','영문명':'name','영문이름':'name','외국어명':'name',
+  // 식별코드
+  '식별코드':'worker_code','사번':'worker_code','id':'worker_code','코드':'worker_code',
+  // 협력사
+  '협력사명':'company','업체':'company','협력사':'company','회사':'company','소속':'company','업체명':'company','협력업체':'company',
+  // 직종
+  '직종':'job_type','직무':'job_type','공종':'job_type','직업':'job_type',
+  // 생년월일
+  '생년월일':'birth_date','생일':'birth_date','출생일':'birth_date',
+  // 유질환유무 (특수처리: '유'이면 기타유질환 취약유형으로 추가)
+  '유질환유무':'has_disease','유질환여부':'has_disease',
+  // 유질환 상세
+  '유질환상세':'diseases','유질환':'diseases','기저질환':'diseases','질환상세':'diseases',
+  // 건강진단일
+  '건강진단일':'last_exam_date','진단일':'last_exam_date','최종진단일':'last_exam_date',
+  // 신규교육일
+  '신규교육일':'education_date','교육일':'education_date','최초교육일':'education_date',
+  // 성별
+  '성별':'gender',
+  // 국가
+  '국적':'nationality','국가':'nationality',
+  // 체류자격
+  '체류자격':'residence_status','비자':'residence_status',
+  '체류만료일':'residence_expiry','체류만료':'residence_expiry','비자만료일':'residence_expiry',
+  // 기타
+  '연락처':'phone','전화':'phone','핸드폰':'phone','휴대폰':'phone','전화번호':'phone','휴대전화':'phone',
+  '작업제한':'work_restrictions','제한사항':'work_restrictions',
+  '비고':'notes','메모':'notes','특이사항':'notes',
+};
+
+// 취약유형 컬럼명 → vtypeOptions 값 매핑
+const VTYPE_DICT = {
+  '고령':'고령(만60세이상)','만60세':'고령(만60세이상)','60세이상':'고령(만60세이상)',
+  '초고령':'초고령(만66세이상)','만66세':'초고령(만66세이상)',
+  '혈압':'혈압','고혈압':'혈압',
+  '당뇨':'당뇨',
+  '기타유질환':'기타유질환','유질환':'기타유질환','기타질환':'기타유질환',
+  '신규배치자':'신규배치자','신규':'신규배치자','신규배치':'신규배치자',
+  '특정약물':'특정약물복용자','약물복용':'특정약물복용자','정신질환':'특정약물복용자',
+  '온열질환':'온열질환병력','온열병력':'온열질환병력',
+  '신장질환':'신장질환','신장':'신장질환',
+  '비만':'비만',
+  '심뇌혈관':'심뇌혈관질환','심혈관':'심뇌혈관질환','뇌혈관':'심뇌혈관질환',
+};
+
+function detectColMap(headers) {
+  const map = {}; // colIndex → fieldName or 'vtype:태그명'
+  headers.forEach((h, i) => {
+    // (*) 표시, 개행, 공백 제거
+    const k = h.trim().replace(/\(\*\)/g,'').replace(/\s+/g,'');
+    const lower = k.toLowerCase();
+    if (COL_DICT[k])       { map[i] = COL_DICT[k]; return; }
+    if (COL_DICT[lower])   { map[i] = COL_DICT[lower]; return; }
+    for (const [pat, vtag] of Object.entries(VTYPE_DICT)) {
+      if (k.includes(pat) || lower.includes(pat.toLowerCase())) {
+        map[i] = 'vtype:'+vtag; return;
+      }
+    }
+  });
+  return map;
+}
+
+function parseTSV(text) {
+  return text.split(/\r?\n/).filter(r=>r.trim()).map(row => {
+    const cells = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < row.length; i++) {
+      const c = row[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === '\t' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cells.push(cur.trim());
+    return cells;
+  });
+}
+
+function rowsToWorkers(headers, rows, colMap, siteCode) {
+  return rows.map(row => {
+    const w = {
+      site_code: siteCode, name:'', name_korean:'', company:'',
+      worker_code:'', education_date:'', job_type:'', nationality:'',
+      birth_date:'', phone:'', residence_status:'', residence_expiry:'',
+      gender:'', last_exam_date:'',
+      vulnerability_types:[], diseases:'', work_restrictions:'', notes:'',
+    };
+    Object.entries(colMap).forEach(([i, field]) => {
+      const val = (row[parseInt(i)] || '').trim();
+      if (!val || val === '-' || val === '없음' || val === 'N/A') return;
+      if (field.startsWith('vtype:')) {
+        const vtag = field.slice(6);
+        if (/^(y|o|해당|v|1|예|yes|있음|√|✓|●)/i.test(val)) w.vulnerability_types.push(vtag);
+      } else if (field === 'has_disease') {
+        // '유' 이면 기타유질환 취약유형으로 추가
+        if (/^유$|있음|yes/i.test(val)) {
+          if (!w.vulnerability_types.includes('기타유질환')) w.vulnerability_types.push('기타유질환');
+        }
+      } else {
+        w[field] = val;
+      }
+    });
+    if (!w.name) w.name = w.name_korean;
+    w.is_vulnerable = w.vulnerability_types.length > 0 ? 1 : 0;
+    return w;
+  }).filter(w => w.name || w.name_korean);
+}
+
+function app() {
+  return {
+    // ── 공통 상태 ──
+    siteCode: localStorage.getItem('siteCode')||'',
+    siteName: localStorage.getItem('siteName')||'',
+    siteLocked: false,
+    mode: '',       // '' | 'health'
+    role: '',       // 'admin' | 'company'
+    company: '',
+    authed: false,
+    loginRole: 'admin',
+    loginCompany: '',
+    loginPin: '',
+    loginError: '',
+    loginLoading: false,
+    toast: { show:false, msg:'' },
+
+    // ── 관리자 ──
+    adminTab: 'workers',
+    workers: [],
+    workerFilter: '',
+    workerCompanies: [],
+    vtypeOptions: ['고령(만60세이상)','초고령(만66세이상)','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
+    workerModal: { show:false, editing:null,
+      data:{worker_code:'',education_date:'',name:'',name_korean:'',company:'',job_type:'',nationality:'',birth_date:'',birth_year:'',phone:'',residence_status:'',residence_expiry:'',gender:'',last_exam_date:'',vulnerability_types:[],diseases:'',work_restrictions:'',notes:''},
+      saving:false },
+    examModal: { show:false, worker:null, exams:[], saving:false,
+                 newExam:{ exam_type:'배치전건강진단', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' } },
+    companyPinSet: [],
+    pinModal: { show:false, company:'', adminPin:'', newPin:'', error:'', saving:false },
+    pasteModal: {
+      show:false, raw:'', hasHeader:true,
+      headers:[], rows:[], colMap:{},
+      preview:[], importing:false, result:null,
+    },
+
+    // ── 출근 ──
+    attDate: new Date().toISOString().slice(0,10),
+    attCompany: '',
+    attWorkLocation: '',
+    attendance: [],
+    companyWorkers: [],
+    checkedIds: [],
+    attSaving: false,
+    locations: [],
+    newLocationName: '',
+
+    // ── 건강기록 ──
+    healthDate: '',
+    healthSlot: '',
+    heatLevel: '',
+    feelsLike: null,
+    healthAttendance: [],
+    healthRecs: {},   // { worker_id: { body_temp, measure_time, health_status } }
+    healthPhotos: [],
+    healthSaving: false,
+    healthSaved: false,
+
+    // ── 초기화 ──────────────────────────────────────────────────────────────
+    async init() {
+      // URL 경로에서 현장코드 추출 (/workers/J881 또는 별도도메인의 /J881)
+      const segments = decodeURIComponent(window.location.pathname.replace(/^\/+|\/+$/g, '')).split('/');
+      let urlSite = '';
+      if (segments[0] === 'workers' && segments[1]) {
+        urlSite = segments[1].toUpperCase();
+      } else if (segments[0] && segments[0] !== 'workers') {
+        urlSite = segments[0].toUpperCase();
+      }
+      if (urlSite && urlSite !== this.siteCode) {
+        this.siteCode = urlSite;
+        this.siteName = '';
+        localStorage.setItem('siteCode', urlSite);
+        localStorage.removeItem('siteName');
+      }
+      if (urlSite && this.siteCode) this.siteLocked = true;
+
+      const params = new URLSearchParams(location.search);
+      this.mode = params.get('mode') || '';
+      if (this.mode === 'health') {
+        this.siteCode   = params.get('site_code') || this.siteCode;
+        this.company    = params.get('company') || '';
+        this.healthDate = params.get('date') || '';
+        this.healthSlot = params.get('slot') || '';
+        this.heatLevel  = params.get('heat_level') || '';
+        this.feelsLike  = parseFloat(params.get('feels_like')) || null;
+        // 저장된 세션 확인
+        const saved = JSON.parse(localStorage.getItem('vw_admin_auth')||'null');
+        if (saved && saved.site_code === this.siteCode && Date.now() - saved.ts < 3600000) {
+          this.authed = true;
+          this.role = 'admin';
+          await this.loadHealthPanel();
+        }
+      }
+    },
+
+    showToast(msg) {
+      this.toast = { show:true, msg };
+      setTimeout(() => this.toast.show=false, 2500);
+    },
+
+    // ── 로그인 ────────────────────────────────────────────────────────────────
+    async doLogin() {
+      if (!this.siteCode) { this.loginError='현장코드를 입력하세요'; return; }
+      this.loginLoading = true; this.loginError = '';
+      try {
+        if (this.loginRole === 'admin') {
+          const r = await fetch(API_BASE+'/api/pin/verify', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ site_code: this.siteCode, pin: this.loginPin })
+          });
+          const d = await r.json();
+          if (!d.ok) { this.loginError='PIN이 올바르지 않습니다'; return; }
+          this.authed = true; this.role = 'admin';
+          localStorage.setItem('vw_admin_auth', JSON.stringify({ site_code: this.siteCode, ts: Date.now() }));
+          await this.loadWorkers();
+          await this.loadLocations();
+        } else {
+          if (!this.loginCompany) { this.loginError='업체명을 입력하세요'; return; }
+          const r = await fetch(API_BASE+'/api/vw/company-pins/verify', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ site_code: this.siteCode, company: this.loginCompany, pin: this.loginPin })
+          });
+          const d = await r.json();
+          if (!d.ok) { this.loginError='PIN이 올바르지 않습니다'; return; }
+          this.authed = true; this.role = 'company'; this.company = this.loginCompany;
+          await this.loadCompanyWorkers();
+          await this.loadLocations();
+        }
+      } catch(e) { this.loginError='오류가 발생했습니다'; }
+      finally { this.loginLoading = false; }
+    },
+
+    logout() {
+      this.authed = false; this.role = ''; this.loginPin = '';
+      this.loginError = ''; this.workers = [];
+    },
+
+    // ── 관리자: 근로자 ────────────────────────────────────────────────────────
+    async loadWorkers() {
+      const r = await fetch(API_BASE+'/api/vw/workers?site_code='+this.siteCode);
+      const d = await r.json();
+      this.workers = d.workers || [];
+      const cs = [...new Set(this.workers.map(w=>w.company))].sort();
+      this.workerCompanies = cs;
+    },
+
+    get filteredWorkers() {
+      if (!this.workerFilter) return this.workers;
+      return this.workers.filter(w => w.company === this.workerFilter);
+    },
+
+    openWorkerModal(w) {
+      if (w) {
+        this.workerModal.editing = w;
+        this.workerModal.data = {
+          worker_code: w.worker_code||'', education_date: w.education_date||'',
+          name: w.name, name_korean: w.name_korean||'',
+          company: w.company, job_type: w.job_type||'',
+          nationality: w.nationality||'', birth_date: w.birth_date||'',
+          birth_year: w.birth_year||'', phone: w.phone||'',
+          residence_status: w.residence_status||'', residence_expiry: w.residence_expiry||'',
+          vulnerability_types: [...(w.vulnerability_types||[])],
+          diseases: w.diseases||'', work_restrictions: w.work_restrictions||'', notes: w.notes||''
+        };
+      } else {
+        this.workerModal.editing = null;
+        this.workerModal.data = {
+          worker_code:'', education_date:'', name:'', name_korean:'',
+          company: this.workerFilter||'', job_type:'', nationality:'', birth_date:'',
+          birth_year:'', phone:'', residence_status:'', residence_expiry:'',
+          vulnerability_types:[], diseases:'', work_restrictions:'', notes:''
+        };
+      }
+      this.workerModal.show = true;
+    },
+
+    async saveWorker() {
+      if (!this.workerModal.data.name || !this.workerModal.data.company) {
+        this.showToast('이름과 업체명은 필수입니다'); return;
+      }
+      this.workerModal.saving = true;
+      const payload = { ...this.workerModal.data, site_code: this.siteCode };
+      if (!payload.birth_year) delete payload.birth_year;
+      try {
+        if (this.workerModal.editing) {
+          await fetch(API_BASE+'/api/vw/workers/'+this.workerModal.editing.id, {
+            method:'PUT', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch(API_BASE+'/api/vw/workers', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          });
+        }
+        this.workerModal.show = false;
+        await this.loadWorkers();
+        this.showToast('저장되었습니다');
+      } catch(e) { this.showToast('저장 실패'); }
+      finally { this.workerModal.saving = false; }
+    },
+
+    async deleteWorker(w) {
+      if (!confirm(w.name+'을(를) 삭제하시겠습니까?')) return;
+      await fetch(API_BASE+'/api/vw/workers/'+w.id, { method:'DELETE' });
+      await this.loadWorkers();
+      this.showToast('삭제되었습니다');
+    },
+
+    // ── 관리자: 건강진단 ──────────────────────────────────────────────────────
+    async openExamModal(w) {
+      this.examModal.worker = w;
+      this.examModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+      const r = await fetch(API_BASE+'/api/vw/workers/'+w.id+'/exams');
+      const d = await r.json();
+      this.examModal.exams = d.exams || [];
+      this.examModal.show = true;
+    },
+
+    async uploadExamPhoto(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const form = new FormData(); form.append('file', file);
+      const r = await fetch(API_BASE+'/api/photos/upload', { method:'POST', body:form });
+      const d = await r.json();
+      this.examModal.newExam.photo_id = d.photo_id;
+    },
+
+    async saveExam() {
+      if (!this.examModal.newExam.exam_date) { this.showToast('진단일을 입력하세요'); return; }
+      this.examModal.saving = true;
+      try {
+        await fetch(API_BASE+'/api/vw/exams', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            worker_id: this.examModal.worker.id,
+            site_code: this.siteCode,
+            ...this.examModal.newExam
+          })
+        });
+        const r = await fetch(API_BASE+'/api/vw/workers/'+this.examModal.worker.id+'/exams');
+        const d = await r.json();
+        this.examModal.exams = d.exams || [];
+        this.examModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+        this.showToast('진단 기록 저장됨');
+      } finally { this.examModal.saving = false; }
+    },
+
+    async deleteExam(ex) {
+      if (!confirm('삭제하시겠습니까?')) return;
+      await fetch(API_BASE+'/api/vw/exams/'+ex.id, { method:'DELETE' });
+      this.examModal.exams = this.examModal.exams.filter(e=>e.id!==ex.id);
+      this.showToast('삭제되었습니다');
+    },
+
+    // ── 관리자: 위치 ──────────────────────────────────────────────────────────
+    async loadLocations() {
+      const r = await fetch(API_BASE+'/api/vw/locations?site_code='+this.siteCode);
+      const d = await r.json();
+      this.locations = d.locations || [];
+    },
+
+    async addLocation() {
+      if (!this.newLocationName.trim()) return;
+      await fetch(API_BASE+'/api/vw/locations', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ site_code: this.siteCode, name: this.newLocationName.trim() })
+      });
+      this.newLocationName = '';
+      await this.loadLocations();
+    },
+
+    async deleteLocation(loc) {
+      if (!confirm(loc.location_name+'을 삭제하시겠습니까?')) return;
+      await fetch(API_BASE+'/api/vw/locations/'+loc.id, { method:'DELETE' });
+      await this.loadLocations();
+    },
+
+    // ── 관리자: 업체 PIN ──────────────────────────────────────────────────────
+    async loadCompanyPins() {
+      const r = await fetch(API_BASE+'/api/vw/company-pins?site_code='+this.siteCode);
+      const d = await r.json();
+      this.companyPinSet = d.companies || [];
+    },
+
+    openPinModal(company) {
+      this.pinModal = { show:true, company, adminPin:'', newPin:'', error:'', saving:false };
+    },
+
+    async saveCompanyPin() {
+      if (this.pinModal.newPin.length < 4) { this.pinModal.error='PIN은 4자리 이상이어야 합니다'; return; }
+      this.pinModal.saving = true; this.pinModal.error = '';
+      try {
+        const r = await fetch(API_BASE+'/api/vw/company-pins/set', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ site_code: this.siteCode, company: this.pinModal.company,
+                                 pin: this.pinModal.newPin, admin_pin: this.pinModal.adminPin })
+        });
+        if (!r.ok) { const d=await r.json(); this.pinModal.error=d.detail||'오류'; return; }
+        this.pinModal.show = false;
+        await this.loadCompanyPins();
+        this.showToast('PIN 설정 완료');
+      } finally { this.pinModal.saving = false; }
+    },
+
+    // ── 관리자: 출근현황 ──────────────────────────────────────────────────────
+    async loadAttendance() {
+      const q = new URLSearchParams({ site_code: this.siteCode, company: this.attCompany, work_date: this.attDate });
+      const r = await fetch(API_BASE+'/api/vw/attendance?'+q);
+      const d = await r.json();
+      this.attendance = d.attendance || [];
+    },
+
+    // ── 업체: 출근체크 ────────────────────────────────────────────────────────
+    async loadCompanyWorkers() {
+      const r = await fetch(API_BASE+'/api/vw/workers?site_code='+this.siteCode+'&company='+encodeURIComponent(this.company));
+      const d = await r.json();
+      this.companyWorkers = d.workers || [];
+      // 오늘 출근 기록 불러오기
+      const r2 = await fetch(API_BASE+'/api/vw/attendance?site_code='+this.siteCode+'&company='+encodeURIComponent(this.company)+'&work_date='+this.attDate);
+      const d2 = await r2.json();
+      this.checkedIds = (d2.attendance||[]).map(a=>a.worker_id);
+      this.attWorkLocation = (d2.attendance||[])[0]?.work_location || '';
+      await this.loadLocations();
+    },
+
+    async saveAttendance() {
+      this.attSaving = true;
+      try {
+        await fetch(API_BASE+'/api/vw/attendance', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ site_code: this.siteCode, company: this.company,
+                                 work_date: this.attDate, worker_ids: this.checkedIds,
+                                 work_location: this.attWorkLocation })
+        });
+        this.showToast('출근 저장 완료');
+      } finally { this.attSaving = false; }
+    },
+
+    // ── 건강기록 패널 ──────────────────────────────────────────────────────────
+    async verifyHealthPin() {
+      this.loginLoading = true; this.loginError = '';
+      try {
+        const r = await fetch(API_BASE+'/api/pin/verify', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ site_code: this.siteCode, pin: this.loginPin })
+        });
+        const d = await r.json();
+        if (!d.ok) { this.loginError='PIN이 올바르지 않습니다'; return; }
+        this.authed = true; this.role = 'admin';
+        localStorage.setItem('vw_admin_auth', JSON.stringify({ site_code: this.siteCode, ts: Date.now() }));
+        await this.loadHealthPanel();
+      } finally { this.loginLoading = false; }
+    },
+
+    async loadHealthPanel() {
+      const q = new URLSearchParams({ site_code: this.siteCode, company: this.company, work_date: this.healthDate });
+      const r = await fetch(API_BASE+'/api/vw/attendance?'+q);
+      const d = await r.json();
+      this.healthAttendance = d.attendance || [];
+      // 기존 기록 로드
+      const q2 = new URLSearchParams({ site_code: this.siteCode, company: this.company, record_date: this.healthDate, slot: this.healthSlot });
+      const r2 = await fetch(API_BASE+'/api/vw/health-records?'+q2);
+      const d2 = await r2.json();
+      this.healthRecs = {};
+      (d2.records||[]).forEach(rec => {
+        this.healthRecs[rec.worker_id] = { body_temp: rec.body_temp, measure_time: rec.measure_time, health_status: rec.health_status };
+      });
+      // 사진 로드
+      const q3 = new URLSearchParams({ site_code: this.siteCode, company: this.company, record_date: this.healthDate, slot: this.healthSlot });
+      const r3 = await fetch(API_BASE+'/api/vw/health-photos?'+q3);
+      const d3 = await r3.json();
+      this.healthPhotos = d3.photos || [];
+    },
+
+    setHealthRec(workerId, field, value) {
+      if (!this.healthRecs[workerId]) this.healthRecs[workerId] = { body_temp:null, measure_time:'', health_status:'양호' };
+      this.healthRecs[workerId][field] = field==='body_temp' ? (value===''?null:parseFloat(value)) : value;
+      this.healthRecs = { ...this.healthRecs };
+    },
+
+    formatTime(workerId) {
+      const rec = this.healthRecs[workerId];
+      if (!rec?.measure_time) return;
+      const s = rec.measure_time.replace(/\D/g,'');
+      let formatted = rec.measure_time;
+      if (s.length===3) formatted=s[0].padStart(2,'0')+':'+s.slice(1);
+      else if(s.length===4) formatted=s.slice(0,2)+':'+s.slice(2);
+      else if(s.length<=2) formatted=s.padStart(2,'0')+':00';
+      this.setHealthRec(workerId,'measure_time',formatted);
+    },
+
+    getTempClass(temp) {
+      if (!temp) return 'temp-ok';
+      if (temp >= 38) return 'temp-danger';
+      if (temp >= 37.5) return 'temp-warn';
+      return 'temp-ok';
+    },
+
+    async saveHealthRecords() {
+      this.healthSaving = true; this.healthSaved = false;
+      try {
+        for (const a of this.healthAttendance) {
+          const rec = this.healthRecs[a.worker_id] || {};
+          await fetch(API_BASE+'/api/vw/health-records', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+              site_code: this.siteCode, company: this.company,
+              record_date: this.healthDate, slot: this.healthSlot,
+              heat_level: this.heatLevel, feels_like: this.feelsLike,
+              worker_id: a.worker_id,
+              body_temp: rec.body_temp || null,
+              measure_time: rec.measure_time || '',
+              health_status: rec.health_status || '양호',
+            })
+          });
+        }
+        this.healthSaved = true;
+        this.showToast('저장 완료');
+      } finally { this.healthSaving = false; }
+    },
+
+    async uploadHealthPhoto(photoType, ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const form = new FormData(); form.append('file', file);
+      const r = await fetch(API_BASE+'/api/photos/upload', { method:'POST', body:form });
+      const d = await r.json();
+      await fetch(API_BASE+'/api/vw/health-photos', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ site_code: this.siteCode, company: this.company,
+                               record_date: this.healthDate, slot: this.healthSlot,
+                               photo_type: photoType, photo_id: d.photo_id })
+      });
+      this.healthPhotos.push({ photo_id: d.photo_id, photo_type: photoType });
+    },
+
+    async deleteHealthPhoto(p) {
+      await fetch(API_BASE+'/api/vw/health-photos/'+p.photo_id, { method:'DELETE' });
+      this.healthPhotos = this.healthPhotos.filter(x=>x.photo_id!==p.photo_id);
+    },
+
+    // ── 일괄 붙여넣기 ─────────────────────────────────────────────────────────
+    handlePaste(e) {
+      const text = e.clipboardData?.getData('text') || '';
+      if (text) { e.preventDefault(); this._applyPasteText(text); }
+    },
+    handlePasteInput(val) {
+      if (val.includes('\t')) this._applyPasteText(val);
+    },
+    _applyPasteText(text) {
+      const all = parseTSV(text);
+      if (!all.length) return;
+      const pm = this.pasteModal;
+      if (pm.hasHeader) {
+        pm.headers = all[0];
+        pm.rows    = all.slice(1).filter(r => r.some(c => c));
+      } else {
+        pm.headers = all[0].map((_, i) => '열' + (i + 1));
+        pm.rows    = all.filter(r => r.some(c => c));
+      }
+      pm.colMap = detectColMap(pm.headers);
+      this.rebuildPreview();
+    },
+    reParsePaste() {
+      const area = this.$refs.pasteArea;
+      if (area && area.value) this._applyPasteText(area.value);
+    },
+    rebuildPreview() {
+      const pm = this.pasteModal;
+      pm.preview = rowsToWorkers(pm.headers, pm.rows, pm.colMap, this.siteCode);
+    },
+    async doBulkImport() {
+      const pm = this.pasteModal;
+      if (!pm.preview.length) return;
+      pm.importing = true; pm.result = null;
+      try {
+        const r = await fetch(API_BASE+'/api/vw/workers/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ site_code: this.siteCode, workers: pm.preview }),
+        });
+        pm.result = await r.json();
+        if (pm.result.success > 0) {
+          pm.rows = []; pm.headers = []; pm.preview = [];
+          await this.loadWorkers();
+          this.showToast('✅ ' + pm.result.success + '명 등록 완료');
+        }
+      } catch { pm.result = { success: 0, errors: ['서버 오류'] }; }
+      finally { pm.importing = false; }
+    },
+
+    openExemptionLink(worker) {
+      const code = this.siteCode || '';
+      const url = `https://hpms.hdec.co.kr/HDeSP/pSiteSafe/WorkSuspension/SSWorkSafetyReportRegisterM.aspx?siteCode=${code}&chkType=P&lang=ko`;
+      window.open(url, '_blank');
+    },
+  };
+}
+</script>
+</body>
+</html>

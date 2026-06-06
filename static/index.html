@@ -14,47 +14,56 @@
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+  /* ── 반응형 기준 폰트: 뷰포트 너비에 비례해 모든 rem 단위가 함께 스케일됨 ── */
+  html{font-size:clamp(13px, 1.1vw, 18px)}
+  @media(max-width:767px){html{font-size:14px}} /* 모바일: 고정 */
+
   [x-cloak]{display:none!important}
   body{font-family:'Nanum Square','NanumSquare','Apple SD Gothic Neo','맑은 고딕',sans-serif;background:#f5f5f7}
-  .card{background:white;border-radius:14px;padding:16px 18px;box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8e8ed}
-  .kpi-card{background:white;border:1px solid #e8e8ed;border-radius:13px;padding:12px;text-align:center}
+  .card{background:white;border-radius:.875rem;padding:1rem 1.125rem;box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8e8ed}
+  .kpi-card{background:white;border:1px solid #e8e8ed;border-radius:.8125rem;padding:.75rem;text-align:center}
   .kpi-val{font-size:1.4rem;font-weight:800;color:#1c1c1e}
-  .kpi-lbl{font-size:.68rem;color:#86868b;margin-top:2px}
-  .btn-primary{background:#0071e3;color:white;border-radius:10px;padding:9px 16px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
+  .kpi-lbl{font-size:.68rem;color:#86868b;margin-top:.125rem}
+  .btn-primary{background:#0071e3;color:white;border-radius:.625rem;padding:.5625rem 1rem;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
   .btn-primary:hover{background:#005bbf}
   .btn-primary:disabled{background:#b0b0b5;cursor:not-allowed}
-  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:10px;padding:9px 14px;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
+  .btn-secondary{background:#f2f2f7;color:#1c1c1e;border-radius:.625rem;padding:.5625rem .875rem;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s;border:none;font-family:inherit}
   .btn-secondary:hover{background:#e5e5ea}
-  input,select,textarea{box-sizing:border-box;border:1px solid #d1d5db;border-radius:12px;padding:12px 16px 12px 14px!important;font-size:.85rem!important;line-height:1.4;width:100%;max-width:100%;min-width:0;outline:none;transition:border-color .15s;font-family:inherit}
+  input,select,textarea{box-sizing:border-box;border:1px solid #d1d5db;border-radius:.75rem;padding:.75rem 1rem .75rem .875rem!important;font-size:.85rem!important;line-height:1.4;width:100%;max-width:100%;min-width:0;outline:none;transition:border-color .15s;font-family:inherit}
   input[type="date"]{-webkit-appearance:none;appearance:none;min-width:0}
   input:focus,select:focus,textarea:focus{border-color:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
   input::placeholder,textarea::placeholder{font-size:.85rem!important;color:#b0b0b8}
-  .tab-btn{transition:all .2s;border-radius:9px;padding:8px 10px;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent;font-family:inherit}
+  .tab-btn{transition:all .2s;border-radius:.5625rem;padding:.5rem .625rem;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent;font-family:inherit}
   .tab-btn.active{background:white;box-shadow:0 1px 6px rgba(0,0,0,.12);color:#0071e3}
   .tab-btn:not(.active){color:#86868b}
   .tab-btn:not(.active):hover{background:rgba(255,255,255,.6)}
-  .drop-zone{border:2px dashed #c7c7cc;border-radius:13px;padding:28px 16px;text-align:center;background:#fafafa;cursor:pointer;transition:all .2s}
+  .drop-zone{border:2px dashed #c7c7cc;border-radius:.8125rem;padding:1.75rem 1rem;text-align:center;background:#fafafa;cursor:pointer;transition:all .2s}
   .drop-zone:hover,.drop-zone.dragover{border-color:#0071e3;background:#f0f5ff}
-  .badge-위험{background:#ff3b30;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
-  .badge-경고{background:#ff9500;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
-  .badge-주의{background:#ffcc00;color:#1c1c1e;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
-  .badge-관심{background:#34c759;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
-  .week-tag{display:inline-block;background:#0071e3;color:white;border-radius:8px;padding:3px 12px;font-size:.8rem;font-weight:700}
+  .badge-위험{background:#ff3b30;color:white;padding:.125rem .4375rem;border-radius:.3125rem;font-size:.72rem;font-weight:800}
+  .badge-경고{background:#ff9500;color:white;padding:.125rem .4375rem;border-radius:.3125rem;font-size:.72rem;font-weight:800}
+  .badge-주의{background:#ffcc00;color:#1c1c1e;padding:.125rem .4375rem;border-radius:.3125rem;font-size:.72rem;font-weight:800}
+  .badge-관심{background:#34c759;color:white;padding:.125rem .4375rem;border-radius:.3125rem;font-size:.72rem;font-weight:800}
+  .week-tag{display:inline-block;background:#0071e3;color:white;border-radius:.5rem;padding:.1875rem .75rem;font-size:.8rem;font-weight:700}
   .grid-table{border-collapse:collapse;font-size:.82rem}
-  .grid-table th{background:#0071e3;color:white;padding:7px 8px;text-align:center;font-weight:700;font-size:.82rem;overflow:hidden}
-  .grid-table td{padding:4px 5px;border-right:1px solid #e8e8ed;border-bottom:1px solid #e8e8ed;vertical-align:middle;overflow:hidden;white-space:nowrap}
+  .grid-table th{background:#0071e3;color:white;padding:.4375rem .5rem;text-align:center;font-weight:700;font-size:.82rem;overflow:hidden}
+  .grid-table td{padding:.25rem .3125rem;border-right:1px solid #e8e8ed;border-bottom:1px solid #e8e8ed;vertical-align:middle;overflow:hidden;white-space:nowrap}
   .grid-table tr.day-sep td{border-top:2px solid #c7c7cc}
   .grid-table tr:hover td{background:#f0f5ff}
-  .grid-table input,.grid-table select{border:none;background:transparent;padding:3px 6px!important;font-size:.82rem!important;border-radius:4px;font-family:inherit;width:100%;box-sizing:border-box;white-space:nowrap}
+  .grid-table input,.grid-table select{border:none;background:transparent;padding:.1875rem .375rem!important;font-size:.82rem!important;border-radius:.25rem;font-family:inherit;width:100%;box-sizing:border-box;white-space:nowrap;text-align:center}
   .grid-table input:focus,.grid-table select:focus{background:white;border:1px solid #0071e3;box-shadow:0 0 0 2px rgba(0,113,227,.1)}
   .grid-table input:disabled,.grid-table select:disabled{opacity:.7;cursor:default;-webkit-text-fill-color:inherit}
-  .heat-dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex-shrink:0;vertical-align:middle;margin-right:3px}
-  .photo-thumb{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid #e8e8ed}
-  .progress-bar{height:4px;background:#e8e8ed;border-radius:2px;overflow:hidden}
+  .heat-dot{display:inline-block;width:.5625rem;height:.5625rem;border-radius:50%;flex-shrink:0;vertical-align:middle;margin-right:.1875rem}
+  .photo-thumb{width:4.5rem;height:4.5rem;object-fit:cover;border-radius:.5rem;border:2px solid #e8e8ed;transition:transform .15s,box-shadow .15s}
+  .photo-thumb:hover{transform:scale(1.05);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+  .photo-hover-zoom{display:none;position:absolute;bottom:calc(100% + .625rem);left:50%;transform:translateX(-50%);width:13.75rem;height:13.75rem;object-fit:cover;border-radius:.75rem;box-shadow:0 8px 32px rgba(0,0,0,.5);border:2px solid white;z-index:30;pointer-events:none}
+  @media(hover:hover){.photo-wrap:hover .photo-hover-zoom{display:block}}
+  .progress-bar{height:.25rem;background:#e8e8ed;border-radius:.125rem;overflow:hidden}
   .progress-fill{height:100%;background:#0071e3;transition:width .3s}
-  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar{width:.3125rem;height:.3125rem}
   ::-webkit-scrollbar-track{background:#f1f1f1}
-  ::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:3px}
+  ::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:.1875rem}
+  .date-edit-input{padding:.125rem .25rem!important;font-size:.72rem!important;border-radius:.25rem;border:1px solid #d1d5db;width:100%;box-sizing:border-box;background:white;outline:none;font-family:inherit}
+  .date-edit-input:focus{border-color:#0071e3;box-shadow:0 0 0 2px rgba(0,113,227,.1)}
 </style>
 </head>
 
@@ -62,12 +71,12 @@
 
 <!-- ── 고정 상단 헤더 ──────────────────────────────────────────────────────── -->
 <header class="sticky top-0 z-40" style="background:linear-gradient(135deg,#0062cc,#0071e3,#0096c7);box-shadow:0 2px 12px rgba(0,100,200,.2)">
-  <div class="max-w-3xl mx-auto px-4" style="padding-top:14px;padding-bottom:14px">
+  <div class="max-w-3xl lg:max-w-[1400px] 2xl:max-w-[1700px] mx-auto px-4" style="padding-top:.875rem;padding-bottom:.875rem">
     <div class="flex items-start justify-between">
       <div>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-lg">🌡</span>
-          <h1 class="font-extrabold text-white" style="font-size:1.15rem;letter-spacing:-.02em">체감온도 기록관리</h1>
+          <h1 class="font-extrabold text-white" style="font-size:1.35rem;letter-spacing:-.02em">체감온도 기록관리</h1>
         </div>
         <div class="pl-7 leading-tight">
           <template x-if="meta.siteCode || meta.siteName || meta.company || meta.location">
@@ -98,71 +107,133 @@
       <span class="text-xs font-bold mt-1 px-2 py-1 rounded-lg"
             style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)"
             :style="apiOk ? 'color:white' : 'color:#ffd0d0'"
-            :title="apiOk ? 'Gemini AI 연결됨' : 'API 키 미설정'"
+            :title="apiOk ? 'Gemini AI 연결됨' : 'AI 키를 등록하려면 클릭'"
+            :class="!apiOk ? 'cursor-pointer hover:opacity-80' : ''"
+            @click="!apiOk && openAiKeyModal()"
             x-text="apiOk ? '✅ AI' : '❌ AI'"></span>
     </div>
   </div>
 </header>
 
-<div class="max-w-3xl mx-auto p-3 space-y-3 pb-10">
+<div class="max-w-3xl lg:max-w-[1400px] 2xl:max-w-[1700px] mx-auto p-3 space-y-3 pb-10">
 
   <!-- ══ 현장 기본 정보 ═══════════════════════════════════════════════════ -->
   <div class="card">
-    <div class="text-xs font-extrabold text-blue-600 mb-3">🏗 현장 기본 정보</div>
+    <div class="flex items-center gap-2 mb-3">
+      <div class="text-xs font-extrabold text-blue-600">🏗 현장 기본 정보</div>
+      <span x-show="siteLocked" x-cloak
+            class="text-xs bg-blue-100 text-blue-600 rounded-full px-2 py-0.5 font-bold">🔒 현장 고정</span>
+    </div>
     <div class="grid grid-cols-2 gap-2 mb-2">
       <div>
         <label class="text-xs text-gray-500 font-bold">현장코드</label>
         <input type="text" x-model="meta.siteCode" placeholder="예: J881"
-               @input="meta.siteCode = meta.siteCode.toUpperCase()"
-               @change="onSiteCodeChange" list="site-code-list" class="mt-1">
+               @input="onSiteCodeInput()"
+               @change="onSiteCodeChange" list="site-code-list" class="mt-1"
+               :readonly="siteLocked"
+               :class="siteLocked ? 'bg-gray-50 text-gray-700 font-bold cursor-not-allowed' : ''">
         <datalist id="site-code-list">
           <template x-for="s in ac.siteCodes" :key="s.code">
             <option :value="s.code" :label="s.name"></option>
           </template>
         </datalist>
       </div>
-      <div>
+      <!-- 현장명 -->
+      <div x-data="{_o:false,_a:false}" @click.outside="_o=false" class="relative">
         <label class="text-xs text-gray-500 font-bold">현장명</label>
-        <input type="text" x-model="meta.siteName" placeholder="현장명" list="site-name-list" class="mt-1">
-        <datalist id="site-name-list">
-          <template x-for="s in ac.siteCodes" :key="s.name">
-            <option :value="s.name"></option>
-          </template>
-        </datalist>
+        <div class="relative mt-1">
+          <input type="text" x-model="meta.siteName" placeholder="현장명" autocomplete="off"
+                 @input="_a=false;if(!(siteLocked&&meta.siteName))_o=true;saveSiteName()"
+                 @focus="if(!(siteLocked&&meta.siteName))_o=true"
+                 @change="saveSiteName()"
+                 @keydown.escape="_o=false" @keydown.enter.prevent="_o=false"
+                 :readonly="siteLocked && !!meta.siteName"
+                 :class="(siteLocked&&meta.siteName) ? 'bg-gray-50 text-gray-700 font-bold cursor-not-allowed pr-2' : 'pr-8'">
+          <button type="button" @click.stop="_a=true;_o=!_o"
+                  x-show="!(siteLocked && meta.siteName)"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs p-1">▼</button>
+          <div x-show="_o && !(siteLocked && meta.siteName)" x-cloak
+               class="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-y-auto"
+               style="max-height:180px;margin-top:2px">
+            <template x-for="s in ac.siteCodes.filter(s=>_a||koMatch(s.name,meta.siteName))" :key="s.code">
+              <div @click.stop="meta.siteName=s.name;_o=false;saveSiteName();saveSiteCode()"
+                   class="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50" x-text="s.name"></div>
+            </template>
+            <div x-show="!ac.siteCodes.filter(s=>_a||koMatch(s.name,meta.siteName)).length"
+                 class="px-3 py-2 text-gray-400 text-sm">항목 없음</div>
+          </div>
+        </div>
       </div>
-      <div>
+      <!-- 업체명 -->
+      <div x-data="{_o:false,_a:false}" @click.outside="_o=false" class="relative">
         <label class="text-xs text-gray-500 font-bold">업체명</label>
-        <input type="text" x-model="meta.company" placeholder="업체명" list="company-list" class="mt-1">
-        <datalist id="company-list">
-          <template x-for="c in ac.companies" :key="c">
-            <option :value="c"></option>
-          </template>
-        </datalist>
+        <div class="relative mt-1">
+          <input type="text" x-model="meta.company" placeholder="업체명" autocomplete="off"
+                 @input="_a=false;_o=true;onMetaCompanyChange()" @focus="_o=true"
+                 @keydown.escape="_o=false" @keydown.enter.prevent="_o=false"
+                 class="pr-8">
+          <button type="button" @click.stop="_a=true;_o=!_o"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs p-1">▼</button>
+          <div x-show="_o" x-cloak
+               class="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-y-auto"
+               style="max-height:180px;margin-top:2px">
+            <template x-for="c in ac.companies.filter(c=>_a||koMatch(c,meta.company))" :key="c">
+              <div @click.stop="meta.company=c;_o=false;onMetaCompanyChange()"
+                   class="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50" x-text="c"></div>
+            </template>
+            <div x-show="!ac.companies.filter(c=>_a||koMatch(c,meta.company)).length"
+                 class="px-3 py-2 text-gray-400 text-sm">항목 없음</div>
+          </div>
+        </div>
       </div>
-      <div>
+      <!-- 온습도계 위치 -->
+      <div x-data="{_o:false,_a:false}" @click.outside="_o=false" class="relative">
         <label class="text-xs text-gray-500 font-bold">온습도계 위치</label>
-        <input type="text" x-model="meta.location" placeholder="예: GATE 2" list="loc-list" class="mt-1">
-        <datalist id="loc-list">
-          <template x-for="l in ac.locations" :key="l">
-            <option :value="l"></option>
-          </template>
-        </datalist>
+        <div class="relative mt-1">
+          <input type="text" x-model="meta.location" placeholder="예: GATE 2" autocomplete="off"
+                 @input="_a=false;_o=true" @focus="_o=true"
+                 @keydown.escape="_o=false" @keydown.enter.prevent="_o=false"
+                 class="pr-8">
+          <button type="button" @click.stop="_a=true;_o=!_o"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs p-1">▼</button>
+          <div x-show="_o" x-cloak
+               class="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-y-auto"
+               style="max-height:180px;margin-top:2px">
+            <template x-for="l in ac.locations.filter(l=>_a||koMatch(l,meta.location))" :key="l">
+              <div @click.stop="meta.location=l;_o=false"
+                   class="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50" x-text="l"></div>
+            </template>
+            <div x-show="!ac.locations.filter(l=>_a||koMatch(l,meta.location)).length"
+                 class="px-3 py-2 text-gray-400 text-sm">항목 없음</div>
+          </div>
+        </div>
       </div>
     </div>
     <div>
       <label class="text-xs text-gray-500 font-bold">측정자</label>
       <input type="text" x-model="meta.measurer" placeholder="홍길동" @change="saveMeasurer" class="mt-1">
     </div>
+    <template x-if="meta.siteCode && meta.siteName">
+      <div class="mt-3">
+        <button @click="activeTab='history'; onHistTabActivate()"
+                class="btn-secondary w-full text-sm">📋 이전 기록 보기</button>
+      </div>
+    </template>
   </div>
 
   <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
   <div class="card relative">
-    <template x-if="!meta.siteCode || !meta.siteName || !meta.company || !meta.location">
+    <template x-if="activeTab === 'history' ? !meta.siteCode : (!meta.siteCode || !meta.siteName || !meta.company || !meta.location)">
       <div class="absolute inset-0 rounded-xl z-10 flex flex-col items-center justify-center gap-2"
            style="background:rgba(255,255,255,.88);backdrop-filter:blur(3px)">
         <div class="text-4xl">🏗</div>
-        <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
-        <div class="text-xs text-gray-400">현장코드 · 업체명 · 온습도계 위치 필수</div>
+        <template x-if="activeTab === 'history'">
+          <div class="font-bold text-sm text-gray-600">현장코드를 입력해주세요</div>
+        </template>
+        <template x-if="activeTab !== 'history'">
+          <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
+        </template>
+        <div class="text-xs text-gray-400" x-text="activeTab === 'history' ? '현장코드 필수' : '현장코드 · 업체명 · 온습도계 위치 필수'"></div>
       </div>
     </template>
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
@@ -260,7 +331,11 @@
                    class="text-xs text-red-400 text-center mt-1">
                 ※ 현장코드와 위치를 입력해야 저장됩니다
               </div>
-              <div x-show="meta.siteCode && meta.location && !camIsReady()"
+              <div x-show="meta.siteCode && meta.location && cam.result && (!_isValidTemp(cam.result.temperature) || !_isValidHumid(cam.result.humidity))"
+                   class="text-xs text-red-500 text-center mt-1 font-bold">
+                ⚠️ 인식값이 측정 범위를 벗어났습니다. 재촬영해 주세요
+              </div>
+              <div x-show="meta.siteCode && meta.location && !camIsReady() && (!cam.result || (_isValidTemp(cam.result?.temperature) && _isValidHumid(cam.result?.humidity)))"
                    class="text-xs text-orange-500 text-center mt-1">
                 ※ 온도·습도·측정시각·구분을 모두 확인해주세요
               </div>
@@ -334,7 +409,9 @@
                           <div>
                             <label class="text-xs text-gray-400">측정시각</label>
                             <input type="text" placeholder="HH:MM" x-model="item.result.time"
-                                   @change="upldItemRecalc(item)" class="mt-0.5">
+                                   @change="item.result.time=fmtTime(item.result.time);upldItemRecalc(item)"
+                                   @blur="item.result.time=fmtTime(item.result.time);upldItemRecalc(item)"
+                                   class="mt-0.5">
                           </div>
                           <div>
                             <label class="text-xs text-gray-400">구분</label>
@@ -391,55 +468,6 @@
 
     <!-- ── 기간 조회 탭 ── -->
     <div x-show="activeTab==='history'">
-      <!-- 관리자 PIN 잠금/해제 -->
-      <div class="flex items-center gap-2 mb-3 px-3 py-2.5 rounded-xl"
-           :class="hist.unlocked ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'">
-        <template x-if="!hist.unlocked">
-          <div class="flex items-center gap-2 w-full">
-            <span class="text-base flex-shrink-0">🔒</span>
-            <template x-if="hist.pinHasValue">
-              <div class="flex gap-1.5 flex-1">
-                <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN"
-                       @keydown.enter="verifyPin()"
-                       style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
-                <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
-              </div>
-            </template>
-            <template x-if="!hist.pinHasValue">
-              <div class="flex items-center justify-between flex-1">
-                <span class="text-xs text-gray-400">PIN 미설정 — 수정·삭제 잠김</span>
-                <button @click="hist.pinChanging=true" class="btn-secondary text-xs" style="padding:5px 10px">🔑 PIN 등록</button>
-              </div>
-            </template>
-          </div>
-        </template>
-        <template x-if="hist.unlocked">
-          <div class="flex items-center justify-between w-full">
-            <span class="text-xs font-bold text-green-700">🔓 관리자 모드 — 수정·삭제 활성</span>
-            <div class="flex gap-1.5">
-              <button @click="hist.pinChanging=!hist.pinChanging" class="btn-secondary text-xs" style="padding:5px 10px">PIN 변경</button>
-              <button @click="lockHist()" class="btn-secondary text-xs" style="padding:5px 10px">🔒 잠금</button>
-            </div>
-          </div>
-        </template>
-      </div>
-      <!-- PIN 설정/변경 폼 -->
-      <template x-if="hist.pinChanging">
-        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3 space-y-1.5">
-          <div class="text-xs font-bold text-yellow-800" x-text="'🔑 관리자 PIN ' + (hist.pinHasValue ? '변경' : '등록')"></div>
-          <template x-if="hist.pinHasValue && !hist.unlocked">
-            <input type="password" x-model="hist.currentPin" placeholder="현재 PIN"
-                   style="padding:8px 12px!important;font-size:.85rem!important" class="w-full">
-          </template>
-          <input type="password" x-model="hist.newPin" placeholder="새 PIN (4자리 이상)"
-                 style="padding:8px 12px!important;font-size:.85rem!important" class="w-full">
-          <div class="flex gap-1.5">
-            <button @click="setPin()" class="btn-primary text-xs flex-1" style="padding:7px">저장</button>
-            <button @click="hist.pinChanging=false; hist.newPin=''; hist.currentPin=''"
-                    class="btn-secondary text-xs flex-1" style="padding:7px">취소</button>
-          </div>
-        </div>
-      </template>
 
       <!-- 날짜별 / 주차별 토글 -->
       <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
@@ -453,7 +481,10 @@
       <div x-show="hist.mode==='date'" class="mb-3">
         <div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
           <div class="text-xs font-extrabold text-blue-700 mb-2">📆 날짜 선택</div>
-          <input type="date" x-model="hist.date" @change="loadRecords()" class="w-full">
+          <div class="flex gap-2">
+            <input type="date" x-model="hist.date" @change="loadRecords()" class="flex-1">
+            <button @click="loadRecords()" class="btn-secondary text-sm font-bold" style="padding:6px 14px;white-space:nowrap">🔄 새로고침</button>
+          </div>
         </div>
       </div>
 
@@ -465,9 +496,11 @@
             <div>
               <label class="text-xs text-gray-500 font-bold">월</label>
               <select x-model.number="meta.month" @change="buildWeeks" class="mt-1">
-                <template x-for="m in [5,6,7,8,9]" :key="m">
-                  <option :value="m" x-text="m+'월'"></option>
-                </template>
+                <option value="5">5월</option>
+                <option value="6">6월</option>
+                <option value="7">7월</option>
+                <option value="8">8월</option>
+                <option value="9">9월</option>
               </select>
             </div>
             <div>
@@ -497,7 +530,10 @@
               </select>
             </div>
           </div>
-          <button @click="loadRecords()" class="btn-primary w-full text-sm">📂 기록 불러오기</button>
+          <div class="flex gap-2">
+            <button @click="loadRecords()" class="btn-primary flex-1 text-sm">📂 기록 불러오기</button>
+            <button @click="loadRecords()" class="btn-secondary text-sm font-bold" style="padding:6px 14px;white-space:nowrap">🔄 새로고침</button>
+          </div>
         </div>
 
         <template x-if="currentMonday">
@@ -515,6 +551,123 @@
           </div>
         </template>
       </div>
+
+      <!-- 관리자 PIN 잠금/해제 -->
+      <div class="flex items-center gap-2 mt-3 px-3 py-2.5 rounded-xl"
+           :class="hist.unlocked ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'">
+        <template x-if="!hist.unlocked">
+          <div class="flex items-center gap-2 w-full">
+            <span class="text-base flex-shrink-0">🔒</span>
+            <template x-if="hist.pinHasValue">
+              <div class="flex gap-1.5 flex-1">
+                <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN"
+                       @keydown.enter="verifyPin()"
+                       style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
+                <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
+              </div>
+            </template>
+            <template x-if="!hist.pinHasValue">
+              <div class="flex-1">
+                <div class="flex gap-1.5">
+                  <input type="password" x-model="hist.pinInput" placeholder="기본 PIN 입력"
+                         @keydown.enter="verifyPin()"
+                         style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
+                  <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
+                </div>
+                <div class="text-xs text-gray-400 mt-1">
+                  기본 PIN: 현장코드 숫자 앞에 0 붙인 4자리
+                  <span class="font-bold text-blue-500" x-text="meta.siteCode ? '('+defaultPin()+')' : ''"></span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+        <template x-if="hist.unlocked">
+          <div class="flex items-center justify-between w-full flex-wrap gap-1">
+            <span class="text-xs font-bold text-green-700">🔓 관리자 모드 — 수정·삭제 활성</span>
+            <div class="flex gap-1.5">
+              <button @click="trash.show=!trash.show; if(trash.show) loadTrash()"
+                      class="btn-secondary text-xs relative" style="padding:5px 10px">
+                🗑 휴지통
+                <template x-if="trash.records.length > 0">
+                  <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-xs font-bold"
+                        style="min-width:16px;height:16px;line-height:16px;padding:0 3px;font-size:.65rem"
+                        x-text="trash.records.length"></span>
+                </template>
+              </button>
+              <button @click="hist.pinChanging=!hist.pinChanging" class="btn-secondary text-xs" style="padding:5px 10px">PIN 변경</button>
+              <button @click="lockHist()" class="btn-secondary text-xs" style="padding:5px 10px">🔒 잠금</button>
+            </div>
+          </div>
+        </template>
+      </div>
+      <!-- PIN 설정/변경 폼 -->
+      <template x-if="hist.pinChanging">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mt-2 space-y-1.5">
+          <div class="text-xs font-bold text-yellow-800" x-text="'🔑 관리자 PIN ' + (hist.pinHasValue ? '변경' : '등록')"></div>
+          <template x-if="hist.pinHasValue && !hist.unlocked">
+            <input type="password" x-model="hist.currentPin" placeholder="현재 PIN"
+                   style="padding:8px 12px!important;font-size:.85rem!important" class="w-full">
+          </template>
+          <input type="password" x-model="hist.newPin" placeholder="새 PIN (4자리 이상)"
+                 style="padding:8px 12px!important;font-size:.85rem!important" class="w-full">
+          <div class="flex gap-1.5">
+            <button @click="setPin()" class="btn-primary text-xs flex-1" style="padding:7px">저장</button>
+            <button @click="hist.pinChanging=false; hist.newPin=''; hist.currentPin=''"
+                    class="btn-secondary text-xs flex-1" style="padding:7px">취소</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- ── 휴지통 패널 ───────────────────────────────────────────────── -->
+      <template x-if="hist.unlocked && trash.show">
+        <div class="card mt-2" style="padding:12px;border:1.5px solid #fca5a5;background:#fff5f5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-red-600 text-sm">🗑 휴지통</span>
+            <div class="flex gap-1.5 items-center">
+              <span class="text-xs text-gray-400" x-text="trash.records.length+'건 (30일 후 자동 삭제)'"></span>
+              <template x-if="trash.records.length > 0">
+                <button @click="emptyTrash()"
+                        class="text-xs text-red-500 hover:text-red-700 border border-red-300 hover:border-red-500 rounded px-2 py-0.5">전체 영구삭제</button>
+              </template>
+              <button @click="trash.show=false" class="text-gray-400 hover:text-gray-600 text-lg leading-none ml-1">×</button>
+            </div>
+          </div>
+          <template x-if="trash.loading">
+            <div class="text-center text-gray-400 text-sm py-4">불러오는 중...</div>
+          </template>
+          <template x-if="!trash.loading && trash.records.length === 0">
+            <div class="text-center text-gray-400 text-sm py-4">휴지통이 비어 있습니다</div>
+          </template>
+          <template x-if="!trash.loading && trash.records.length > 0">
+            <div class="space-y-1.5 max-h-72 overflow-y-auto">
+              <template x-for="rec in trash.records" :key="rec.id">
+                <div class="flex items-center gap-2 bg-white rounded-lg p-2 border border-red-100 text-xs">
+                  <template x-if="rec.photo_id">
+                    <img :src="'/uploads/'+rec.photo_id" class="w-9 h-9 rounded object-cover flex-shrink-0 border border-gray-200">
+                  </template>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-bold text-gray-700" x-text="rec.measure_date+' '+rec.slot"></div>
+                    <div class="text-gray-500 truncate" x-text="(rec.location||'위치없음')+(rec.company?' · '+rec.company:'')"></div>
+                    <div class="text-gray-400">
+                      <span x-show="rec.temperature!=null" x-text="rec.temperature+'°C '"></span>
+                      <span x-show="rec.humidity!=null" x-text="rec.humidity+'% '"></span>
+                      <span x-show="rec.feels_like!=null" class="font-bold" x-text="'체감 '+rec.feels_like+'°C'"></span>
+                    </div>
+                    <div class="text-gray-300" x-text="'삭제: '+trashRelativeTime(rec.deleted_at)"></div>
+                  </div>
+                  <div class="flex flex-col gap-1 flex-shrink-0">
+                    <button @click="restoreTrashRec(rec)"
+                            class="text-blue-500 hover:text-blue-700 border border-blue-200 hover:border-blue-400 rounded px-1.5 py-0.5">복원</button>
+                    <button @click="purgeTrashRec(rec)"
+                            class="text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded px-1.5 py-0.5">영구삭제</button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
     </div>
   </div>
 
@@ -585,27 +738,155 @@
           <div class="text-xs text-gray-400 font-bold px-1" x-text="records.length+'건 조회'"></div>
           <template x-for="g in hist.dateGroups" :key="g.key">
             <div class="card" style="padding:12px">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="font-extrabold text-blue-700" style="font-size:.85rem" x-text="'📍 '+g.location"></span>
-                <span x-show="g.company" class="text-xs text-gray-400" x-text="g.company"></span>
+              <!-- 장소·업체 헤더 -->
+              <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <!-- 장소명 -->
+                <template x-if="!g.editingLocation">
+                  <span class="font-extrabold text-blue-700" style="font-size:.85rem" x-text="'📍 '+g.location"></span>
+                </template>
+                <template x-if="g.editingLocation">
+                  <input type="text" x-model="g.editLocationInput"
+                         @keydown.enter="saveDateGroupLocation(g)"
+                         @keydown.escape="g.editingLocation=false"
+                         class="date-edit-input" style="max-width:150px">
+                </template>
+                <!-- 업체명 -->
+                <template x-if="!g.editingCompany">
+                  <span class="text-xs font-bold text-gray-500" x-show="g.company || hist.unlocked"
+                        x-text="g.company || '(업체 미입력)'"></span>
+                </template>
+                <template x-if="g.editingCompany">
+                  <input type="text" x-model="g.editCompanyInput"
+                         @keydown.enter="saveDateGroupCompany(g)"
+                         @keydown.escape="g.editingCompany=false"
+                         class="date-edit-input" style="max-width:150px" placeholder="업체명">
+                </template>
+                <!-- 수정 버튼들 -->
+                <template x-if="hist.unlocked && !g.editingLocation && !g.editingCompany">
+                  <div class="flex gap-1">
+                    <button @click="g.editLocationInput=g.location; g.editingLocation=true"
+                            class="text-xs text-blue-400 hover:text-blue-600" title="장소명 수정">✏️ 장소</button>
+                    <button @click="g.editCompanyInput=g.company; g.editingCompany=true"
+                            class="text-xs text-orange-400 hover:text-orange-600" title="업체명 수정">✏️ 업체</button>
+                  </div>
+                </template>
+                <template x-if="hist.unlocked && g.editingLocation">
+                  <button @click="saveDateGroupLocation(g)" class="text-xs btn-primary py-0.5 px-2">저장</button>
+                </template>
+                <template x-if="hist.unlocked && g.editingCompany">
+                  <button @click="saveDateGroupCompany(g)" class="text-xs btn-primary py-0.5 px-2">저장</button>
+                </template>
               </div>
-              <div class="grid grid-cols-4 gap-1.5 text-center text-xs">
+              <!-- 슬롯 카드 4열 -->
+              <div class="grid grid-cols-4 gap-1.5 text-center text-xs sm:text-sm">
                 <template x-for="sl in ['오전1','오전2','오후1','오후2']" :key="sl">
-                  <div class="rounded-lg p-2"
-                       :class="g.slotMap[sl].length > 0 ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50'">
-                    <div class="font-bold text-gray-500 mb-1" x-text="sl"></div>
+                  <div class="rounded-lg p-2 sm:p-3"
+                       :class="g.slotMap[sl].length > 0
+                         ? (hist.unlocked && g.slotMap[sl].some(r=>r._modified)
+                             ? 'bg-yellow-50 border border-yellow-300'
+                             : slotBgClass(g.slotMap[sl]))
+                         : 'bg-gray-50'">
+                    <div class="font-bold text-gray-500 mb-1 flex items-center justify-center gap-1">
+                      <span x-text="sl"></span>
+                      <template x-if="hist.unlocked && g.slotMap[sl].some(r=>r._modified)">
+                        <span class="text-yellow-600 font-bold" style="font-size:.6rem">✎수정됨</span>
+                      </template>
+                    </div>
                     <template x-if="g.slotMap[sl].length === 0">
                       <div class="text-gray-300 text-sm">─</div>
                     </template>
                     <template x-if="g.slotMap[sl].length > 0">
                       <div>
                         <template x-for="(rec, ri) in g.slotMap[sl]" :key="rec.id">
-                          <div :class="ri > 0 ? 'mt-1 pt-1 border-t border-blue-100' : ''">
-                            <div x-show="rec.measure_time" class="text-gray-400" x-text="rec.measure_time"></div>
-                            <div class="font-bold text-gray-800" x-text="rec.temperature!=null ? rec.temperature+'°C' : '?'"></div>
-                            <div x-show="rec.heat_level && rec.heat_level!=='-'"
-                                 :class="'badge-'+rec.heat_level" x-text="rec.heat_level"></div>
-                            <div class="text-gray-400" x-show="rec.measurer" x-text="rec.measurer"></div>
+                          <div :class="ri > 0 ? 'mt-2 pt-2 border-t border-blue-100' : ''">
+                            <!-- 잠금 시: 읽기 전용 -->
+                            <template x-if="!hist.unlocked">
+                              <div class="flex flex-col items-center gap-1 sm:flex-row sm:items-center sm:justify-center sm:gap-1.5">
+                                <template x-if="rec.photo_id">
+                                  <div class="photo-wrap relative w-full sm:w-auto sm:flex-shrink-0">
+                                    <img :src="'/uploads/'+rec.photo_id"
+                                         @click="openLightbox('/uploads/'+rec.photo_id)"
+                                         class="rounded cursor-pointer object-cover block w-full h-20 sm:w-40 sm:h-40"
+                                         style="border:1px solid #e8e8ed">
+                                    <img :src="'/uploads/'+rec.photo_id" class="photo-hover-zoom">
+                                  </div>
+                                </template>
+                                <div class="space-y-0.5 sm:space-y-1 text-center w-full sm:w-auto">
+                                  <div x-show="rec.measure_time" class="text-gray-400" x-text="rec.measure_time"></div>
+                                  <div class="text-gray-700 font-bold" x-text="rec.temperature!=null ? rec.temperature+'°C' : '?'"></div>
+                                  <div x-show="rec.humidity!=null" class="text-gray-400" x-text="rec.humidity+'%'"></div>
+                                  <div class="flex items-center gap-0.5 font-bold text-gray-800 justify-center flex-wrap">
+                                    <span class="heat-dot flex-shrink-0" :style="heatDotStyle(rec.feels_like)" style="width:8px;height:8px"></span>
+                                    <span x-text="rec.feels_like!=null ? rec.feels_like.toFixed(1)+'°C' : '-'"></span>
+                                    <span x-show="rec.heat_level && rec.heat_level!=='-'"
+                                          :class="'badge-'+rec.heat_level" x-text="rec.heat_level"></span>
+                                  </div>
+                                  <div class="text-gray-400" x-show="rec.measurer" x-text="rec.measurer"></div>
+                                  <template x-if="['관심','주의','경고','위험'].includes(rec.heat_level)">
+                                    <button @click="openHealthPanel(rec)"
+                                            class="mt-1 w-full text-xs font-bold rounded-lg px-2 py-1 cursor-pointer border-0"
+                                            style="background:#fff3cd;color:#856404;border:1px solid #ffc107">
+                                      🩺 건강관리 기록
+                                    </button>
+                                  </template>
+                                </div>
+                              </div>
+                            </template>
+                            <!-- 관리자 모드: 편집 -->
+                            <template x-if="hist.unlocked">
+                              <div class="space-y-1 text-left">
+                                <template x-if="rec.photo_id">
+                                  <div class="photo-wrap relative text-center mb-1">
+                                    <img :src="'/uploads/'+rec.photo_id"
+                                         @click="openLightbox('/uploads/'+rec.photo_id)"
+                                         class="rounded cursor-pointer object-cover mx-auto"
+                                         style="width:60px;height:60px;border:1px solid #e8e8ed">
+                                    <img :src="'/uploads/'+rec.photo_id" class="photo-hover-zoom">
+                                  </div>
+                                </template>
+                                <input type="text" x-model="rec.location" placeholder="장소"
+                                       @change="autoSaveDateRec(rec, g)"
+                                       class="date-edit-input">
+                                <input type="text" x-model="rec.measure_time" placeholder="HH:MM"
+                                       @change="autoSaveDateRec(rec, g)"
+                                       @blur="autoSaveDateRec(rec, g)"
+                                       class="date-edit-input">
+                                <input type="number" x-model.number="rec.temperature" step="0.1" placeholder="온도°C"
+                                       @input="recalcRow(rec)"
+                                       @change="autoSaveDateRec(rec, g)"
+                                       class="date-edit-input">
+                                <input type="number" x-model.number="rec.humidity" step="1" placeholder="습도%"
+                                       @input="recalcRow(rec)"
+                                       @change="autoSaveDateRec(rec, g)"
+                                       class="date-edit-input">
+                                <div class="font-bold text-gray-700 text-center"
+                                     x-text="rec.feels_like!=null ? rec.feels_like.toFixed(1)+'°C' : '-'"></div>
+                                <div class="text-center">
+                                  <span x-show="rec.heat_level && rec.heat_level!=='-'"
+                                        :class="'badge-'+rec.heat_level" x-text="rec.heat_level"></span>
+                                </div>
+                                <input type="text" x-model="rec.measurer" placeholder="측정자"
+                                       @change="autoSaveDateRec(rec, g)"
+                                       class="date-edit-input">
+                                <select x-model="rec.action"
+                                        @change="autoSaveDateRec(rec, g)"
+                                        class="date-edit-input" style="padding:2px 2px!important">
+                                  <option>N/A</option>
+                                  <option>추가휴식시간부여</option>
+                                  <option>보냉장구지급</option>
+                                  <option>작업시간대조정</option>
+                                  <option>작업중지</option>
+                                  <option>기타</option>
+                                </select>
+                                <template x-if="rec.action==='기타'">
+                                  <input type="text" x-model="rec.other_content" placeholder="기타 내용"
+                                         @change="autoSaveDateRec(rec, g)"
+                                         class="date-edit-input">
+                                </template>
+                                <button @click="autoDeleteDateRec(rec, g)"
+                                        class="w-full text-red-400 hover:text-red-600 text-xs border border-red-200 hover:border-red-400 rounded px-1 py-0.5 mt-1">✕ 삭제</button>
+                              </div>
+                            </template>
                           </div>
                         </template>
                       </div>
@@ -649,18 +930,37 @@
   </template>
 
   <!-- ══ 주별 섹션 ═════════════════════════════════════════════════════════ -->
-  <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday+'_'+wkInfo.location">
+  <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday+'_'+wkInfo.location+'_'+wkInfo.company">
     <div>
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
-          <template x-if="wkInfo.location">
+          <template x-if="wkInfo.location && !wkInfo.editingLocation">
             <span class="text-xs font-bold px-2 py-0.5 rounded-full"
                   style="background:#e8f0fe;color:#0062cc;border:1px solid #b8d0f7"
                   x-text="'📍 '+wkInfo.location"></span>
           </template>
+          <template x-if="wkInfo.editingLocation">
+            <div class="flex items-center gap-1">
+              <input type="text" x-model="wkInfo.editLocationInput"
+                     @keydown.enter="saveGroupLocation(wkInfo)"
+                     @keydown.escape="wkInfo.editingLocation=false"
+                     class="date-edit-input" style="max-width:160px;font-size:.8rem!important;padding:3px 8px!important">
+              <button @click="saveGroupLocation(wkInfo)" class="text-xs btn-primary py-1 px-2">저장</button>
+              <button @click="wkInfo.editingLocation=false" class="text-xs btn-secondary py-1 px-2">취소</button>
+            </div>
+          </template>
+          <template x-if="wkInfo.company">
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style="background:#fff3e8;color:#c05000;border:1px solid #ffd0a0"
+                  x-text="'🏢 '+wkInfo.company"></span>
+          </template>
+          <template x-if="hist.unlocked && !wkInfo.editingLocation">
+            <button @click="wkInfo.editLocationInput=wkInfo.location; wkInfo.editingLocation=true"
+                    class="text-xs text-blue-400 hover:text-blue-600" title="장소명 수정">✏️</button>
+          </template>
         </div>
-        <button @click="downloadExcel(wkInfo.monday, wkInfo.location)"
+        <button @click="downloadExcel(wkInfo.monday, wkInfo.location, wkInfo.company)"
                 class="btn-primary text-xs py-2 px-3"
                 :disabled="!wkInfo.records.some(r=>r.temperature!=null)">
           💾 엑셀 다운로드
@@ -672,20 +972,20 @@
         </div>
       </template>
       <div class="card overflow-x-auto" style="padding:0">
-        <table class="grid-table" style="table-layout:fixed;width:976px">
+        <table class="grid-table" style="table-layout:fixed;min-width:976px;width:100%">
           <colgroup>
-            <col style="width:30px">
-            <col style="width:80px">
-            <col style="width:56px">
-            <col style="width:72px">
-            <col style="width:68px">
-            <col style="width:65px">
-            <col style="width:90px">
-            <col style="width:60px">
-            <col style="width:170px">
-            <col style="width:110px">
-            <col style="width:80px">
-            <col style="width:95px">
+            <col style="width:3%">
+            <col style="width:8%">
+            <col style="width:6%">
+            <col style="width:7%">
+            <col style="width:7%">
+            <col style="width:7%">
+            <col style="width:9%">
+            <col style="width:6%">
+            <col style="width:17%">
+            <col style="width:12%">
+            <col style="width:8%">
+            <col style="width:10%">
           </colgroup>
           <thead>
             <tr>
@@ -705,7 +1005,7 @@
           </thead>
           <tbody>
             <template x-for="row in wkInfo.gridRows" :key="row.key">
-              <tr :class="{'day-sep': row.isFirstSlot, 'bg-white': row.temperature!=null||row.humidity!=null, 'bg-gray-100': row.temperature==null&&row.humidity==null}">
+              <tr :class="{'day-sep': row.isFirstSlot, 'bg-yellow-50': row._modified && hist.unlocked, 'bg-white': !row._modified && (row.temperature!=null||row.humidity!=null), 'bg-gray-100': !row._modified && row.temperature==null&&row.humidity==null}">
                 <td class="text-center">
                   <template x-if="row.id && hist.unlocked">
                     <button @click="deleteRow(row, wkInfo)"
@@ -717,10 +1017,26 @@
                 </td>
                 <td class="text-center font-bold"
                     x-text="row.isFirstSlot ? row.dateLabel : ''"></td>
-                <td class="text-center text-gray-500" x-text="row.slot"></td>
+                <td class="text-center" :class="row.photo_id ? 'cursor-pointer' : ''"
+                    @mouseenter="row.photo_id && (photoPreview={show:true,url:'/uploads/'+row.photo_id})"
+                    @mouseleave="photoPreview.show=false"
+                    @click="row.photo_id && openLightbox('/uploads/'+row.photo_id)">
+                  <span :class="row.photo_id ? 'text-blue-600 font-bold' : 'text-gray-500'" x-text="row.slot"></span>
+                  <template x-if="row.photo_id">
+                    <div class="relative inline-block ml-0.5">
+                      <span style="font-size:.65rem">📷</span>
+                      <template x-if="hist.unlocked">
+                        <button @click.stop="deletePhotoInRow(row)"
+                                class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 text-white rounded-full flex items-center justify-center"
+                                style="font-size:.45rem;line-height:1" title="사진 삭제">✕</button>
+                      </template>
+                    </div>
+                  </template>
+                </td>
                 <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
                            :disabled="!hist.unlocked"
-                           @change="autoSaveRow(row, wkInfo.monday)"></td>
+                           @change="onTimeChange(row, wkInfo)"
+                           @blur="onTimeChange(row, wkInfo)"></td>
                 <td><input type="number" x-model.number="row.temperature" step="0.1"
                            placeholder="-" :disabled="!hist.unlocked"
                            @input="recalcRow(row)"
@@ -760,29 +1076,6 @@
           </tbody>
         </table>
       </div>
-      <template x-if="wkInfo.photos.length > 0">
-        <details class="mt-2 card">
-          <summary class="cursor-pointer text-sm font-bold text-gray-700">
-            📷 사진 미리보기 (<span x-text="wkInfo.photos.length"></span>장)
-          </summary>
-          <div class="flex flex-wrap gap-3 mt-3">
-            <template x-for="ph in wkInfo.photos" :key="ph.photo_id">
-              <div class="relative text-center">
-                <img :src="'/uploads/'+ph.photo_id" class="photo-thumb">
-                <template x-if="hist.unlocked">
-                  <button @click="deletePhoto(ph, wkInfo)"
-                          class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center leading-none"
-                          title="사진 삭제">✕</button>
-                </template>
-                <div class="text-xs text-gray-400 mt-1" x-text="ph.dateLabel+' '+ph.slot"></div>
-                <template x-if="ph.temperature">
-                  <div class="text-xs font-bold" x-text="ph.temperature+'°C / '+ph.humidity+'%'"></div>
-                </template>
-              </div>
-            </template>
-          </div>
-        </details>
-      </template>
     </div>
   </template>
 
@@ -815,21 +1108,39 @@
 const DAYS_KO = ["월","화","수","목","금","토","일"];
 const SLOTS   = ["오전1","오전2","오후1","오후2"];
 
+// ── 한글 초성 검색 ─────────────────────────────────────────────────────────
+function koMatch(text, q) {
+  if (!q) return true;
+  const t = (text || '').toLowerCase();
+  const s = q.toLowerCase();
+  if (t.includes(s)) return true;
+  const CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  const cho = str => [...str].map(c => {
+    const cd = c.codePointAt(0);
+    return (cd >= 0xAC00 && cd <= 0xD7A3) ? CHO[Math.floor((cd - 0xAC00) / 588)] : c.toLowerCase();
+  }).join('');
+  return cho(t).includes(s);
+}
+
 let _camFile = null;
 
 function app() {
   return {
     meta: {
-      siteCode:'', siteName:'', company:'', location:'',
+      siteCode: localStorage.getItem('siteCode')||'',
+      siteName: localStorage.getItem('siteName')||'',
+      company:'', location:'',
       measurer: localStorage.getItem('measurer')||'',
-      year: 2026,
-      month: (() => { const m = new Date().getMonth()+1; return m<5?5:m>9?9:m; })(),
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
       weekLabel:'',
     },
     weeks: [],
     currentMonday: '',
     ac: { siteCodes:[], companies:[], locations:[] },
     activeTab: 'camera',
+    siteLocked: false,
+    _siteCodeTimer: null,
     isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
 
     // 카메라 탭 상태
@@ -850,21 +1161,92 @@ function app() {
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
     apiOk: false,
+    aiKeyModal: { show:false, key:'', pin:'', needPin:false, saving:false, error:'', success:false },
     toast: { show:false, msg:'' },
+    lightbox: { show:false, url:'' },
+    trash: { show:false, records:[], loading:false },
+    photoPreview: { show:false, url:'' },
 
     // ── 초기화 ──────────────────────────────────────────────────────────
     async init() {
-      this.buildWeeks();
+      // URL 경로(/현장코드) 또는 ?site= 파라미터에서 현장코드 읽기
+      const _pathSite = decodeURIComponent(window.location.pathname.replace(/^\/+|\/+$/g, ''));
+      const _paramSite = new URLSearchParams(window.location.search).get('site') || '';
+      const urlSite = (_pathSite || _paramSite).toUpperCase();
+      if (urlSite && urlSite !== this.meta.siteCode) {
+        this.meta.siteCode = urlSite;
+        this.meta.siteName = '';
+        localStorage.setItem('siteCode', urlSite);
+        localStorage.removeItem('siteName');
+      }
+
+      this.goCurrentWeek();
       await this.loadAutoComplete();
+
+      // 현장코드가 있는데 현장명이 없으면 DB에서 자동 조회
+      if (this.meta.siteCode && !this.meta.siteName) {
+        const found = this.ac.siteCodes.find(s => s.code.toUpperCase() === this.meta.siteCode);
+        if (found) {
+          this.meta.siteName = found.name;
+          localStorage.setItem('siteName', found.name);
+        }
+      }
+
+      // URL에 현장코드가 있고 현장명이 확인됐으면 입력란 고정
+      if (urlSite && this.meta.siteName) this.siteLocked = true;
+
       await this.checkApi();
-      await this.checkPin();
+      if (this.meta.siteCode) await this.checkPin();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') this.goCurrentWeek();
+      });
     },
 
     saveMeasurer() { localStorage.setItem('measurer', this.meta.measurer); },
+    saveSiteCode() { localStorage.setItem('siteCode', this.meta.siteCode); },
+    saveSiteName() { localStorage.setItem('siteName', this.meta.siteName); },
+    onSiteCodeInput() {
+      this.meta.siteCode = this.meta.siteCode.toUpperCase();
+      this.saveSiteCode();
+      clearTimeout(this._siteCodeTimer);
+      this._siteCodeTimer = setTimeout(() => this.onSiteCodeChange(), 400);
+    },
+    defaultPin() { return this.meta.siteCode.replace(/\D/g, '').padStart(4, '0'); },
 
     async checkApi() {
-      try { const r = await fetch('/api/autocomplete'); this.apiOk = r.ok; }
-      catch { this.apiOk = false; }
+      try {
+        const q = this.meta.siteCode ? `?site_code=${encodeURIComponent(this.meta.siteCode)}` : '';
+        const r = await fetch('/api/ai/status' + q);
+        if (r.ok) { const d = await r.json(); this.apiOk = d.has_key; }
+        else { this.apiOk = false; }
+      } catch { this.apiOk = false; }
+    },
+
+    async openAiKeyModal() {
+      if (!this.meta.siteCode) { this.showToast('현장코드를 먼저 입력해 주세요'); return; }
+      const hasPinR = await fetch(`/api/pin/status?site_code=${encodeURIComponent(this.meta.siteCode)}`);
+      const hasPinD = hasPinR.ok ? await hasPinR.json() : { has_pin: false };
+      this.aiKeyModal = { show:true, key:'', pin:'', needPin:hasPinD.has_pin,
+                          saving:false, error:'', success:false };
+    },
+
+    async saveAiKey() {
+      const m = this.aiKeyModal;
+      if (!m.key || !m.key.startsWith('AIza') || !this.meta.siteCode) return;
+      m.saving = true; m.error = ''; m.success = false;
+      try {
+        const r = await fetch('/api/ai/key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ site_code: this.meta.siteCode, api_key: m.key, pin: m.pin }),
+        });
+        const d = await r.json();
+        if (!r.ok) { m.error = d.detail || '저장 실패'; return; }
+        m.success = true;
+        await this.checkApi();
+        setTimeout(() => { m.show = false; }, 1500);
+      } catch { m.error = '네트워크 오류가 발생했습니다'; }
+      finally { m.saving = false; }
     },
 
     async loadAutoComplete() {
@@ -884,15 +1266,40 @@ function app() {
 
     async onSiteCodeChange() {
       this.meta.siteCode = this.meta.siteCode.toUpperCase();
-      const found = this.ac.siteCodes.find(s => s.code.toUpperCase() === this.meta.siteCode);
-      if (found) {
-        this.meta.siteName = found.name;
-        if (found.company && !this.meta.company) this.meta.company = found.company;
-      }
+      localStorage.setItem('siteCode', this.meta.siteCode);
       await this.loadAutoComplete();
+      if (!this.meta.siteName) {
+        const found = this.ac.siteCodes.find(s => s.code.toUpperCase() === this.meta.siteCode);
+        if (found) {
+          this.meta.siteName = found.name;
+          localStorage.setItem('siteName', found.name);
+          if (found.company && !this.meta.company) this.meta.company = found.company;
+        }
+      }
       this.hist.company = ''; this.hist.location = '';
       this.hist.unlocked = false; this.hist.pinInput = '';
       await Promise.all([this.refreshHistFilters(), this.checkPin()]);
+    },
+
+    async onMetaCompanyChange() {
+      if (!this.meta.company) {
+        await this.loadAutoComplete();
+        return;
+      }
+      try {
+        const q = new URLSearchParams({ site_code: this.meta.siteCode, company: this.meta.company });
+        const r = await fetch('/api/locations?' + q);
+        if (r.ok) {
+          const d = await r.json();
+          this.ac.locations = d.locations || [];
+          if (this.meta.location && !this.ac.locations.includes(this.meta.location)) {
+            this.meta.location = '';
+          }
+          if (this.ac.locations.length === 1) {
+            this.meta.location = this.ac.locations[0];
+          }
+        }
+      } catch {}
     },
 
     // ── 주차 계산 ──────────────────────────────────────────────────────
@@ -975,7 +1382,13 @@ function app() {
       if (d.ok) {
         this.hist.unlocked = true;
         this.hist.pinInput = '';
-        this.showToast('🔓 관리자 모드 활성화');
+        await this.loadTrash();
+        if (!this.hist.pinHasValue) {
+          this.hist.pinChanging = true;
+          this.showToast('🔓 기본 PIN으로 접속됨 — 전용 PIN을 등록해 주세요');
+        } else {
+          this.showToast('🔓 관리자 모드 활성화');
+        }
       } else {
         this.showToast('❌ PIN이 올바르지 않습니다');
         this.hist.pinInput = '';
@@ -1010,11 +1423,25 @@ function app() {
       this.hist.unlocked = false;
       this.hist.pinInput = '';
       this.hist.pinChanging = false;
+      this.records.forEach(r => { delete r._modified; });
+      this.hist.dateGroups.forEach(g =>
+        Object.values(g.slotMap).flat().forEach(r => { delete r._modified; })
+      );
+    },
+
+    goCurrentWeek() {
+      const todayMonth = new Date().getMonth() + 1;
+      this.meta.month = Math.min(9, Math.max(5, todayMonth));
+      this.meta.weekLabel = '';
+      this.buildWeeks();
     },
 
     onHistTabActivate() {
       if (this.hist.mode === 'date') {
         this.hist.date = todayStr();
+        this.loadRecords();
+      } else {
+        this.goCurrentWeek();
         this.loadRecords();
       }
     },
@@ -1028,8 +1455,10 @@ function app() {
       this.kpi = { maxTemp:'-', maxHumid:'-', maxFeels:'-' };
       if (mode === 'date') {
         this.hist.date = todayStr();
-        this.loadRecords();
+      } else {
+        this.goCurrentWeek();
       }
+      this.loadRecords();
     },
 
     buildDateGroups() {
@@ -1040,6 +1469,10 @@ function app() {
           key,
           location: r.location || '미입력',
           company:  r.company  || '',
+          editingLocation: false,
+          editLocationInput: r.location || '미입력',
+          editingCompany: false,
+          editCompanyInput: r.company || '',
           slotMap:  { '오전1':[], '오전2':[], '오후1':[], '오후2':[] },
         });
         const g = map.get(key);
@@ -1051,23 +1484,26 @@ function app() {
     },
 
     buildWeekGroups() {
-      // Split by (week_monday, location) to avoid date+slot collisions across locations
+      // Split by (week_monday, location, company) to keep each company's data separate
       const pairMap = new Map();
       this.records.forEach(r => {
         if (!r.week_monday) return;
-        const key = r.week_monday + '|' + (r.location || '');
-        if (!pairMap.has(key)) pairMap.set(key, { monday: r.week_monday, location: r.location || '' });
+        const key = r.week_monday + '|' + (r.location || '') + '|' + (r.company || '');
+        if (!pairMap.has(key)) pairMap.set(key, { monday: r.week_monday, location: r.location || '', company: r.company || '' });
       });
       let pairs = [...pairMap.values()].sort((a, b) =>
         a.monday < b.monday ? -1 : a.monday > b.monday ? 1
-          : (a.location || '') < (b.location || '') ? -1 : 1
+          : (a.location || '') < (b.location || '') ? -1 : a.location > b.location ? 1
+          : (a.company || '') < (b.company || '') ? -1 : 1
       );
       if (pairs.length === 0 && this.currentMonday)
-        pairs = [{ monday: this.currentMonday, location: this.hist.location || '' }];
+        pairs = [{ monday: this.currentMonday, location: this.hist.location || '', company: this.hist.company || '' }];
 
-      this.weekGroups = pairs.map(({ monday, location }) => {
+      this.weekGroups = pairs.map(({ monday, location, company }) => {
         const mon = new Date(monday);
-        const wkRecs = this.records.filter(r => r.week_monday === monday && (r.location || '') === location);
+        const wkRecs = this.records.filter(r =>
+          r.week_monday === monday && (r.location || '') === location && (r.company || '') === company
+        );
         const photos = wkRecs.filter(r=>r.photo_id).map(r=>({
           photo_id: r.photo_id, slot: r.slot,
           measure_date: r.measure_date,
@@ -1087,7 +1523,7 @@ function app() {
           let dayFirstRow = true;
           SLOTS.forEach((slot) => {
             const recs = recMap[ds+'_'+slot] || [];
-            const base = { measure_date:ds, slot, week_monday:monday,
+            const base = { measure_date:ds, slot, week_monday:monday, location,
                            dateLabel:dateLabelOf(ds), dayIndex:di,
                            measure_time:'', temperature:null, humidity:null, feels_like:null,
                            heat_level:'', action:'N/A', other_content:'', notes:'',
@@ -1108,7 +1544,7 @@ function app() {
             }
           });
         }
-        return { monday, label: formatMondayLabel(monday), location, records: wkRecs, gridRows, photos };
+        return { monday, label: formatMondayLabel(monday), location, company, editingLocation: false, editLocationInput: location, records: wkRecs, gridRows, photos };
       });
     },
 
@@ -1165,7 +1601,7 @@ function app() {
       if (row.temperature == null && row.humidity == null) return;
       const payload = {
         site_code: this.meta.siteCode, site_name: this.meta.siteName,
-        company: this.meta.company,    location: this.meta.location,
+        company: this.meta.company,    location: row.location || this.meta.location,
         measurer: row.measurer || this.meta.measurer,
         measure_date: row.measure_date, slot: row.slot, week_monday: weekMonday,
         measure_time: row.measure_time, temperature: row.temperature,
@@ -1181,6 +1617,7 @@ function app() {
         if (!row.id && d.id) row.id = d.id;
         if (!this.records.find(r=>r.id===row.id)) this.records.push({...payload, id:row.id});
         else Object.assign(this.records.find(r=>r.id===row.id), payload);
+        row._modified = true;
         this.calcKpi();
       } catch { this.showToast('❌ 저장 실패'); }
     },
@@ -1221,6 +1658,125 @@ function app() {
       this.showToast('사진 삭제 완료');
     },
 
+    // ── 측정시각 변경 → 구분 자동 업데이트 ───────────────────────────
+    onTimeChange(row, wkInfo) {
+      row.measure_time = fmtTime(row.measure_time);
+      const newSlot = slotFromTime(row.measure_time);
+      if (newSlot) row.slot = newSlot;
+      this.autoSaveRow(row, wkInfo.monday);
+    },
+
+    // ── 날짜별 레코드 자동 저장 ───────────────────────────────────────
+    async autoSaveDateRec(rec, g) {
+      if (!rec.id) return;
+      rec.measure_time = fmtTime(rec.measure_time);
+      const newSlot = slotFromTime(rec.measure_time);
+      if (newSlot) rec.slot = newSlot;
+      this.recalcRow(rec);
+      const payload = {
+        site_code: rec.site_code || this.meta.siteCode,
+        site_name: rec.site_name || this.meta.siteName,
+        company:   rec.company   || this.meta.company,
+        location:  rec.location,
+        measurer:  rec.measurer  || this.meta.measurer,
+        measure_date: rec.measure_date, slot: rec.slot,
+        week_monday: rec.week_monday || '',
+        measure_time: rec.measure_time, temperature: rec.temperature,
+        humidity: rec.humidity, feels_like: rec.feels_like,
+        heat_level: rec.heat_level, action: rec.action || 'N/A',
+        other_content: rec.other_content || '', notes: rec.notes || '',
+        photo_id: rec.photo_id || '',
+      };
+      try {
+        await fetch(`/api/records/${rec.id}`, {
+          method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload),
+        });
+        const idx = this.records.findIndex(r => r.id === rec.id);
+        if (idx >= 0) Object.assign(this.records[idx], payload);
+        rec._modified = true;
+        this.buildDateGroups();
+      } catch { this.showToast('❌ 저장 실패'); }
+    },
+
+    // ── 건강관리 패널 열기 ────────────────────────────────────────────
+    openHealthPanel(rec) {
+      const sc = rec.site_code || this.meta.siteCode;
+      const p = new URLSearchParams({
+        mode: 'health',
+        company: rec.company || this.meta.company,
+        date: rec.measure_date,
+        slot: rec.slot,
+        heat_level: rec.heat_level || '',
+        feels_like: rec.feels_like != null ? rec.feels_like.toFixed(1) : '',
+      });
+      const base = sc ? '/workers/' + sc : '/workers';
+      window.open(base + '?' + p.toString(), '_blank');
+    },
+
+    // ── 날짜별 레코드 삭제 ────────────────────────────────────────────
+    async autoDeleteDateRec(rec, g) {
+      if (!rec.id) return;
+      if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+      await fetch(`/api/records/${rec.id}`, { method: 'DELETE' });
+      this.records = this.records.filter(r => r.id !== rec.id);
+      this.buildDateGroups();
+      this.showToast('삭제 완료');
+    },
+
+    // ── 날짜별 장소명 수정 ────────────────────────────────────────────
+    async saveDateGroupLocation(g) {
+      const newLoc = g.editLocationInput.trim();
+      if (!newLoc || newLoc === g.location) { g.editingLocation = false; return; }
+      const recsToUpdate = this.records.filter(r =>
+        (r.location || '미입력') === g.location && (r.company || '') === g.company
+      );
+      await Promise.all(recsToUpdate.map(r =>
+        fetch(`/api/records/${r.id}`, {
+          method: 'PUT', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({...r, location: newLoc}),
+        })
+      ));
+      recsToUpdate.forEach(r => { r.location = newLoc; });
+      g.editingLocation = false;
+      this.buildDateGroups();
+      this.showToast('✅ 장소명 수정 완료');
+    },
+
+    async saveDateGroupCompany(g) {
+      const newCo = g.editCompanyInput.trim();
+      if (newCo === g.company) { g.editingCompany = false; return; }
+      const recsToUpdate = this.records.filter(r =>
+        (r.location || '미입력') === g.location && (r.company || '') === g.company
+      );
+      await Promise.all(recsToUpdate.map(r =>
+        fetch(`/api/records/${r.id}`, {
+          method: 'PUT', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({...r, company: newCo}),
+        })
+      ));
+      recsToUpdate.forEach(r => { r.company = newCo; });
+      g.editingCompany = false;
+      this.buildDateGroups();
+      this.showToast('✅ 업체명 수정 완료');
+    },
+
+    // ── 주차별 장소명 수정 ────────────────────────────────────────────
+    async saveGroupLocation(wkInfo) {
+      const newLoc = wkInfo.editLocationInput.trim();
+      if (!newLoc || newLoc === wkInfo.location) { wkInfo.editingLocation = false; return; }
+      await Promise.all(wkInfo.records.map(r =>
+        fetch(`/api/records/${r.id}`, {
+          method: 'PUT', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({...r, location: newLoc}),
+        })
+      ));
+      wkInfo.records.forEach(r => { r.location = newLoc; });
+      wkInfo.gridRows.forEach(row => { row.location = newLoc; });
+      wkInfo.location = newLoc;
+      wkInfo.editingLocation = false;
+      this.showToast('✅ 장소명 수정 완료');
+    },
+
     // ── 카메라 탭 ─────────────────────────────────────────────────────
     async onCameraCapture(e) {
       const file = e.target.files[0];
@@ -1241,9 +1797,9 @@ function app() {
 
         const er = await fetch('/api/photos/extract', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ photo_id: ud.photo_id })
+          body: JSON.stringify({ photo_id: ud.photo_id, site_code: this.meta.siteCode })
         });
-        if (!er.ok) throw new Error('AI 추출 실패');
+        if (!er.ok) { const d=await er.json().catch(()=>({})); throw new Error(d.detail||'AI 추출 실패'); }
         const extracted = await er.json();
         if (extracted.temperature != null && extracted.humidity != null) {
           extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
@@ -1270,16 +1826,21 @@ function app() {
       if (s) r.slot = s;
     },
 
+    _isValidTemp(v)  { return v != null && v >= -10 && v <= 60; },
+    _isValidHumid(v) { return v != null && v >= 0  && v <= 100; },
+
     camIsReady() {
       const r = this.cam.result;
       if (!r) return false;
-      return r.temperature != null && r.humidity != null && r.time && r.slot && this.cam.date;
+      return this._isValidTemp(r.temperature) && this._isValidHumid(r.humidity)
+          && r.time && r.slot && this.cam.date;
     },
 
     upldItemIsReady(item) {
       const r = item.result;
       if (!r) return false;
-      return r.temperature != null && r.humidity != null && r.time && r.slot && item.date;
+      return this._isValidTemp(r.temperature) && this._isValidHumid(r.humidity)
+          && r.time && r.slot && item.date;
     },
 
     async saveCamDirect() {
@@ -1356,10 +1917,10 @@ function app() {
       try {
         const r = await fetch('/api/photos/extract', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ photo_id: bi.photo_id }),
+          body: JSON.stringify({ photo_id: bi.photo_id, site_code: this.meta.siteCode }),
           signal: ctrl.signal,
         });
-        if (!r.ok) throw new Error('추출 실패');
+        if (!r.ok) { const d=await r.json().catch(()=>({})); throw new Error(d.detail||'추출 실패'); }
         const ex = await r.json();
         if (ex.temperature != null && ex.humidity != null) {
           ex.feels_like = heatIndex(ex.temperature, ex.humidity);
@@ -1388,6 +1949,7 @@ function app() {
         r.feels_like = heatIndex(r.temperature, r.humidity);
         r.heat_level = heatLabel(r.feels_like);
       } else { r.feels_like = null; r.heat_level = ''; }
+      r.time = fmtTime(r.time);
       const s = slotFromTime(r.time);
       if (s) r.slot = s;
     },
@@ -1396,6 +1958,10 @@ function app() {
 
     async saveAllUpld() {
       if (!this.meta.siteCode || !this.meta.location) return;
+      if (this.upld.batch.some(i => i.uploading || i.extracting)) {
+        this.showToast('⏳ 아직 처리 중인 항목이 있습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
       this.upld.saving = true;
       let saved = 0;
       for (const item of this.upld.batch.filter(i => this.upldItemIsReady(i))) {
@@ -1418,9 +1984,9 @@ function app() {
       try {
         const er = await fetch('/api/photos/extract', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ photo_id: this.cam.photo_id })
+          body: JSON.stringify({ photo_id: this.cam.photo_id, site_code: this.meta.siteCode })
         });
-        if (!er.ok) throw new Error('AI 추출 실패');
+        if (!er.ok) { const d=await er.json().catch(()=>({})); throw new Error(d.detail||'AI 추출 실패'); }
         const extracted = await er.json();
         if (extracted.temperature != null && extracted.humidity != null) {
           extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
@@ -1548,9 +2114,9 @@ function app() {
         try {
           const r = await fetch('/api/photos/extract', {
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ photo_id: item.photo_id })
+            body: JSON.stringify({ photo_id: item.photo_id, site_code: this.meta.siteCode })
           });
-          if (!r.ok) throw new Error(await r.text());
+          if (!r.ok) { const d=await r.json().catch(()=>({})); throw new Error(d.detail||await r.text()); }
           item.result = await r.json();
           const detectedSlot = slotFromTime(item.result?.time);
           if (detectedSlot) item.slot = detectedSlot;
@@ -1596,14 +2162,75 @@ function app() {
       this.$nextTick(()=>this.drawCharts());
     },
 
-    downloadExcel(monday, location) {
-      const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: monday, location: location || '' });
+    downloadExcel(monday, location, company) {
+      const q = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: monday, location: location || '', company: company || '' });
       window.location.href = '/api/excel?'+q;
     },
 
     showToast(msg, ms=2800) {
       this.toast = { show:true, msg };
       setTimeout(() => { this.toast.show=false; }, ms);
+    },
+
+    slotBgClass(recs) {
+      const maxFl = Math.max(...recs.map(r => r.feels_like ?? -Infinity));
+      if (maxFl >= 38) return 'bg-red-50 border border-red-200';
+      if (maxFl >= 35) return 'bg-orange-50 border border-orange-200';
+      if (maxFl >= 33) return 'bg-yellow-50 border border-yellow-200';
+      if (maxFl >= 31) return 'bg-green-50 border border-green-200';
+      return 'bg-blue-50 border border-blue-100';
+    },
+
+    openLightbox(url) { this.lightbox = { show:true, url }; },
+    closeLightbox()   { this.lightbox.show = false; },
+
+    async deletePhotoInRow(row) {
+      if (!row.photo_id) return;
+      if (!confirm('이 사진을 삭제하시겠습니까?')) return;
+      await fetch(`/api/photos/${row.photo_id}`, { method:'DELETE' });
+      const rec = this.records.find(r => r.photo_id === row.photo_id);
+      if (rec) rec.photo_id = '';
+      row.photo_id = '';
+      this.showToast('사진 삭제 완료');
+    },
+
+    // ── 휴지통 ──────────────────────────────────────────────────────────────
+    async loadTrash() {
+      this.trash.loading = true;
+      try {
+        const q = new URLSearchParams({ site_code: this.meta.siteCode });
+        const r = await fetch('/api/trash?' + q);
+        if (r.ok) this.trash.records = (await r.json()).records || [];
+      } catch {}
+      this.trash.loading = false;
+    },
+    async restoreTrashRec(rec) {
+      await fetch(`/api/trash/${rec.id}/restore`, { method:'POST' });
+      await this.loadTrash();
+      await this.loadRecords();
+      this.showToast('✅ 복원됐습니다');
+    },
+    async purgeTrashRec(rec) {
+      if (!confirm(`[${rec.measure_date} ${rec.slot}] ${rec.location||''} 기록을 영구 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      await fetch(`/api/trash/${rec.id}`, { method:'DELETE' });
+      await this.loadTrash();
+      this.showToast('🗑 영구 삭제됐습니다');
+    },
+    async emptyTrash() {
+      if (!confirm(`휴지통 ${this.trash.records.length}건을 모두 영구 삭제할까요? 되돌릴 수 없습니다.`)) return;
+      const q = new URLSearchParams({ site_code: this.meta.siteCode });
+      await fetch('/api/trash?' + q, { method:'DELETE' });
+      this.trash.records = [];
+      this.trash.show = false;
+      this.showToast('🗑 휴지통을 비웠습니다');
+    },
+    trashRelativeTime(dt) {
+      if (!dt) return '';
+      const diff = Math.floor((Date.now() - new Date(dt)) / 1000);
+      if (diff < 60)  return '방금 전';
+      if (diff < 3600) return Math.floor(diff/60)+'분 전';
+      if (diff < 86400) return Math.floor(diff/3600)+'시간 전';
+      return Math.floor(diff/86400)+'일 전';
     },
   };
 }
@@ -1643,6 +2270,21 @@ function parseSlotFromFilename(name) {
   if (m) return {1:'오전1',2:'오전2',3:'오후1',4:'오후2'}[parseInt(m[1])] || '오전1';
   return '오전1';
 }
+function fmtTime(raw) {
+  if (!raw) return raw;
+  const s = raw.replace(/[^\d]/g, '');       // 숫자만 추출
+  if (s.length === 3) {                       // 900 → 09:00
+    return s[0].padStart(2,'0') + ':' + s.slice(1);
+  }
+  if (s.length === 4) {                       // 0900 → 09:00
+    return s.slice(0,2) + ':' + s.slice(2);
+  }
+  if (s.length <= 2) {                        // 9 → 09:00
+    return s.padStart(2,'0') + ':00';
+  }
+  return raw;                                 // 이미 HH:MM 형태면 그대로
+}
+
 function slotFromTime(timeStr) {
   if (!timeStr || timeStr === 'null') return null;
   const parts = timeStr.split(':');
@@ -1688,5 +2330,91 @@ function heatDotStyle(hi) {
   return 'background:white;border:1.5px solid #d1d5db';
 }
 </script>
+<!-- ── 슬롯 호버 사진 미리보기 ──────────────────────────────────────────── -->
+<div x-show="photoPreview.show" x-cloak
+     style="position:fixed;bottom:24px;right:24px;z-index:45;pointer-events:none;
+            background:white;padding:5px;border-radius:14px;
+            box-shadow:0 8px 32px rgba(0,0,0,.45);border:2px solid white">
+  <img :src="photoPreview.url"
+       style="width:210px;height:210px;object-fit:cover;border-radius:10px;display:block">
+</div>
+
+<!-- ── 사진 라이트박스 ────────────────────────────────────────────────────── -->
+<div x-show="lightbox.show" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center"
+     style="background:rgba(0,0,0,.85)"
+     @click="closeLightbox()"
+     @keydown.escape.window="closeLightbox()">
+  <img :src="lightbox.url"
+       style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6)"
+       @click.stop>
+  <button @click="closeLightbox()"
+          class="absolute top-4 right-4 flex items-center justify-center text-white font-bold"
+          style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:50%;font-size:1.1rem;border:none;cursor:pointer">✕</button>
+</div>
+
+<!-- ══ AI 키 등록 모달 ══════════════════════════════════════════════════════ -->
+<div x-show="aiKeyModal.show" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background:rgba(0,0,0,.55)"
+     @click.self="aiKeyModal.show=false">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4" @click.stop>
+
+    <!-- 헤더 -->
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="text-base font-extrabold text-gray-800">🤖 Gemini AI 키 등록</div>
+        <div class="text-xs text-gray-500 mt-0.5" x-text="meta.siteCode ? '현장코드: '+meta.siteCode : '현장코드를 먼저 입력하세요'"></div>
+      </div>
+      <button @click="aiKeyModal.show=false" class="text-gray-400 hover:text-gray-600 text-xl font-bold border-none bg-transparent cursor-pointer">✕</button>
+    </div>
+
+    <!-- 안내 -->
+    <div class="rounded-xl p-4 space-y-2" style="background:#f0f7ff;border:1px solid #bfdbfe">
+      <div class="text-xs font-extrabold text-blue-700 mb-1">📋 API 키 발급 방법</div>
+      <ol class="text-xs text-blue-800 space-y-1.5 list-decimal list-inside leading-relaxed">
+        <li><strong>Google AI Studio</strong> 접속
+          <a href="https://aistudio.google.com/apikey" target="_blank"
+             class="underline text-blue-600 ml-1">aistudio.google.com/apikey ↗</a>
+        </li>
+        <li>Google 계정으로 로그인</li>
+        <li><strong>"API 키 만들기"</strong> 버튼 클릭</li>
+        <li>생성된 키(<code class="bg-blue-100 px-1 rounded">AIza...</code>)를 복사</li>
+        <li>아래 입력란에 붙여넣기 후 저장</li>
+      </ol>
+      <div class="text-xs text-blue-600 mt-1">※ 무료 티어 사용 가능 · 키는 서버에만 암호화 저장됩니다</div>
+    </div>
+
+    <!-- 키 입력 -->
+    <div>
+      <label class="text-xs font-bold text-gray-600">API 키</label>
+      <input type="password" x-model="aiKeyModal.key" placeholder="AIza로 시작하는 키를 붙여넣으세요"
+             class="mt-1 w-full" autocomplete="off" @keydown.enter="saveAiKey()">
+      <div x-show="aiKeyModal.key && !aiKeyModal.key.startsWith('AIza')"
+           class="text-xs text-red-500 mt-1">AIza로 시작하는 키를 입력해 주세요</div>
+    </div>
+
+    <!-- PIN (현장 PIN이 있을 경우) -->
+    <div x-show="aiKeyModal.needPin">
+      <label class="text-xs font-bold text-gray-600">현장 PIN</label>
+      <input type="password" x-model="aiKeyModal.pin" placeholder="현장 PIN 4자리"
+             maxlength="8" class="mt-1 w-full" @keydown.enter="saveAiKey()">
+    </div>
+
+    <!-- 에러/성공 메시지 -->
+    <div x-show="aiKeyModal.error" class="text-xs text-red-500 font-bold" x-text="aiKeyModal.error"></div>
+    <div x-show="aiKeyModal.success" class="text-xs text-green-600 font-bold">✅ AI 키가 등록되었습니다!</div>
+
+    <!-- 버튼 -->
+    <div class="flex gap-2 pt-1">
+      <button @click="saveAiKey()"
+              :disabled="aiKeyModal.saving || !aiKeyModal.key || !aiKeyModal.key.startsWith('AIza') || !meta.siteCode"
+              class="btn-primary flex-1">
+        <span x-text="aiKeyModal.saving ? '저장 중...' : '💾 저장'"></span>
+      </button>
+      <button @click="aiKeyModal.show=false" class="btn-secondary">취소</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

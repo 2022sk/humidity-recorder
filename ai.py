@@ -1,16 +1,22 @@
 """Gemini 2.5 Flash – 온습도계 이미지에서 수치 추출"""
 
-import asyncio, json, re, io, math
+import asyncio, json, logging, re, io, math
 from PIL import Image, ImageOps
 
+logger = logging.getLogger("thermohygrometer.ai")
+
 PROMPT = (
-    "이것은 디지털 온습도계 사진입니다.\n"
+    "이것은 디지털 온습도계(thermo-hygrometer) 사진입니다.\n"
     "LCD 디스플레이에서 다음 3가지 값을 읽어주세요:\n"
     "1. temperature: 온도(°C), 소수점 포함 (예: 25.1)\n"
     "2. humidity: 습도(%) 정수 (예: 87)\n"
-    "3. time: 시각, AM/PM이 있으면 24시간제로 변환 (예: '07:36'). 없으면 null\n"
+    "3. time: 디스플레이 왼쪽에 표시된 시각(HH:MM 형식).\n"
+    "   - 시각은 보통 디스플레이의 왼쪽 또는 상단 왼쪽에 있는 숫자입니다.\n"
+    "   - 콜론(:)으로 구분된 두 숫자(시:분) 형태입니다.\n"
+    "   - AM/PM이 있으면 반드시 24시간제로 변환하세요 (예: PM 1:30 → '13:30').\n"
+    "   - 시각이 전혀 없으면 null.\n"
     "사진이 회전되어 있어도 올바르게 읽을 것.\n"
-    "JSON만 출력: {\"temperature\":25.1,\"humidity\":87,\"time\":\"07:36\"}"
+    "반드시 JSON만 출력: {\"temperature\":25.1,\"humidity\":87,\"time\":\"13:30\"}"
 )
 
 
@@ -37,6 +43,8 @@ async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
     img = img.convert("RGB")
 
     client = google_genai.Client(api_key=api_key)
+    _RETRIABLE = ("timeout", "timed out", "connection", "unavailable",
+                  "429", "500", "503", "rate limit", "quota")
     last_err = None
     for attempt in range(3):
         try:
@@ -45,9 +53,15 @@ async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
             )
             break
         except Exception as e:
-            last_err = e
-            if attempt < 2:
-                await asyncio.sleep(2 ** attempt)
+            err_lower = str(e).lower()
+            if any(k in err_lower for k in _RETRIABLE) and attempt < 2:
+                last_err = e
+                wait = min(2 ** attempt, 8)
+                logger.warning("Gemini 재시도 %d/3: %s (%.0fs 후)", attempt + 1, e, wait)
+                await asyncio.sleep(wait)
+            else:
+                logger.error("Gemini 영구 오류: %s", e)
+                raise  # 영구 오류(잘못된 API 키 등)는 즉시 실패
     else:
         raise last_err
 
@@ -59,6 +73,12 @@ async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
     d  = json.loads(m.group())
     T  = float(d["temperature"]) if d.get("temperature") is not None else None
     RH = float(d["humidity"])    if d.get("humidity")    is not None else None
+    if T is None or RH is None:
+        raise ValueError("온도 또는 습도를 인식하지 못했습니다. 사진을 다시 촬영해 주세요.")
+    if not (-10.0 <= T <= 60.0):
+        raise ValueError(f"인식된 온도({T}°C)가 측정 범위(-10~60°C)를 벗어났습니다. 사진을 다시 촬영해 주세요.")
+    if not (0.0 <= RH <= 100.0):
+        raise ValueError(f"인식된 습도({RH}%)가 측정 범위(0~100%)를 벗어났습니다. 사진을 다시 촬영해 주세요.")
     t  = d.get("time")
     if t == "null": t = None
 

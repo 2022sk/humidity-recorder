@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
 """체감온도 기록관리 대장 – FastAPI 서버"""
 
-import io, os, uuid, re
+import io, logging, os, uuid, re
 from datetime import date
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger("thermohygrometer")
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from dotenv import load_dotenv
 
 from db import Database
+from workers_db import WorkersDatabase
 from ai import extract_from_image
 from excel import build_excel, week_label_ko, get_week_n
 
@@ -26,32 +33,55 @@ UPLOAD_DIR = DATA_DIR / "uploads"
 STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+_cors_env = os.environ.get("ALLOWED_ORIGINS", "")
+_origins   = [o.strip() for o in _cors_env.split(",") if o.strip()] or ["*"]
+
 app = FastAPI(title="체감온도 기록관리 대장")
-app.add_middleware(CORSMiddleware, allow_origins=["*"],
-                   allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware,
+                   allow_origins=_origins,
+                   allow_methods=["GET","POST","PUT","DELETE"],
+                   allow_headers=["Content-Type","Authorization"])
 
-db = Database(str(DATA_DIR / "data.db"))
+db  = Database(str(DATA_DIR / "data.db"))
+wdb = WorkersDatabase(str(DATA_DIR / "data.db"))
 
+
+_DATE_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$")
+_SLOTS   = {"오전1", "오전2", "오후1", "오후2"}
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 class RecordIn(BaseModel):
-    site_code:     str = ""
-    site_name:     str = ""
-    company:       str = ""
-    location:      str = ""
-    measurer:      str = ""
-    measure_date:  str          # YYYY-MM-DD
-    slot:          str          # 오전1/오전2/오후1/오후2
-    week_monday:   str = ""     # YYYY-MM-DD
+    site_code:     str = Field("", max_length=30)
+    site_name:     str = Field("", max_length=100)
+    company:       str = Field("", max_length=100)
+    location:      str = Field("", max_length=100)
+    measurer:      str = Field("", max_length=50)
+    measure_date:  str
+    slot:          str
+    week_monday:   str = ""
     measure_time:  str = ""
-    temperature:   Optional[float] = None
-    humidity:      Optional[float] = None
-    feels_like:    Optional[float] = None
+    temperature:   Optional[float] = Field(None, ge=-50, le=60)
+    humidity:      Optional[float] = Field(None, ge=0, le=100)
+    feels_like:    Optional[float] = Field(None, ge=-50, le=80)
     heat_level:    str = ""
     action:        str = "N/A"
     other_content: str = ""
     notes:         str = ""
     photo_id:      str = ""
+
+    @field_validator("measure_date", "week_monday", mode="before")
+    @classmethod
+    def _chk_date(cls, v: str) -> str:
+        if v and not _DATE_RE.match(v):
+            raise ValueError(f"날짜 형식이 올바르지 않습니다 (YYYY-MM-DD): {v}")
+        return v
+
+    @field_validator("slot", mode="before")
+    @classmethod
+    def _chk_slot(cls, v: str) -> str:
+        if v and v not in _SLOTS:
+            raise ValueError(f"슬롯은 {_SLOTS} 중 하나여야 합니다")
+        return v
 
 
 # ── 사진 업로드 ───────────────────────────────────────────────────────────────
@@ -63,39 +93,83 @@ async def upload_photo(file: UploadFile = File(...)):
     photo_id = str(uuid.uuid4())
     save_path = UPLOAD_DIR / f"{photo_id}.jpg"
 
-    # EXIF 회전 보정 + 리사이즈
+    # EXIF 회전 보정 + 리사이즈 (최대 1200px, 초고해상도는 더 강하게 압축)
     img = Image.open(io.BytesIO(content))
     img = ImageOps.exif_transpose(img)
     w, h = img.size
-    if max(w, h) > 800:
-        s = 800 / max(w, h)
+    orig_max = max(w, h)
+    if orig_max > 1200:
+        s = 1200 / orig_max
         img = img.resize((int(w*s), int(h*s)), Image.LANCZOS)
+    quality = 60 if orig_max > 3000 else 72
     buf = io.BytesIO()
-    img.convert("RGB").save(buf, format="JPEG", quality=75)
+    img.convert("RGB").save(buf, format="JPEG", quality=quality)
     save_path.write_bytes(buf.getvalue())
 
     db.save_photo(photo_id, file.filename or "photo.jpg", str(save_path))
     return {"photo_id": photo_id, "filename": file.filename}
 
 
+# ── AI 키 관리 ────────────────────────────────────────────────────────────────
+class AiKeySetIn(BaseModel):
+    site_code: str = Field(..., min_length=1, max_length=30)
+    api_key:   str = Field(..., min_length=10)
+    pin:       str = ""
+
+@app.get("/api/ai/status")
+def ai_status(site_code: str = ""):
+    site_has = db.has_api_key(site_code) if site_code else False
+    env_has  = bool(os.environ.get("GEMINI_API_KEY", ""))
+    source   = "site" if site_has else ("env" if env_has else "none")
+    return {"has_key": site_has or env_has, "source": source}
+
+@app.post("/api/ai/key")
+def set_ai_key(body: AiKeySetIn):
+    # Gemini API 키 기본 형식 검증
+    if not body.api_key.startswith("AIza"):
+        raise HTTPException(400, "올바른 Gemini API 키가 아닙니다 (AIza로 시작해야 합니다)")
+    # PIN 검증 (현장 PIN이 설정된 경우)
+    if db.has_pin(body.site_code) and not db.verify_pin(body.site_code, body.pin):
+        raise HTTPException(403, "PIN이 올바르지 않습니다")
+    db.set_api_key(body.site_code, body.api_key.strip())
+    logger.info("AI 키 등록: site_code=%s", body.site_code)
+    return {"ok": True}
+
+@app.delete("/api/ai/key")
+def delete_ai_key(site_code: str, pin: str = ""):
+    if db.has_pin(site_code) and not db.verify_pin(site_code, pin):
+        raise HTTPException(403, "PIN이 올바르지 않습니다")
+    db.delete_api_key(site_code)
+    return {"ok": True}
+
+
 # ── AI 추출 ───────────────────────────────────────────────────────────────────
 @app.post("/api/photos/extract")
 async def extract_photo(body: dict):
-    photo_id = body.get("photo_id","")
+    photo_id  = body.get("photo_id", "")
+    site_code = body.get("site_code", "")
     if not photo_id:
         raise HTTPException(400, "photo_id required")
 
-    api_key = os.environ.get("GEMINI_API_KEY","")
+    # 현장별 키 → 환경변수 순으로 폴백
+    api_key = (db.get_api_key(site_code) if site_code else None) \
+              or os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
-        raise HTTPException(500, "GEMINI_API_KEY 미설정")
+        raise HTTPException(500, "AI 키가 등록되지 않았습니다. 상단 AI 버튼을 눌러 키를 등록해 주세요.")
 
     photo = db.get_photo(photo_id)
     if not photo or not Path(photo["filepath"]).exists():
         raise HTTPException(404, "사진을 찾을 수 없습니다")
 
     image_bytes = Path(photo["filepath"]).read_bytes()
-    result = await extract_from_image(image_bytes, api_key)
-    return result
+    try:
+        result = await extract_from_image(image_bytes, api_key)
+        logger.info("AI 추출 성공: photo_id=%s temp=%s humid=%s", photo_id,
+                    result.get("temperature"), result.get("humidity"))
+        return result
+    except Exception as e:
+        logger.warning("AI 추출 실패: photo_id=%s error=%s", photo_id, e)
+        raise HTTPException(422, str(e))
 
 
 # ── 기록 CRUD ─────────────────────────────────────────────────────────────────
@@ -128,16 +202,42 @@ def update_record(rec_id: int, rec: RecordIn):
 
 @app.delete("/api/records/{rec_id}")
 def delete_record(rec_id: int):
-    photo_id = db.get_record_photo_id(rec_id)
-    db.delete_record(rec_id)
+    db.delete_record(rec_id)   # 소프트 삭제 — 사진은 유지
+    return {"ok": True}
+
+
+# ── 휴지통 ──────────────────────────────────────────────────────────────────
+@app.get("/api/trash")
+def get_trash(site_code: str = ""):
+    return {"records": db.get_trash(site_code=site_code)}
+
+
+@app.post("/api/trash/{rec_id}/restore")
+def restore_trash(rec_id: int):
+    db.restore_record(rec_id)
+    return {"ok": True}
+
+
+@app.delete("/api/trash/{rec_id}")
+def purge_trash_record(rec_id: int):
+    photo_id = db.purge_record(rec_id)          # records만 삭제
     if photo_id:
-        photo = db.get_photo(photo_id)
+        photo = db.get_photo(photo_id)           # 파일 경로 조회 (photos는 아직 존재)
         if photo:
-            fp = Path(photo["filepath"])
-            if fp.exists():
-                fp.unlink(missing_ok=True)
-        db.delete_photo(photo_id)
-    return {"ok": True, "deleted_photo_id": photo_id}
+            Path(photo["filepath"]).unlink(missing_ok=True)
+        db.delete_photo(photo_id)                # 파일 삭제 후 photos 삭제
+    return {"ok": True}
+
+
+@app.delete("/api/trash")
+def empty_trash(site_code: str = ""):
+    photo_ids = db.purge_all_trash(site_code=site_code)  # records만 삭제
+    for pid in photo_ids:
+        photo = db.get_photo(pid)                         # 파일 경로 조회
+        if photo:
+            Path(photo["filepath"]).unlink(missing_ok=True)
+        db.delete_photo(pid)                              # 파일 삭제 후 photos 삭제
+    return {"ok": True, "purged": len(photo_ids)}
 
 
 @app.delete("/api/photos/{photo_id}")
@@ -196,16 +296,16 @@ def get_available_weeks(site_code: str = ""):
 
 # ── 엑셀 다운로드 ──────────────────────────────────────────────────────────────
 @app.get("/api/excel")
-def download_excel(site_code: str = "", week_monday: str = "", location: str = ""):
-    records = db.get_records(site_code=site_code, week_monday=week_monday, location=location)
+def download_excel(site_code: str = "", week_monday: str = "", location: str = "", company: str = ""):
+    records = db.get_records(site_code=site_code, week_monday=week_monday, location=location, company=company)
     if not records:
         raise HTTPException(404, "해당 기간의 기록이 없습니다")
 
     rec0 = records[0]
     meta = {
-        "현장명": rec0.get("site_name",""),
-        "업체명": rec0.get("company",""),
-        "위치":   location or rec0.get("location",""),
+        "현장명":   rec0.get("site_name",""),
+        "업체명":   company or rec0.get("company",""),
+        "위치":     location or rec0.get("location",""),
         "현장코드": rec0.get("site_code",""),
     }
 
@@ -225,10 +325,12 @@ def download_excel(site_code: str = "", week_monday: str = "", location: str = "
     excel_bytes = build_excel(records, meta, monday_date)
 
     wk_n = get_week_n(monday_date)
-    loc  = rec0.get("location","위치미정")
+    loc  = location or rec0.get("location","위치미정")
+    corp = company or rec0.get("company","")
     code = rec0.get("site_code","")
     prefix = f"({code})" if code else ""
-    fname = f"{prefix}체감온도기록관리대장_{loc}_{monday_date.year}년{monday_date.month}월{week_label_ko(wk_n)}.xlsx"
+    corp_part = f"_{corp}" if corp else ""
+    fname = f"{prefix}체감온도기록관리대장_{loc}{corp_part}_{monday_date.year}년{monday_date.month}월{week_label_ko(wk_n)}.xlsx"
 
     return StreamingResponse(
         io.BytesIO(excel_bytes),
@@ -249,10 +351,262 @@ def serve_photo(photo_id: str):
     raise HTTPException(404, "사진 없음")
 
 
+# ══ 취약근로자 관리 API ═══════════════════════════════════════════════════════
+
+# ── Pydantic models ───────────────────────────────────────────────────────────
+class WorkerIn(BaseModel):
+    site_code: str
+    worker_code: str = ""
+    education_date: str = ""
+    name: str
+    name_korean: str = ""
+    company: str
+    job_type: str = ""
+    nationality: str = ""
+    birth_date: str = ""
+    birth_year: Optional[int] = None
+    phone: str = ""
+    residence_status: str = ""
+    residence_expiry: str = ""
+    gender: str = ""
+    last_exam_date: str = ""
+    vulnerability_types: list = []
+    diseases: str = ""
+    work_restrictions: str = ""
+    notes: str = ""
+
+class ExamIn(BaseModel):
+    worker_id: int
+    site_code: str
+    exam_type: str
+    exam_date: str
+    key_values: dict = {}
+    photo_id: str = ""
+    notes: str = ""
+
+class AttendanceIn(BaseModel):
+    site_code: str
+    company: str
+    work_date: str
+    worker_ids: list
+    work_location: str = ""
+
+class HealthRecordIn(BaseModel):
+    site_code: str
+    company: str
+    record_date: str
+    slot: str
+    heat_level: str = ""
+    feels_like: Optional[float] = None
+    worker_id: int
+    body_temp: Optional[float] = None
+    measure_time: str = ""
+    health_status: str = "양호"
+    notes: str = ""
+
+class HealthPhotoIn(BaseModel):
+    site_code: str
+    company: str
+    record_date: str
+    slot: str
+    photo_type: str
+    photo_id: str
+
+class CompanyPinSetIn(BaseModel):
+    site_code: str
+    company: str
+    pin: str
+    admin_pin: str = ""
+
+class CompanyPinVerifyIn(BaseModel):
+    site_code: str
+    company: str
+    pin: str
+
+# ── /workers 페이지 ───────────────────────────────────────────────────────────
+@app.get("/workers")
+def serve_workers():
+    resp = FileResponse(str(STATIC_DIR / "workers.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+@app.get("/workers/{site_code}")
+def serve_workers_site(site_code: str):
+    resp = FileResponse(str(STATIC_DIR / "workers.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
+
+# ── 근로자 관리 ───────────────────────────────────────────────────────────────
+@app.get("/api/vw/workers")
+def get_workers(site_code: str, company: str = ""):
+    return {"workers": wdb.get_workers(site_code, company)}
+
+@app.post("/api/vw/workers")
+def create_worker(body: WorkerIn):
+    wid = wdb.insert_worker(body.model_dump())
+    return {"id": wid}
+
+class WorkerBulkIn(BaseModel):
+    site_code: str
+    workers: list
+
+@app.post("/api/vw/workers/bulk")
+def bulk_create_workers(body: WorkerBulkIn):
+    success, errors = 0, []
+    for w in body.workers:
+        try:
+            w["site_code"] = body.site_code
+            if not w.get("name"):
+                w["name"] = w.get("name_korean", "미입력")
+            if not w.get("company"):
+                w["company"] = "미지정"
+            wdb.insert_worker(w)
+            success += 1
+        except Exception as e:
+            errors.append(str(e))
+    return {"success": success, "errors": errors}
+
+@app.put("/api/vw/workers/{worker_id}")
+def update_worker(worker_id: int, body: WorkerIn):
+    wdb.update_worker(worker_id, body.model_dump())
+    return {"ok": True}
+
+@app.delete("/api/vw/workers/{worker_id}")
+def delete_worker(worker_id: int):
+    wdb.delete_worker(worker_id)
+    return {"ok": True}
+
+# ── 건강진단 ──────────────────────────────────────────────────────────────────
+@app.get("/api/vw/workers/{worker_id}/exams")
+def get_exams(worker_id: int):
+    return {"exams": wdb.get_exams(worker_id)}
+
+@app.post("/api/vw/exams")
+def create_exam(body: ExamIn):
+    eid = wdb.insert_exam(body.model_dump())
+    return {"id": eid}
+
+@app.delete("/api/vw/exams/{exam_id}")
+def delete_exam(exam_id: int):
+    photo_id = wdb.delete_exam(exam_id)
+    if photo_id:
+        photo = db.get_photo(photo_id)
+        if photo:
+            fp = Path(photo["filepath"])
+            if fp.exists():
+                fp.unlink(missing_ok=True)
+    return {"ok": True}
+
+# ── 현장 위치 ─────────────────────────────────────────────────────────────────
+@app.get("/api/vw/locations")
+def get_vw_locations(site_code: str):
+    return {"locations": wdb.get_site_locations(site_code)}
+
+@app.post("/api/vw/locations")
+def add_vw_location(body: dict):
+    lid = wdb.add_site_location(body["site_code"], body["name"])
+    return {"id": lid}
+
+@app.delete("/api/vw/locations/{loc_id}")
+def del_vw_location(loc_id: int):
+    wdb.delete_site_location(loc_id)
+    return {"ok": True}
+
+# ── 업체 PIN ──────────────────────────────────────────────────────────────────
+@app.get("/api/vw/company-pins")
+def get_company_pins(site_code: str):
+    return {"companies": wdb.get_companies_with_pins(site_code)}
+
+@app.post("/api/vw/company-pins/verify")
+def verify_company_pin(body: CompanyPinVerifyIn):
+    return {"ok": wdb.verify_company_pin(body.site_code, body.company, body.pin)}
+
+@app.post("/api/vw/company-pins/set")
+def set_company_pin(body: CompanyPinSetIn):
+    if not db.verify_pin(body.site_code, body.admin_pin):
+        raise HTTPException(403, "관리자 PIN이 올바르지 않습니다")
+    if len(body.pin.strip()) < 4:
+        raise HTTPException(400, "PIN은 4자리 이상이어야 합니다")
+    wdb.set_company_pin(body.site_code, body.company, body.pin)
+    return {"ok": True}
+
+@app.delete("/api/vw/company-pins")
+def del_company_pin(site_code: str, company: str):
+    wdb.delete_company_pin(site_code, company)
+    return {"ok": True}
+
+# ── 출근 체크 ─────────────────────────────────────────────────────────────────
+@app.get("/api/vw/attendance")
+def get_attendance(site_code: str, company: str, work_date: str):
+    return {"attendance": wdb.get_attendance(site_code, company, work_date)}
+
+@app.post("/api/vw/attendance")
+def set_attendance(body: AttendanceIn):
+    wdb.set_attendance(body.site_code, body.company, body.work_date,
+                       body.worker_ids, body.work_location)
+    return {"ok": True}
+
+@app.get("/api/vw/attendance/vulnerable")
+def get_vulnerable(site_code: str, company: str, work_date: str):
+    count = wdb.get_vulnerable_count(site_code, company, work_date)
+    att   = wdb.get_attendance(site_code, company, work_date)
+    vuln  = [a for a in att if a.get('is_vulnerable')]
+    return {"count": count, "workers": vuln}
+
+# ── 건강기록 ──────────────────────────────────────────────────────────────────
+@app.get("/api/vw/health-records")
+def get_health_records(site_code: str, company: str, record_date: str, slot: str = ""):
+    return {"records": wdb.get_health_records(site_code, company, record_date, slot)}
+
+@app.post("/api/vw/health-records")
+def upsert_health_record(body: HealthRecordIn):
+    rid = wdb.upsert_health_record(body.model_dump())
+    return {"id": rid}
+
+@app.get("/api/vw/health-photos")
+def get_health_photos(site_code: str, company: str, record_date: str, slot: str):
+    return {"photos": wdb.get_health_photos(site_code, company, record_date, slot)}
+
+@app.post("/api/vw/health-photos")
+def add_health_photo(body: HealthPhotoIn):
+    pid = wdb.add_health_photo(body.model_dump())
+    return {"id": pid}
+
+@app.delete("/api/vw/health-photos/{photo_id}")
+def del_health_photo(photo_id: str):
+    if not re.fullmatch(r"[0-9a-f\-]{36}", photo_id):
+        raise HTTPException(400, "잘못된 photo_id")
+    file_id = wdb.delete_health_photo(photo_id)
+    if file_id:
+        photo = db.get_photo(file_id)
+        if photo:
+            fp = Path(photo["filepath"])
+            if fp.exists():
+                fp.unlink(missing_ok=True)
+        db.delete_photo(file_id)
+    return {"ok": True}
+
+
 # ── 프론트엔드 서빙 (마지막에 마운트) ──────────────────────────────────────────
+@app.get("/")
+def serve_index():
+    resp = FileResponse(str(STATIC_DIR / "index.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
+
+@app.get("/{site_code}")
+def serve_site(site_code: str):
+    resp = FileResponse(str(STATIC_DIR / "index.html"))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
+
 app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
+    _port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=_port, reload=False)

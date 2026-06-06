@@ -18,33 +18,9 @@ SLOTS   = ["오전1","오전2","오후1","오후2"]
 
 
 def _excel_font() -> str:
-    from pathlib import Path
-    # 환경변수로 직접 지정 가능: EXCEL_FONT=HyundaiSansHead
+    # 환경변수로 재정의 가능: EXCEL_FONT=맑은 고딕
     env = os.environ.get("EXCEL_FONT", "")
-    if env:
-        return env
-    dirs = (
-        [Path(r"C:\Windows\Fonts")] if os.name == "nt"
-        else [Path(p) for p in ["/usr/share/fonts", "/usr/local/share/fonts",
-                                  os.path.expanduser("~/.local/share/fonts")]]
-    )
-    for d in dirs:
-        if not d.is_dir(): continue
-        stems = {f.stem.lower(): f.stem
-                 for ext in ("*.ttf","*.otf","*.TTF","*.OTF")
-                 for f in d.rglob(ext)}
-        # 1순위: 현대하모니
-        for sl, s in stems.items():
-            if "hyundai" in sl or "현대하모니" in sl:
-                if "head" in sl: return "HyundaiSansHead"
-                if "text" in sl: return "HyundaiSansText"
-                return "HyundaiSansHead"
-        # 2순위: 나눔스퀘어
-        for sl in stems:
-            if "nanumsquare" in sl or "나눔스퀘어" in sl:
-                return "NanumSquare"
-    # 3순위: 맑은 고딕
-    return "맑은 고딕"
+    return env if env else "현대하모니 Head"
 
 
 def _heat_index(Ta: float, RH: float) -> float:
@@ -98,10 +74,18 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
     f_date  = Font(bold=True,color=C_BLUE, name=FM,size=SZ)
     f_body  = Font(         color=C_INK,  name=FM,size=SZ)
     f_sig   = Font(         color=C_INK,  name=FM,size=SZ)
+    f_slot  = Font(bold=True,color=C_INK,  name=FM,size=SZ)  # 슬롯 헤더: 다크 텍스트
 
-    fill_title = PatternFill("solid",fgColor=C_DARK)
-    fill_head  = PatternFill("solid",fgColor=C_BLUE)
-    fill_photo = PatternFill("solid",fgColor="2C2C2E")
+    fill_title    = PatternFill("solid",fgColor=C_DARK)
+    fill_head     = PatternFill("solid",fgColor=C_BLUE)
+    fill_photo_hdr= PatternFill("solid",fgColor="5B7DB8")   # 사진대지: 차분한 청색
+    fill_photo_cell=PatternFill("solid",fgColor=C_WHITE)     # 사진 셀: 흰색
+    fill_slots    = [                                         # 파스텔 슬롯 색
+        PatternFill("solid",fgColor="BEE0F4"),  # 오전1: 연하늘
+        PatternFill("solid",fgColor="BBE5D0"),  # 오전2: 연민트
+        PatternFill("solid",fgColor="FAD9A0"),  # 오후1: 연살구
+        PatternFill("solid",fgColor="DEC8F0"),  # 오후2: 연라벤더
+    ]
     fill_meta  = PatternFill("solid",fgColor=C_GRAY6)
     fill_sig   = PatternFill("solid",fgColor=C_GRAY6)
     fill_date  = PatternFill("solid",fgColor=C_DATE)
@@ -134,7 +118,7 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
         c=ws[addr]; c.value=val; c.font=f_meta; c.alignment=lft; c.border=bdr; c.fill=fill_meta
     ws.merge_cells(f"{get_column_letter(PC)}2:{get_column_letter(PC+3)}2")
     ph=ws[f"{get_column_letter(PC)}2"]
-    ph.value="사진대지"; ph.fill=fill_photo; ph.font=f_head; ph.alignment=ctr; ph.border=bdr
+    ph.value="사진대지"; ph.fill=fill_photo_hdr; ph.font=f_head; ph.alignment=ctr; ph.border=bdr
     ws.row_dimensions[2].height=22
 
     # 행3: 헤더
@@ -143,7 +127,7 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
         c.fill=fill_head; c.font=f_head; c.alignment=ctr; c.border=bdr
     for i,lbl in enumerate(SLOTS):
         c=ws.cell(row=3,column=PC+i,value=lbl)
-        c.fill=fill_photo; c.font=f_head; c.alignment=ctr; c.border=bdr
+        c.fill=fill_slots[i]; c.font=f_slot; c.alignment=ctr; c.border=bdr
     ws.row_dimensions[3].height=22
 
     dv=DataValidation(type="list",
@@ -214,16 +198,14 @@ def build_excel(records: list, meta: dict, monday: date) -> bytes:
         dc.font=f_date; dc.alignment=ctr
         dc.fill=fill_date if even else fill_date1; dc.border=bdr
 
-        wt = Side(style="thin", color="FFFFFF")
         for si,slot in enumerate(SLOTS):
             col=PC+si
             ws.merge_cells(start_row=rs,start_column=col,end_row=re_,end_column=col)
-            tc=ws.cell(row=rs,column=col); tc.border=bdr; tc.alignment=ctr; tc.fill=dfill
-            # 병합 내부 행 구분선 흰색 처리 (L열과 동일하게)
+            tc=ws.cell(row=rs,column=col); tc.border=bdr; tc.alignment=ctr; tc.fill=fill_photo_cell
             for ir in range(rs+1, re_+1):
                 ic=ws.cell(row=ir,column=col)
-                ic.border=Border(left=thin,right=thin,top=wt,bottom=wt)
-                ic.fill=PatternFill("solid",fgColor="FFFFFF")
+                ic.border=bdr           # L~O 모두 동일한 테두리로 통일
+                ic.fill=fill_photo_cell
             rec=rec_map.get((d.isoformat(),slot))
             if rec and rec.get("_bytes"):
                 try:
