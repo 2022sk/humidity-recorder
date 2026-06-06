@@ -704,7 +704,7 @@
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">생년월일</label>
-              <input type="date" x-model="workerModal.data.birth_date" class="mt-1">
+              <input type="date" x-model="workerModal.data.birth_date" @change="autoFillAgeVtypes()" class="mt-1">
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">성별</label>
@@ -1446,6 +1446,22 @@ function app() {
     parseDiseases(str) {
       if (!str) return [];
       return str.split(',').map(s => s.trim()).filter(Boolean);
+    },
+
+    autoFillAgeVtypes() {
+      const bd = this.workerModal.data.birth_date;
+      if (!bd) return;
+      const today = new Date();
+      const birth = new Date(bd);
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+      const ELDERLY = '고령(만60세이상)';
+      const SUPER   = '초고령(만66세이상)';
+      const vtypes = this.workerModal.data.vulnerability_types.filter(v => v !== ELDERLY && v !== SUPER);
+      if (age >= 66) { vtypes.push(ELDERLY); vtypes.push(SUPER); }
+      else if (age >= 60) { vtypes.push(ELDERLY); }
+      this.workerModal.data.vulnerability_types = vtypes;
     },
 
     async openWorkerModal(w) {
