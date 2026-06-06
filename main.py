@@ -538,7 +538,7 @@ def del_company_pin(site_code: str, company: str):
 
 # ── 출근 체크 ─────────────────────────────────────────────────────────────────
 @app.get("/api/vw/attendance")
-def get_attendance(site_code: str, company: str, work_date: str):
+def get_attendance(site_code: str, company: str = '', work_date: str = ''):
     return {"attendance": wdb.get_attendance(site_code, company, work_date)}
 
 @app.post("/api/vw/attendance")
@@ -556,7 +556,7 @@ def get_vulnerable(site_code: str, company: str, work_date: str):
 
 # ── 건강기록 ──────────────────────────────────────────────────────────────────
 @app.get("/api/vw/health-records")
-def get_health_records(site_code: str, company: str, record_date: str, slot: str = ""):
+def get_health_records(site_code: str, company: str = '', record_date: str = '', slot: str = ""):
     return {"records": wdb.get_health_records(site_code, company, record_date, slot)}
 
 @app.post("/api/vw/health-records")

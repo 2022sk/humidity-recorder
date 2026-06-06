@@ -355,15 +355,26 @@ class WorkersDatabase:
     # ── Daily Attendance ──────────────────────────────────────────────────────
     def get_attendance(self, site_code: str, company: str, work_date: str) -> list:
         with self.conn() as con:
-            rows = con.execute("""
-                SELECT a.*, w.name, w.name_korean, w.birth_date, w.birth_year,
-                       w.is_vulnerable, w.vulnerability_types, w.work_restrictions
-                FROM vw_daily_attendance a
-                JOIN vw_workers w ON w.id=a.worker_id
-                WHERE a.site_code=? AND a.company=? AND a.work_date=?
-                  AND w.deleted_at IS NULL
-                ORDER BY w.is_vulnerable DESC, COALESCE(NULLIF(w.name_korean,''), w.name)
-            """, (site_code, company, work_date)).fetchall()
+            if company:
+                rows = con.execute("""
+                    SELECT a.*, w.name, w.name_korean, w.birth_date, w.birth_year,
+                           w.is_vulnerable, w.vulnerability_types, w.work_restrictions
+                    FROM vw_daily_attendance a
+                    JOIN vw_workers w ON w.id=a.worker_id
+                    WHERE a.site_code=? AND a.company=? AND a.work_date=?
+                      AND w.deleted_at IS NULL
+                    ORDER BY w.is_vulnerable DESC, COALESCE(NULLIF(w.name_korean,''), w.name)
+                """, (site_code, company, work_date)).fetchall()
+            else:
+                rows = con.execute("""
+                    SELECT a.*, w.name, w.name_korean, w.birth_date, w.birth_year,
+                           w.is_vulnerable, w.vulnerability_types, w.work_restrictions
+                    FROM vw_daily_attendance a
+                    JOIN vw_workers w ON w.id=a.worker_id
+                    WHERE a.site_code=? AND a.work_date=?
+                      AND w.deleted_at IS NULL
+                    ORDER BY a.company, w.is_vulnerable DESC, COALESCE(NULLIF(w.name_korean,''), w.name)
+                """, (site_code, work_date)).fetchall()
             return [self._parse_vtypes(dict(r)) for r in rows]
 
     def get_all_attendance_today(self, site_code: str, work_date: str) -> list:
@@ -408,16 +419,25 @@ class WorkersDatabase:
     def get_health_records(self, site_code: str, company: str,
                            record_date: str, slot: str = "") -> list:
         with self.conn() as con:
-            q = """
-                SELECT h.*, w.name, w.name_korean, w.is_vulnerable, w.vulnerability_types
-                FROM vw_health_records h
-                JOIN vw_workers w ON w.id=h.worker_id
-                WHERE h.site_code=? AND h.company=? AND h.record_date=?
-            """
-            p = [site_code, company, record_date]
+            if company:
+                q = """
+                    SELECT h.*, w.name, w.name_korean, w.is_vulnerable, w.vulnerability_types
+                    FROM vw_health_records h
+                    JOIN vw_workers w ON w.id=h.worker_id
+                    WHERE h.site_code=? AND h.company=? AND h.record_date=?
+                """
+                p = [site_code, company, record_date]
+            else:
+                q = """
+                    SELECT h.*, w.name, w.name_korean, w.is_vulnerable, w.vulnerability_types
+                    FROM vw_health_records h
+                    JOIN vw_workers w ON w.id=h.worker_id
+                    WHERE h.site_code=? AND h.record_date=?
+                """
+                p = [site_code, record_date]
             if slot:
                 q += " AND h.slot=?"; p.append(slot)
-            q += " ORDER BY w.is_vulnerable DESC, w.name"
+            q += " ORDER BY h.company, w.is_vulnerable DESC, w.name"
             return [self._parse_vtypes(dict(r)) for r in con.execute(q, p).fetchall()]
 
     def upsert_health_record(self, data: dict) -> int:

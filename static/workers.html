@@ -410,7 +410,7 @@
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div>
           <div class="font-extrabold text-gray-800 text-sm" x-text="healthDate + ' · ' + healthSlot"></div>
-          <div class="text-xs text-gray-500 mt-0.5" x-text="company"></div>
+          <div class="text-xs text-gray-500 mt-0.5" x-text="healthCompanyFilter || '전체 현장'"></div>
         </div>
         <div class="flex items-center gap-2">
           <span x-show="heatLevel" :class="'badge-'+heatLevel" x-text="heatLevel"></span>
@@ -449,6 +449,20 @@
       </div>
     </template>
 
+    <!-- 업체 전환 탭 (인증 후 + 2개 이상 업체) -->
+    <template x-if="authed && healthCompanies.length > 1">
+      <div class="flex gap-1 flex-nowrap overflow-x-auto pb-1 mb-2" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
+        <button @click="switchHealthCompany('')"
+                :class="healthCompanyFilter==='' ? 'btn-primary' : 'btn-secondary'"
+                class="text-xs py-1.5 px-3 flex-shrink-0">전체</button>
+        <template x-for="c in healthCompanies" :key="c">
+          <button @click="switchHealthCompany(c)"
+                  :class="healthCompanyFilter===c ? 'btn-primary' : 'btn-secondary'"
+                  class="text-xs py-1.5 px-3 flex-shrink-0" x-text="c"></button>
+        </template>
+      </div>
+    </template>
+
     <!-- 인증 후 건강기록 -->
     <template x-if="authed">
       <div class="space-y-3">
@@ -467,6 +481,7 @@
                   <div class="rounded-xl p-3 mb-2" style="background:#fff8f8;border:1px solid #ffc9c9">
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                       <span class="font-bold text-gray-800" x-text="a.name_korean||a.name"></span>
+                      <span x-show="!healthCompanyFilter && a.company" class="info-tag" x-text="a.company"></span>
                       <template x-for="vt in a.vulnerability_types" :key="vt">
                         <span class="vul-tag" x-text="vt"></span>
                       </template>
@@ -518,7 +533,10 @@
                 <div class="text-xs font-extrabold text-gray-500 mb-2">일반 근로자</div>
                 <template x-for="a in healthAttendance.filter(a=>!a.is_vulnerable)" :key="a.worker_id">
                   <div class="rounded-xl p-3 mb-2" style="background:#f9f9fb;border:1px solid #e8e8ed">
-                    <div class="font-bold text-gray-800 mb-2 text-sm" x-text="a.name_korean||a.name"></div>
+                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                      <span class="font-bold text-gray-800 text-sm" x-text="a.name_korean||a.name"></span>
+                      <span x-show="!healthCompanyFilter && a.company" class="info-tag" x-text="a.company"></span>
+                    </div>
                     <div class="grid grid-cols-3 gap-2">
                       <div>
                         <label class="text-xs text-gray-500 font-bold">체온(°C)</label>
@@ -562,8 +580,8 @@
           </div>
         </div>
 
-        <!-- 증빙사진 -->
-        <div class="card">
+        <!-- 증빙사진 (특정 업체 선택 시만) -->
+        <div class="card" x-show="healthCompanyFilter">
           <div class="text-sm font-extrabold text-gray-700 mb-3">증빙 사진</div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <!-- 휴식 증빙 -->
@@ -1313,6 +1331,8 @@ function app() {
     healthSlot: '',
     heatLevel: '',
     feelsLike: null,
+    healthCompanyFilter: '',   // '' = 전체, 특정값 = 해당 업체
+    healthCompanies: [],       // 업체 목록
     healthAttendance: [],
     healthRecs: {},   // { worker_id: { body_temp, measure_time, health_status } }
     healthPhotos: [],
@@ -1340,12 +1360,13 @@ function app() {
       const params = new URLSearchParams(location.search);
       this.mode = params.get('mode') || '';
       if (this.mode === 'health') {
-        this.siteCode   = params.get('site_code') || this.siteCode;
-        this.company    = params.get('company') || '';
-        this.healthDate = params.get('date') || '';
-        this.healthSlot = params.get('slot') || '';
-        this.heatLevel  = params.get('heat_level') || '';
-        this.feelsLike  = parseFloat(params.get('feels_like')) || null;
+        this.siteCode            = params.get('site_code') || this.siteCode;
+        this.company             = params.get('company') || '';
+        this.healthCompanyFilter = params.get('company') || '';
+        this.healthDate          = params.get('date') || '';
+        this.healthSlot          = params.get('slot') || '';
+        this.heatLevel           = params.get('heat_level') || '';
+        this.feelsLike           = parseFloat(params.get('feels_like')) || null;
         // 저장된 세션 확인
         const saved = JSON.parse(localStorage.getItem('vw_admin_auth')||'null');
         if (saved && saved.site_code === this.siteCode && Date.now() - saved.ts < 3600000) {
@@ -1676,23 +1697,40 @@ function app() {
     },
 
     async loadHealthPanel() {
-      const q = new URLSearchParams({ site_code: this.siteCode, company: this.company, work_date: this.healthDate });
+      const cf = this.healthCompanyFilter;
+      // 출근 명단
+      const q = new URLSearchParams({ site_code: this.siteCode, company: cf, work_date: this.healthDate });
       const r = await fetch(API_BASE+'/api/vw/attendance?'+q);
       const d = await r.json();
       this.healthAttendance = d.attendance || [];
-      // 기존 기록 로드
-      const q2 = new URLSearchParams({ site_code: this.siteCode, company: this.company, record_date: this.healthDate, slot: this.healthSlot });
+      // 업체 목록 (처음 로드 시)
+      if (!this.healthCompanies.length) {
+        const rw = await fetch(API_BASE+'/api/vw/workers?site_code='+this.siteCode);
+        const dw = await rw.json();
+        this.healthCompanies = [...new Set((dw.workers||[]).map(w=>w.company).filter(Boolean))].sort();
+      }
+      // 기존 건강기록
+      const q2 = new URLSearchParams({ site_code: this.siteCode, company: cf, record_date: this.healthDate, slot: this.healthSlot });
       const r2 = await fetch(API_BASE+'/api/vw/health-records?'+q2);
       const d2 = await r2.json();
       this.healthRecs = {};
       (d2.records||[]).forEach(rec => {
         this.healthRecs[rec.worker_id] = { body_temp: rec.body_temp, measure_time: rec.measure_time, health_status: rec.health_status };
       });
-      // 사진 로드
-      const q3 = new URLSearchParams({ site_code: this.siteCode, company: this.company, record_date: this.healthDate, slot: this.healthSlot });
-      const r3 = await fetch(API_BASE+'/api/vw/health-photos?'+q3);
-      const d3 = await r3.json();
-      this.healthPhotos = d3.photos || [];
+      // 사진 (특정 업체 선택 시만)
+      if (cf) {
+        const q3 = new URLSearchParams({ site_code: this.siteCode, company: cf, record_date: this.healthDate, slot: this.healthSlot });
+        const r3 = await fetch(API_BASE+'/api/vw/health-photos?'+q3);
+        const d3 = await r3.json();
+        this.healthPhotos = d3.photos || [];
+      } else {
+        this.healthPhotos = [];
+      }
+    },
+
+    async switchHealthCompany(c) {
+      this.healthCompanyFilter = c;
+      await this.loadHealthPanel();
     },
 
     setHealthRec(workerId, field, value) {
@@ -1727,7 +1765,7 @@ function app() {
           await fetch(API_BASE+'/api/vw/health-records', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
-              site_code: this.siteCode, company: this.company,
+              site_code: this.siteCode, company: a.company || this.healthCompanyFilter,
               record_date: this.healthDate, slot: this.healthSlot,
               heat_level: this.heatLevel, feels_like: this.feelsLike,
               worker_id: a.worker_id,
@@ -1750,7 +1788,7 @@ function app() {
       const d = await r.json();
       await fetch(API_BASE+'/api/vw/health-photos', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ site_code: this.siteCode, company: this.company,
+        body: JSON.stringify({ site_code: this.siteCode, company: this.healthCompanyFilter,
                                record_date: this.healthDate, slot: this.healthSlot,
                                photo_type: photoType, photo_id: d.photo_id })
       });
