@@ -784,9 +784,9 @@
           <div>
             <label class="text-xs text-gray-500">진단 종류</label>
             <select x-model="workerModal.newExam.exam_type" class="mt-0.5" style="padding:6px 8px!important">
-              <option>배치전건강진단</option>
-              <option>특수건강진단</option>
-              <option>일반건강진단</option>
+              <option>배치전</option>
+              <option>특수</option>
+              <option>일반</option>
             </select>
           </div>
           <div>
@@ -877,9 +877,9 @@
         <div>
           <label class="text-xs text-gray-500">진단 종류</label>
           <select x-model="examModal.newExam.exam_type" class="mt-0.5" style="padding:6px 8px!important">
-            <option>배치전건강진단</option>
-            <option>특수건강진단</option>
-            <option>일반건강진단</option>
+            <option>배치전</option>
+            <option>특수</option>
+            <option>일반</option>
           </select>
         </div>
         <div>
@@ -1312,10 +1312,10 @@ function app() {
     workerModal: { show:false, editing:null, tab:'info',
       data:{worker_code:'',education_date:'',name:'',name_korean:'',company:'',job_type:'',nationality:'',birth_date:'',birth_year:'',phone:'',residence_status:'',residence_expiry:'',gender:'',last_exam_date:'',vulnerability_types:[],diseases:'',work_restrictions:'',notes:''},
       exams:[], examSaving:false,
-      newExam:{ exam_type:'배치전건강진단', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' },
+      newExam:{ exam_type:'배치전', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' },
       saving:false },
     examModal: { show:false, worker:null, exams:[], saving:false,
-                 newExam:{ exam_type:'배치전건강진단', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' } },
+                 newExam:{ exam_type:'배치전', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' } },
     companyPinSet: [],
     pinModal: { show:false, company:'', adminPin:'', newPin:'', error:'', saving:false },
     pasteModal: {
@@ -1476,7 +1476,7 @@ function app() {
     async openWorkerModal(w) {
       this.workerModal.tab = 'info';
       this.workerModal.exams = [];
-      this.workerModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+      this.workerModal.newExam = { exam_type:'배치전', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
       if (w) {
         this.workerModal.editing = w;
         this.workerModal.data = {
@@ -1550,7 +1550,7 @@ function app() {
         const r = await fetch(API_BASE+'/api/vw/workers/'+this.workerModal.editing.id+'/exams');
         const d = await r.json();
         this.workerModal.exams = d.exams || [];
-        this.workerModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+        this.workerModal.newExam = { exam_type:'배치전', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
         // Update last_exam_date in data if newer
         if (this.workerModal.exams.length > 0) {
           const latest = this.workerModal.exams.reduce((a,b) => a.exam_date > b.exam_date ? a : b);
@@ -1578,7 +1578,7 @@ function app() {
     // ── 관리자: 건강진단 ──────────────────────────────────────────────────────
     async openExamModal(w) {
       this.examModal.worker = w;
-      this.examModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+      this.examModal.newExam = { exam_type:'배치전', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
       const r = await fetch(API_BASE+'/api/vw/workers/'+w.id+'/exams');
       const d = await r.json();
       this.examModal.exams = d.exams || [];
@@ -1609,7 +1609,7 @@ function app() {
         const r = await fetch(API_BASE+'/api/vw/workers/'+this.examModal.worker.id+'/exams');
         const d = await r.json();
         this.examModal.exams = d.exams || [];
-        this.examModal.newExam = { exam_type:'배치전건강진단', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
+        this.examModal.newExam = { exam_type:'배치전', exam_date:'', key_values:{bp:'',glucose:'',result:''}, notes:'', photo_id:'' };
         this.showToast('진단 기록 저장됨');
       } finally { this.examModal.saving = false; }
     },
