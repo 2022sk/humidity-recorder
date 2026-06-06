@@ -204,8 +204,17 @@
                       <!-- 이름 행 -->
                       <div class="flex items-center gap-1.5 flex-wrap mb-1">
                         <span x-show="w.is_vulnerable" class="text-red-500 font-black text-sm leading-none">🔴</span>
-                        <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
-                        <span x-show="w.name_korean && w.name" class="text-xs text-gray-400" x-text="w.name"></span>
+                        <!-- 대한민국: 한글이름(또는 영문명)만 표시 -->
+                        <template x-if="!w.nationality || w.nationality==='대한민국'">
+                          <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                        </template>
+                        <!-- 외국인: 한글이름 검정 + 영문명 회색 작게 -->
+                        <template x-if="w.nationality && w.nationality!=='대한민국'">
+                          <span class="flex items-baseline gap-1.5 flex-wrap">
+                            <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                            <span x-show="w.name_korean && w.name" class="text-xs text-gray-400 font-normal" x-text="w.name"></span>
+                          </span>
+                        </template>
                       </div>
                       <!-- 정보 태그 행 -->
                       <div class="flex flex-wrap gap-1 mb-1.5">
