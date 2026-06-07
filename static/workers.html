@@ -140,10 +140,8 @@
                     class="py-2.5 text-sm rounded-xl font-bold">🏢 업체</button>
           </div>
         </div>
-        <datalist id="login-company-list">
-          <template x-for="c in loginCompanies" :key="c">
-            <option :value="c"></option>
-          </template>
+        <datalist id="login-company-list"
+          x-effect="$el.innerHTML = loginCompanies.map(c => `<option value='${c}'>`).join('')">
         </datalist>
         <template x-if="loginRole==='company'">
           <div>
@@ -703,10 +701,8 @@
               <label class="text-xs font-bold text-gray-500">협력사명 <span class="text-red-500">*</span></label>
               <input type="text" x-model="workerModal.data.company" placeholder="업체명 선택 또는 입력"
                      list="company-list" class="mt-1">
-              <datalist id="company-list">
-                <template x-for="c in workerCompanies" :key="c">
-                  <option :value="c"></option>
-                </template>
+              <datalist id="company-list"
+                x-effect="$el.innerHTML = workerCompanies.map(c => `<option value='${c}'>`).join('')">
               </datalist>
             </div>
             <div>
