@@ -144,7 +144,7 @@
           <div x-data="{ open: false }">
             <label class="text-xs font-bold text-gray-500">업체명</label>
             <div class="relative mt-1">
-              <button type="button" @click="open = !open"
+              <button type="button" @click="if(!loginCompanies.length){ await loadLoginCompanies() }; open = !open"
                       class="w-full text-left px-4 py-3 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 flex items-center justify-between"
                       style="font-family:inherit">
                 <span :class="loginCompany ? 'text-gray-800' : 'text-gray-400'"
