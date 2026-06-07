@@ -1776,6 +1776,22 @@ function app() {
       }
       if (urlSite && this.siteCode) { this.siteLocked = true; this.loadLoginCompanies(); this.loginRole = 'company'; }
 
+      // ── 세션 자동 복원 (새로고침 유지) ──
+      if (this.siteCode) {
+        const savedAdmin = JSON.parse(localStorage.getItem('vw_admin_auth')||'null');
+        if (savedAdmin && savedAdmin.site_code === this.siteCode && Date.now() - savedAdmin.ts < 3600000) {
+          this.authed = true; this.role = 'admin';
+          await this.loadWorkers(); await this.loadLocations();
+        }
+        if (!this.authed) {
+          const savedCompany = JSON.parse(localStorage.getItem('vw_company_auth')||'null');
+          if (savedCompany && savedCompany.site_code === this.siteCode && Date.now() - savedCompany.ts < 28800000) {
+            this.authed = true; this.role = 'company'; this.company = savedCompany.company;
+            await this.loadCompanyWorkers(); await this.loadLocations();
+          }
+        }
+      }
+
       const params = new URLSearchParams(location.search);
       this.mode = params.get('mode') || '';
       if (this.mode === 'health') {
@@ -1861,6 +1877,7 @@ function app() {
           const d = await r.json();
           if (!d.ok) { this.loginError='PIN이 올바르지 않습니다'; return; }
           this.authed = true; this.role = 'company'; this.company = this.loginCompany;
+          localStorage.setItem('vw_company_auth', JSON.stringify({ site_code: this.siteCode, company: this.loginCompany, ts: Date.now() }));
           await this.loadCompanyWorkers();
           await this.loadLocations();
         }
@@ -1870,7 +1887,9 @@ function app() {
 
     logout() {
       this.authed = false; this.role = ''; this.loginPin = '';
-      this.loginError = ''; this.workers = [];
+      this.loginError = ''; this.workers = []; this.companyWorkers = [];
+      localStorage.removeItem('vw_admin_auth');
+      localStorage.removeItem('vw_company_auth');
     },
 
     // ── 관리자: 근로자 ────────────────────────────────────────────────────────
@@ -2290,16 +2309,18 @@ function app() {
       this.companyVisibility = { ...this.companyVisibility, [company]: !current };
     },
 
-    // ── 관리자: 미투입 ────────────────────────────────────────────────────────
+    // ── 미투입 토글 ────────────────────────────────────────────────────────
     async toggleDeployStatus(w, reloadFn) {
       const newStatus = (w.deploy_status || 'active') === 'active' ? 'inactive' : 'active';
-      await fetch(API_BASE+'/api/vw/workers/'+w.id+'/deploy-status', {
+      // 즉시 UI 반영 (낙관적 업데이트)
+      this.companyWorkers = this.companyWorkers.map(cw => cw.id === w.id ? { ...cw, deploy_status: newStatus } : cw);
+      this.workers = this.workers.map(aw => aw.id === w.id ? { ...aw, deploy_status: newStatus } : aw);
+      this.showToast(newStatus === 'inactive' ? '미투입으로 변경됨' : '투입으로 복귀됨');
+      // 서버 저장 (백그라운드)
+      fetch(API_BASE+'/api/vw/workers/'+w.id+'/deploy-status', {
         method:'PUT', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ status: newStatus })
-      });
-      this.showToast(newStatus === 'inactive' ? '미투입으로 변경됨' : '투입으로 복귀됨');
-      if (reloadFn) await reloadFn();
-      else await this.loadWorkers();
+      }).then(() => { if (reloadFn) reloadFn(); else this.loadWorkers(); });
     },
 
     // ── 관리자: 출근현황 ──────────────────────────────────────────────────────
