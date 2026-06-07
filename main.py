@@ -536,6 +536,36 @@ def del_company_pin(site_code: str, company: str):
     wdb.delete_company_pin(site_code, company)
     return {"ok": True}
 
+# ── 취약구분 일괄 재계산 ───────────────────────────────────────────────────────
+@app.post("/api/vw/workers/recalc-vtypes")
+def recalc_vtypes(site_code: str):
+    from datetime import date
+    today = date.today()
+    workers = wdb.get_workers(site_code)
+    updated = 0
+    for w in workers:
+        vtypes = [v for v in (w.get('vulnerability_types') or [])
+                  if v not in ('고령(만60세이상)', '초고령(만66세이상)', '혈압', '당뇨', '심뇌혈관질환')]
+        bd = w.get('birth_date', '')
+        if bd:
+            try:
+                by, bm, bday = (int(x) for x in bd.split('-'))
+                age = today.year - by - (1 if (today.month, today.day) < (bm, bday) else 0)
+                if age >= 66: vtypes.append('초고령(만66세이상)')
+                elif age >= 60: vtypes.append('고령(만60세이상)')
+            except Exception:
+                pass
+        diseases = w.get('diseases', '') or ''
+        if '혈압' in diseases: vtypes.append('혈압')
+        if '당뇨' in diseases: vtypes.append('당뇨')
+        if '심장' in diseases or '뇌혈관' in diseases or '심뇌혈관' in diseases:
+            vtypes.append('심뇌혈관질환')
+        w['vulnerability_types'] = vtypes
+        w['is_vulnerable'] = 1 if vtypes else 0
+        wdb.update_worker(w['id'], w)
+        updated += 1
+    return {"ok": True, "updated": updated}
+
 # ── 출근 체크 ─────────────────────────────────────────────────────────────────
 @app.get("/api/vw/attendance")
 def get_attendance(site_code: str, company: str = '', work_date: str = ''):

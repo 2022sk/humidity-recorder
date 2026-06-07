@@ -199,6 +199,7 @@
         <div class="flex gap-2">
           <button @click="pasteModal.show=true;pasteModal.raw='';pasteModal.headers=[];pasteModal.rows=[];pasteModal.preview=[];pasteModal.result=null"
                   class="btn-secondary text-sm py-2">📋 일괄 붙여넣기</button>
+          <button @click="recalcVtypes()" class="btn-secondary text-sm py-2">🔄 취약구분 재계산</button>
           <button @click="openWorkerModal(null)" class="btn-primary text-sm py-2">+ 근로자 추가</button>
         </div>
       </div>
@@ -1330,7 +1331,7 @@ function app() {
     role: '',       // 'admin' | 'company'
     company: '',
     authed: false,
-    loginRole: 'admin',
+    loginRole: 'company',
     loginCompany: '',
     loginPin: '',
     loginError: '',
@@ -1399,7 +1400,7 @@ function app() {
         localStorage.setItem('siteCode', urlSite);
         localStorage.removeItem('siteName');
       }
-      if (urlSite && this.siteCode) { this.siteLocked = true; this.loadLoginCompanies(); }
+      if (urlSite && this.siteCode) { this.siteLocked = true; this.loadLoginCompanies(); this.loginRole = 'company'; }
 
       const params = new URLSearchParams(location.search);
       this.mode = params.get('mode') || '';
@@ -1419,6 +1420,14 @@ function app() {
           await this.loadHealthPanel();
         }
       }
+    },
+
+    async recalcVtypes() {
+      if (!confirm('모든 근로자의 취약구분을 나이·질환 기준으로 재계산하시겠습니까?')) return;
+      const r = await fetch(API_BASE+'/api/vw/workers/recalc-vtypes?site_code='+this.siteCode, { method:'POST' });
+      const d = await r.json();
+      await this.loadWorkers();
+      this.showToast(`취약구분 재계산 완료 (${d.updated}명)`);
     },
 
     async loadLoginCompanies() {
@@ -1521,7 +1530,7 @@ function app() {
       if (d.includes('당뇨')) vtypes.push('당뇨');
       if (d.includes('심장') || d.includes('뇌혈관') || d.includes('심뇌혈관')) vtypes.push('심뇌혈관질환');
 
-      this.workerModal.data.vulnerability_types = vtypes;
+      this.workerModal.data = { ...this.workerModal.data, vulnerability_types: vtypes };
     },
 
     async openWorkerModal(w) {
