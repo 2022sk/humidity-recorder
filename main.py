@@ -574,16 +574,18 @@ def recalc_vtypes(site_code: str):
     today = date.today()
     workers = wdb.get_workers(site_code)
     updated = 0
+    AUTO_LABELS = {'고령(만60세이상)', '초고령(만66세이상)', '고령', '초고령',
+                   '혈압', '당뇨', '심뇌혈관질환'}
     for w in workers:
         vtypes = [v for v in (w.get('vulnerability_types') or [])
-                  if v not in ('고령(만60세이상)', '초고령(만66세이상)', '혈압', '당뇨', '심뇌혈관질환')]
+                  if v not in AUTO_LABELS]
         bd = w.get('birth_date', '')
         if bd:
             try:
                 by, bm, bday = (int(x) for x in bd.split('-'))
                 age = today.year - by - (1 if (today.month, today.day) < (bm, bday) else 0)
-                if age >= 66: vtypes.append('초고령(만66세이상)')
-                elif age >= 60: vtypes.append('고령(만60세이상)')
+                if age >= 66: vtypes.append('초고령')
+                elif age >= 60: vtypes.append('고령')
             except Exception:
                 pass
         diseases = w.get('diseases', '') or ''

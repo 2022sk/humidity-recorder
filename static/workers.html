@@ -199,7 +199,7 @@
         <div class="flex gap-2">
           <button @click="pasteModal.show=true;pasteModal.raw='';pasteModal.headers=[];pasteModal.rows=[];pasteModal.preview=[];pasteModal.result=null"
                   class="btn-secondary text-sm py-2">📋 일괄 붙여넣기</button>
-          <button @click="recalcVtypes()" class="btn-secondary text-sm py-2">🔄 취약구분 재계산</button>
+          <button @click="recalcVtypes()" class="btn-secondary text-sm py-2">취약구분</button>
           <button @click="openWorkerModal(null)" class="btn-primary text-sm py-2">+ 근로자 추가</button>
         </div>
       </div>
@@ -273,9 +273,9 @@
                           <span class="vul-tag" x-text="vt"></span>
                         </template>
                       </div>
-                      <!-- 질환 태그 -->
-                      <div x-show="w.diseases && w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
-                        <template x-for="ds in parseDiseases(w.diseases)" :key="ds">
+                      <!-- 질환 태그 (vtypes로 이미 표시된 항목 제외) -->
+                      <div x-show="filteredDiseases(w).length > 0 && w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
+                        <template x-for="ds in filteredDiseases(w)" :key="ds">
                           <span class="disease-tag" x-text="ds"></span>
                         </template>
                       </div>
@@ -905,11 +905,7 @@
         <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
           <div>
             <label class="text-xs font-bold text-gray-500">기저질환 상세 <span class="font-normal text-gray-400">(쉼표로 구분)</span></label>
-            <input type="text" x-model="workerModal.data.diseases" placeholder="혈압, 당뇨 등" class="mt-1" @input="autoFillVtypes()">
-          </div>
-          <div>
-            <label class="text-xs font-bold text-gray-500">작업 제한사항</label>
-            <input type="text" x-model="workerModal.data.work_restrictions" placeholder="고소작업 금지 등" class="mt-1">
+            <input type="text" x-model="workerModal.data.diseases" placeholder="고혈압, 당뇨, 심장질환 등" class="mt-1" @input="autoFillVtypes()">
           </div>
           <div>
             <label class="text-xs font-bold text-gray-500">비고</label>
@@ -1359,8 +1355,8 @@ const COL_DICT = {
 
 // 취약유형 컬럼명 → vtypeOptions 값 매핑
 const VTYPE_DICT = {
-  '고령':'고령(만60세이상)','만60세':'고령(만60세이상)','60세이상':'고령(만60세이상)',
-  '초고령':'초고령(만66세이상)','만66세':'초고령(만66세이상)',
+  '고령':'고령','만60세':'고령','60세이상':'고령',
+  '초고령':'초고령','만66세':'초고령',
   '혈압':'혈압','고혈압':'혈압',
   '당뇨':'당뇨',
   '기타유질환':'기타유질환','유질환':'기타유질환','기타질환':'기타유질환',
@@ -1457,7 +1453,7 @@ function app() {
     workerFilter: '',
     workerGroupBy: 'company',  // 'company' | 'jobtype'
     workerCompanies: [],
-    vtypeOptions: ['고령(만60세이상)','초고령(만66세이상)','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
+    vtypeOptions: ['고령','초고령','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
     workerModal: { show:false, editing:null, tab:'info',
       data:{worker_code:'',education_date:'',name:'',name_korean:'',company:'',job_type:'',nationality:'',birth_date:'',birth_year:'',phone:'',residence_status:'',residence_expiry:'',gender:'',last_exam_date:'',vulnerability_types:[],diseases:'',work_restrictions:'',notes:''},
       exams:[], examSaving:false,
@@ -1538,7 +1534,9 @@ function app() {
     },
 
     _applyAutoVtypes(w) {
-      const AUTO = ['고령(만60세이상)','초고령(만66세이상)','혈압','당뇨','심뇌혈관질환'];
+      // 구·신 레이블 모두 필터링 후 새 단축 레이블로 추가
+      const AUTO = ['고령','초고령','혈압','당뇨','심뇌혈관질환',
+                    '고령(만60세이상)','초고령(만66세이상)'];
       const today = new Date();
       let vtypes = (w.vulnerability_types||[]).filter(v => !AUTO.includes(v));
       if (w.birth_date) {
@@ -1546,8 +1544,8 @@ function app() {
         let age = today.getFullYear() - birth.getFullYear();
         const m = today.getMonth() - birth.getMonth();
         if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-        if (age >= 66) vtypes.push('초고령(만66세이상)');
-        else if (age >= 60) vtypes.push('고령(만60세이상)');
+        if (age >= 66) vtypes.push('초고령');
+        else if (age >= 60) vtypes.push('고령');
       }
       const dis = w.diseases || '';
       if (dis.includes('혈압')) vtypes.push('혈압');
@@ -1619,6 +1617,8 @@ function app() {
       this.workers = (d.workers || []).map(w => this._applyAutoVtypes(w));
       const cs = [...new Set(this.workers.map(w=>w.company))].sort();
       this.workerCompanies = cs;
+      // 백그라운드로 DB 취약구분 동기화 (확인창 없이)
+      fetch(API_BASE+'/api/vw/workers/recalc-vtypes?site_code='+this.siteCode, { method:'POST' }).catch(()=>{});
     },
 
     get filteredWorkers() {
@@ -1653,8 +1653,19 @@ function app() {
       return str.split(',').map(s => s.trim()).filter(Boolean);
     },
 
+    filteredDiseases(w) {
+      const vtypes = w.vulnerability_types || [];
+      return this.parseDiseases(w.diseases).filter(d => {
+        if (vtypes.includes('혈압') && d.includes('혈압')) return false;
+        if (vtypes.includes('당뇨') && d.includes('당뇨')) return false;
+        if (vtypes.includes('심뇌혈관질환') && (d.includes('심장') || d.includes('뇌혈관') || d.includes('심뇌혈관'))) return false;
+        return true;
+      });
+    },
+
     autoFillVtypes() {
-      const AUTO = ['고령(만60세이상)', '초고령(만66세이상)', '혈압', '당뇨', '심뇌혈관질환'];
+      const AUTO = ['고령','초고령','혈압','당뇨','심뇌혈관질환',
+                    '고령(만60세이상)','초고령(만66세이상)'];
       let vtypes = this.workerModal.data.vulnerability_types.filter(v => !AUTO.includes(v));
 
       // 나이 기반
@@ -1665,8 +1676,8 @@ function app() {
         let age = today.getFullYear() - birth.getFullYear();
         const m = today.getMonth() - birth.getMonth();
         if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-        if (age >= 66) vtypes.push('초고령(만66세이상)');
-        else if (age >= 60) vtypes.push('고령(만60세이상)');
+        if (age >= 66) vtypes.push('초고령');
+        else if (age >= 60) vtypes.push('고령');
       }
 
       // 기저질환 기반
