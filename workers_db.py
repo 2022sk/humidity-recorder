@@ -452,19 +452,27 @@ class WorkersDatabase:
             return [self._parse_vtypes(dict(r)) for r in rows]
 
     def set_attendance(self, site_code: str, company: str, work_date: str,
-                       worker_ids: list, work_location: str = ""):
+                       worker_ids: list = None, work_location: str = "", workers: list = None):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with self.conn() as con:
             con.execute(
-                "DELETE FROM vw_daily_attendance WHERE site_code=? AND company=? AND work_date=?",
+                "DELETE FROM vw_daily_attendance WHERE UPPER(site_code)=UPPER(?) AND company=? AND work_date=?",
                 (site_code, company, work_date)
             )
-            for wid in worker_ids:
-                con.execute("""
-                    INSERT INTO vw_daily_attendance
-                        (site_code,company,work_date,worker_id,work_location,created_at)
-                    VALUES (?,?,?,?,?,?)
-                """, (site_code, company, work_date, wid, work_location, now))
+            if workers:  # 개인별 위치
+                for w in workers:
+                    con.execute("""
+                        INSERT INTO vw_daily_attendance
+                            (site_code,company,work_date,worker_id,work_location,created_at)
+                        VALUES (UPPER(?),?,?,?,?,?)
+                    """, (site_code, company, work_date, w['worker_id'], w.get('work_location','[]'), now))
+            elif worker_ids:  # 기존 일괄 저장 (하위 호환)
+                for wid in worker_ids:
+                    con.execute("""
+                        INSERT INTO vw_daily_attendance
+                            (site_code,company,work_date,worker_id,work_location,created_at)
+                        VALUES (UPPER(?),?,?,?,?,?)
+                    """, (site_code, company, work_date, wid, work_location, now))
 
     def get_vulnerable_count(self, site_code: str, company: str, work_date: str) -> int:
         with self.conn() as con:

@@ -388,8 +388,9 @@ class AttendanceIn(BaseModel):
     site_code: str
     company: str
     work_date: str
-    worker_ids: list
+    worker_ids: list = []
     work_location: str = ""
+    workers: list = []
 
 class HealthRecordIn(BaseModel):
     site_code: str
@@ -607,7 +608,8 @@ def get_attendance(site_code: str, company: str = '', work_date: str = ''):
 @app.post("/api/vw/attendance")
 def set_attendance(body: AttendanceIn):
     wdb.set_attendance(body.site_code, body.company, body.work_date,
-                       body.worker_ids, body.work_location)
+                       body.worker_ids, body.work_location,
+                       workers=body.workers if body.workers else None)
     return {"ok": True}
 
 @app.get("/api/vw/attendance/vulnerable")
