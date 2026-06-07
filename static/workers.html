@@ -517,12 +517,13 @@
               <template x-for="w in companyWorkers.filter(w=>w.is_vulnerable && w.deploy_status!=='inactive')" :key="w.id">
                 <label class="worker-card vulnerable flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" :value="w.id" x-model="checkedIds" class="w-5 h-5 accent-red-500" style="width:20px;min-width:20px;padding:0!important">
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
                       <span x-show="w.birth_date" class="text-xs text-gray-400"
                             x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
                       <span x-show="w.job_type" class="info-tag" x-text="w.job_type"></span>
+                      <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8" x-text="'투입 '+(w.education_date||'')"></span>
                     </div>
                     <div class="flex flex-wrap gap-1 mt-0.5">
                       <template x-for="vt in w.vulnerability_types" :key="vt">
@@ -531,6 +532,8 @@
                     </div>
                     <div x-show="w.work_restrictions" class="text-xs text-orange-600 mt-0.5" x-text="'⚠ '+w.work_restrictions"></div>
                   </div>
+                  <button @click.stop="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
+                          class="btn-secondary text-xs py-0.5 px-2 flex-shrink-0">미투입</button>
                 </label>
               </template>
             </div>
@@ -543,12 +546,17 @@
             <template x-for="w in companyWorkers.filter(w=>!w.is_vulnerable && w.deploy_status!=='inactive')" :key="w.id">
               <label class="worker-card flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" :value="w.id" x-model="checkedIds" class="w-5 h-5 accent-blue-500" style="width:20px;min-width:20px;padding:0!important">
-                <div class="flex-1">
-                  <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
-                  <span x-show="w.birth_date" class="text-xs text-gray-400 ml-2"
-                        x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
-                  <span x-show="w.job_type" class="info-tag ml-1" x-text="w.job_type"></span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+                    <span x-show="w.birth_date" class="text-xs text-gray-400"
+                          x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
+                    <span x-show="w.job_type" class="info-tag" x-text="w.job_type"></span>
+                    <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8" x-text="'투입 '+(w.education_date||'')"></span>
+                  </div>
                 </div>
+                <button @click.stop="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
+                        class="btn-secondary text-xs py-0.5 px-2 flex-shrink-0">미투입</button>
               </label>
             </template>
           </div>
@@ -577,12 +585,13 @@
                   <input type="checkbox" :value="w.id" x-model="checkedIds"
                          :class="w.is_vulnerable ? 'accent-red-500' : 'accent-blue-500'"
                          class="w-5 h-5" style="width:20px;min-width:20px;padding:0!important">
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span x-show="w.is_vulnerable" class="text-red-500 text-xs">🔴</span>
                       <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
                       <span x-show="w.birth_date" class="text-xs text-gray-400"
                             x-text="w.birth_date ? (new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세' : ''"></span>
+                      <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8" x-text="'투입 '+(w.education_date||'')"></span>
                     </div>
                     <div x-show="w.is_vulnerable" class="flex flex-wrap gap-1 mt-0.5">
                       <template x-for="vt in w.vulnerability_types" :key="vt">
@@ -590,6 +599,8 @@
                       </template>
                     </div>
                   </div>
+                  <button @click.stop="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
+                          class="btn-secondary text-xs py-0.5 px-2 flex-shrink-0">미투입</button>
                 </label>
               </template>
             </div>
@@ -607,9 +618,10 @@
             <div class="worker-card opacity-50">
               <div class="flex items-center gap-3">
                 <div class="w-5 h-5 rounded border border-gray-300 bg-gray-100 flex-shrink-0"></div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                   <span class="font-bold text-gray-500 line-through" x-text="w.name_korean||w.name"></span>
                   <span x-show="w.job_type" class="text-xs text-gray-400 ml-2" x-text="w.job_type"></span>
+                  <span x-show="w.education_date" class="text-xs text-gray-400 ml-1" x-text="'투입 '+w.education_date"></span>
                 </div>
                 <button @click="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
                         class="btn-primary text-xs py-1 px-2.5 flex-shrink-0">투입 복귀</button>
@@ -619,25 +631,6 @@
         </div>
       </div>
     </template>
-
-    <!-- 미투입 추가 버튼 (active 근로자에서 미투입 처리) -->
-    <div class="mt-4 pt-3 border-t border-gray-100">
-      <div x-data="{ showMitooip: false }">
-        <button @click="showMitooip = !showMitooip" class="text-xs text-gray-400 font-bold">
-          <span x-text="showMitooip ? '▲ 미투입 처리 접기' : '▼ 미투입 처리'"></span>
-        </button>
-        <div x-show="showMitooip" class="mt-2 space-y-1.5">
-          <div class="text-xs text-gray-500 mb-1">이 근로자를 미투입으로 처리하면 출근체크에서 제외됩니다.</div>
-          <template x-for="w in companyWorkers.filter(w=>w.deploy_status!=='inactive')" :key="w.id">
-            <div class="flex items-center justify-between p-2 rounded-lg border border-gray-100 bg-gray-50">
-              <span class="text-sm font-bold text-gray-700" x-text="w.name_korean||w.name"></span>
-              <button @click="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
-                      class="btn-secondary text-xs py-0.5 px-2">미투입</button>
-            </div>
-          </template>
-        </div>
-      </div>
-    </div>
 
     <div x-show="companyWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
   </div>
