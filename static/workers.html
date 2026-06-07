@@ -126,7 +126,7 @@
           <input type="text" x-model="siteCode" placeholder="예: J881" class="mt-1"
                  :readonly="siteLocked"
                  :class="siteLocked ? 'bg-gray-50 text-gray-700 font-bold cursor-not-allowed' : ''"
-                 @input="!siteLocked && (siteCode=siteCode.toUpperCase())"
+                 @input="!siteLocked && (siteCode=siteCode.toUpperCase(), siteCode.length>=3 && loadLoginCompanies())"
                  @change="loadLoginCompanies()">
         </div>
         <div>
@@ -140,16 +140,16 @@
                     class="py-2.5 text-sm rounded-xl font-bold">🏢 업체</button>
           </div>
         </div>
+        <datalist id="login-company-list">
+          <template x-for="c in loginCompanies" :key="c">
+            <option :value="c"></option>
+          </template>
+        </datalist>
         <template x-if="loginRole==='company'">
           <div>
             <label class="text-xs font-bold text-gray-500">업체명</label>
             <input type="text" x-model="loginCompany" placeholder="업체명 선택 또는 입력"
                    list="login-company-list" class="mt-1">
-            <datalist id="login-company-list">
-              <template x-for="c in loginCompanies" :key="c">
-                <option :value="c"></option>
-              </template>
-            </datalist>
           </div>
         </template>
         <div>
