@@ -233,11 +233,12 @@
       <!-- 근로자 목록 -->
       <div class="space-y-4">
         <template x-for="grp in groupedWorkers" :key="grp.company">
-          <div>
+          <div :class="grp.allInactive ? 'opacity-50' : ''">
             <!-- 그룹 헤더 -->
-            <div class="company-header flex items-center justify-between">
+            <div class="company-header flex items-center justify-between"
+                 :style="grp.allInactive ? 'background:#f3f4f6;color:#9ca3af' : ''">
               <div class="flex-1 min-w-0">
-                <span x-text="(grp.isLocationGroup ? '📍 ' : '🏢 ') + grp.company"></span>
+                <span x-text="(grp.isLocationGroup ? '📍 ' : (grp.allInactive ? '⛔ ' : '🏢 ')) + grp.company"></span>
                 <span x-show="!grp.isLocationGroup" class="ml-1 text-gray-500"
                       x-text="'(' + grp.workers.filter(w=>w.deploy_status!=='inactive').length + '명'"></span>
                 <span x-show="!grp.isLocationGroup && grp.workers.some(w=>w.deploy_status==='inactive')"
@@ -1962,16 +1963,18 @@ function app() {
           if (!cMap[c].byJob[j]) cMap[c].byJob[j] = [];
           cMap[c].byJob[j].push(w);
         });
-        return Object.entries(cMap)
+        const rows = Object.entries(cMap)
           .sort(([a],[b])=>a.localeCompare(b,'ko'))
-          .map(([company, data]) => ({
-            company,
-            workers: data.all,
-            isNested: true,
-            subgroups: Object.entries(data.byJob)
-              .sort(([a],[b])=>a.localeCompare(b,'ko'))
-              .map(([jt, ws]) => ({ label: jt, workers: sortInactive(ws) }))
-          }));
+          .map(([company, data]) => {
+            const allInactive = data.all.length > 0 && data.all.every(w=>w.deploy_status==='inactive');
+            return {
+              company, workers: data.all, isNested: true, allInactive,
+              subgroups: Object.entries(data.byJob)
+                .sort(([a],[b])=>a.localeCompare(b,'ko'))
+                .map(([jt, ws]) => ({ label: jt, workers: sortInactive(ws) }))
+            };
+          });
+        return rows.sort((a,b)=>(a.allInactive?1:0)-(b.allInactive?1:0));
       }
 
       // 단순 그룹
@@ -1984,9 +1987,13 @@ function app() {
         if (!groups[k]) groups[k] = [];
         groups[k].push(w);
       });
-      return Object.entries(groups)
+      const rows = Object.entries(groups)
         .sort(([a],[b])=>a.localeCompare(b,'ko'))
-        .map(([label, ws]) => ({ company: label, workers: sortInactive(ws) }));
+        .map(([label, ws]) => {
+          const allInactive = ws.length > 0 && ws.every(w=>w.deploy_status==='inactive');
+          return { company: label, workers: sortInactive(ws), allInactive };
+        });
+      return rows.sort((a,b)=>(a.allInactive?1:0)-(b.allInactive?1:0));
     },
 
     parseDiseases(str) {
