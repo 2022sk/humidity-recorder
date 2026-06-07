@@ -421,6 +421,76 @@
       </div>
     </div>
 
+    <!-- 도면 탭 -->
+    <div x-show="adminTab==='map'">
+      <div class="relative select-none" style="border-radius:12px;overflow:hidden;background:#f0f0f0">
+        <img src="/static/site_map.png" style="width:100%;display:block" draggable="false">
+        <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
+          <template x-for="loc in LOCATION_PRESETS" :key="loc">
+            <g style="pointer-events:all;cursor:pointer" @click="mapSelectedLoc = (mapSelectedLoc===loc ? null : loc)">
+              <circle
+                :cx="(LOCATION_COORDS[loc]?.x||50)+'%'"
+                :cy="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                r="18"
+                :fill="mapSelectedLoc===loc ? '#2563eb' : (mapWorkersAt(loc).length>0 ? '#dc2626' : '#6b7280')"
+                fill-opacity="0.82"
+                stroke="white" stroke-width="2.5"
+              ></circle>
+              <text
+                :x="(LOCATION_COORDS[loc]?.x||50)+'%'"
+                :y="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                text-anchor="middle" dominant-baseline="central"
+                fill="white" font-size="11" font-weight="bold"
+                style="pointer-events:none"
+                x-text="loc.length<=2 ? loc : loc.replace('GATE','G')"
+              ></text>
+              <template x-if="mapWorkersAt(loc).length>0">
+                <text
+                  :x="((LOCATION_COORDS[loc]?.x||50)+3)+'%'"
+                  :y="((LOCATION_COORDS[loc]?.y||50)-3)+'%'"
+                  fill="white" font-size="9" font-weight="900"
+                  style="pointer-events:none"
+                  x-text="mapWorkersAt(loc).length"
+                ></text>
+              </template>
+            </g>
+          </template>
+        </svg>
+      </div>
+      <!-- 위치 클릭 결과 -->
+      <template x-if="mapSelectedLoc">
+        <div class="card mt-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-extrabold text-gray-800" x-text="'📍 '+mapSelectedLoc+' 위치 근로자'"></span>
+            <button @click="mapSelectedLoc=null" class="text-gray-400 text-lg leading-none">✕</button>
+          </div>
+          <template x-if="mapWorkersAt(mapSelectedLoc).length===0">
+            <div class="text-xs text-gray-400 py-3 text-center">이 위치에 출근한 근로자가 없습니다</div>
+          </template>
+          <div class="space-y-1.5">
+            <template x-for="w in mapWorkersAt(mapSelectedLoc)" :key="w.worker_id">
+              <div class="flex items-center gap-2 p-2 rounded-lg" :class="w.is_vulnerable ? 'bg-red-50' : 'bg-gray-50'">
+                <span x-show="w.is_vulnerable" class="text-red-500 text-xs">🔴</span>
+                <span class="font-bold text-sm text-gray-800" x-text="w.name_korean||w.name"></span>
+                <span class="text-xs text-gray-400" x-text="w.company"></span>
+                <div class="flex flex-wrap gap-1 ml-auto">
+                  <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                    <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+      <div class="flex flex-wrap gap-1.5 mt-2">
+        <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-red-600"></span>출근 있음</span>
+        <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-500"></span>출근 없음</span>
+        <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>선택됨</span>
+        <span class="text-xs text-gray-400 ml-auto" x-text="'총 '+mapAttendance.length+'명 출근'"></span>
+      </div>
+    </div>
+
     <!-- 위치 탭 -->
     <div x-show="adminTab==='locations'">
       <div class="card mb-3">
@@ -488,19 +558,22 @@
           <input type="date" x-model="attDate" @change="loadCompanyWorkers()" class="text-sm" style="width:auto;padding:6px 10px!important">
           <button @click="loadPreviousAttendance(1)" class="btn-secondary text-xs py-1.5 px-2.5">어제 불러오기</button>
           <button @click="loadPreviousAttendance(2)" class="btn-secondary text-xs py-1.5 px-2.5">이틀전 불러오기</button>
+          <button @click="mapShow=true;loadMapAttendance()" class="btn-secondary text-sm py-2">🗺 도면</button>
           <button @click="saveAttendance()" class="btn-primary text-sm py-2" :disabled="attSaving">
             <span x-text="attSaving ? '저장 중...' : '출근 저장'"></span>
           </button>
         </div>
       </div>
       <div class="mt-3">
-        <label class="text-xs font-bold text-gray-500">작업 위치</label>
-        <select x-model="attWorkLocation" class="mt-1">
-          <option value="">위치 선택</option>
-          <template x-for="loc in locations" :key="loc.id">
-            <option :value="loc.location_name" x-text="loc.location_name"></option>
+        <label class="text-xs font-bold text-gray-500">작업 위치 <span class="text-gray-400 font-normal">(복수 선택 가능)</span></label>
+        <div class="flex flex-wrap gap-1.5 mt-1.5">
+          <template x-for="loc in LOCATION_PRESETS" :key="loc">
+            <button @click="attWorkLocations.includes(loc) ? attWorkLocations=attWorkLocations.filter(l=>l!==loc) : attWorkLocations.push(loc)"
+                    :class="attWorkLocations.includes(loc) ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300'"
+                    class="text-xs py-1 px-2.5 rounded-lg font-bold border transition-all"
+                    x-text="loc"></button>
           </template>
-        </select>
+        </div>
       </div>
     </div>
 
@@ -639,6 +712,81 @@
     </template>
 
     <div x-show="companyWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
+
+    <!-- 업체 도면 모달 -->
+    <template x-if="mapShow">
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;flex-direction:column;padding:12px"
+           @click.self="mapShow=false;mapSelectedLoc=null">
+        <div class="card" style="max-width:900px;margin:0 auto;width:100%;overflow-y:auto;max-height:calc(100vh - 24px)">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-extrabold text-gray-800">🗺 현장 도면</span>
+            <button @click="mapShow=false;mapSelectedLoc=null" class="text-gray-400 text-xl leading-none">✕</button>
+          </div>
+          <div class="relative select-none" style="border-radius:10px;overflow:hidden;background:#f0f0f0">
+            <img src="/static/site_map.png" style="width:100%;display:block" draggable="false">
+            <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
+              <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                <g style="pointer-events:all;cursor:pointer" @click="mapSelectedLoc=(mapSelectedLoc===loc?null:loc)">
+                  <circle
+                    :cx="(LOCATION_COORDS[loc]?.x||50)+'%'"
+                    :cy="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                    r="18"
+                    :fill="mapSelectedLoc===loc ? '#2563eb' : (mapWorkersAt(loc).length>0 ? '#dc2626' : '#6b7280')"
+                    fill-opacity="0.82" stroke="white" stroke-width="2.5"
+                  ></circle>
+                  <text
+                    :x="(LOCATION_COORDS[loc]?.x||50)+'%'"
+                    :y="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                    text-anchor="middle" dominant-baseline="central"
+                    fill="white" font-size="11" font-weight="bold"
+                    style="pointer-events:none"
+                    x-text="loc.length<=2 ? loc : loc.replace('GATE','G')"
+                  ></text>
+                  <template x-if="mapWorkersAt(loc).length>0">
+                    <text
+                      :x="((LOCATION_COORDS[loc]?.x||50)+3)+'%'"
+                      :y="((LOCATION_COORDS[loc]?.y||50)-3)+'%'"
+                      fill="white" font-size="9" font-weight="900"
+                      style="pointer-events:none"
+                      x-text="mapWorkersAt(loc).length"
+                    ></text>
+                  </template>
+                </g>
+              </template>
+            </svg>
+          </div>
+          <template x-if="mapSelectedLoc">
+            <div class="mt-3 p-3 rounded-xl" style="background:#f8fafc;border:1px solid #e2e8f0">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-extrabold text-gray-800" x-text="'📍 '+mapSelectedLoc+' 위치 근로자'"></span>
+                <button @click="mapSelectedLoc=null" class="text-gray-400">✕</button>
+              </div>
+              <template x-if="mapWorkersAt(mapSelectedLoc).length===0">
+                <div class="text-xs text-gray-400 py-2 text-center">이 위치에 출근한 근로자가 없습니다</div>
+              </template>
+              <div class="space-y-1.5">
+                <template x-for="w in mapWorkersAt(mapSelectedLoc)" :key="w.worker_id">
+                  <div class="flex items-center gap-2 p-2 rounded-lg" :class="w.is_vulnerable ? 'bg-red-50' : 'bg-white'">
+                    <span x-show="w.is_vulnerable" class="text-red-500 text-xs">🔴</span>
+                    <span class="font-bold text-sm text-gray-800" x-text="w.name_korean||w.name"></span>
+                    <span class="text-xs text-gray-400" x-text="w.company||company"></span>
+                    <div class="flex flex-wrap gap-1 ml-auto">
+                      <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                        <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+          <div class="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-red-600"></span>출근 있음</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-500"></span>출근 없음</span>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -1786,9 +1934,11 @@ function app() {
         this.adminTodayAttendance.forEach(a => {
           const w = byId[a.worker_id];
           if (w) {
-            const loc = a.work_location || '위치 미지정';
-            if (!locMap[loc]) locMap[loc] = [];
-            locMap[loc].push({ ...w, _company: a.company });
+            const locs = this.parseLocations(a.work_location);
+            locs.forEach(loc => {
+              if (!locMap[loc]) locMap[loc] = [];
+              locMap[loc].push({ ...w, _company: a.company });
+            });
           }
         });
         const unattended = this.workers.filter(w =>
@@ -1842,6 +1992,27 @@ function app() {
     parseDiseases(str) {
       if (!str) return [];
       return str.split(',').map(s => s.trim()).filter(Boolean);
+    },
+
+    parseLocations(locStr) {
+      if (!locStr) return ['위치 미지정'];
+      try {
+        const arr = JSON.parse(locStr);
+        return Array.isArray(arr) && arr.length > 0 ? arr : ['위치 미지정'];
+      } catch { return [locStr]; }
+    },
+
+    mapWorkersAt(loc) {
+      return this.mapAttendance.filter(a => this.parseLocations(a.work_location).includes(loc));
+    },
+
+    async loadMapAttendance() {
+      const today = new Date().toISOString().slice(0,10);
+      const date = this.role === 'company' ? this.attDate : today;
+      const companyQ = this.role === 'company' ? '&company='+encodeURIComponent(this.company) : '';
+      const r = await fetch(API_BASE+'/api/vw/attendance?site_code='+this.siteCode+'&work_date='+date+companyQ);
+      const d = await r.json();
+      this.mapAttendance = (d.attendance || []).map(a => this._applyAutoVtypes(a));
     },
 
     vtypeColor(vt) {
@@ -2156,7 +2327,9 @@ function app() {
       const r2 = await fetch(API_BASE+'/api/vw/attendance?site_code='+this.siteCode+'&company='+encodeURIComponent(this.company)+'&work_date='+this.attDate);
       const d2 = await r2.json();
       this.checkedIds = (d2.attendance||[]).map(a=>a.worker_id);
-      this.attWorkLocation = (d2.attendance||[])[0]?.work_location || '';
+      const locRaw = (d2.attendance||[])[0]?.work_location || '[]';
+      try { this.attWorkLocations = JSON.parse(locRaw); if (!Array.isArray(this.attWorkLocations)) this.attWorkLocations=[this.attWorkLocations]; }
+      catch { this.attWorkLocations = locRaw ? [locRaw] : []; }
       await this.loadLocations();
     },
 
@@ -2167,7 +2340,7 @@ function app() {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ site_code: this.siteCode, company: this.company,
                                  work_date: this.attDate, worker_ids: this.checkedIds,
-                                 work_location: this.attWorkLocation })
+                                 work_location: JSON.stringify(this.attWorkLocations) })
         });
         this.showToast('출근 저장 완료');
       } finally { this.attSaving = false; }
