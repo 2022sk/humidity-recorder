@@ -425,7 +425,7 @@
     <!-- 도면 탭 -->
     <div x-show="adminTab==='map'">
       <div class="relative select-none" style="border-radius:12px;overflow:hidden;background:#f0f0f0">
-        <img src="/static/site_map.png" style="width:100%;display:block" draggable="false">
+        <img src="/site_map.png" style="width:100%;display:block" draggable="false">
         <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
           <template x-for="loc in LOCATION_PRESETS" :key="loc">
             <g style="pointer-events:all;cursor:pointer" @click="mapSelectedLoc = (mapSelectedLoc===loc ? null : loc)">
@@ -724,7 +724,7 @@
             <button @click="mapShow=false;mapSelectedLoc=null" class="text-gray-400 text-xl leading-none">✕</button>
           </div>
           <div class="relative select-none" style="border-radius:10px;overflow:hidden;background:#f0f0f0">
-            <img src="/static/site_map.png" style="width:100%;display:block" draggable="false">
+            <img src="/site_map.png" style="width:100%;display:block" draggable="false">
             <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
               <template x-for="loc in LOCATION_PRESETS" :key="loc">
                 <g style="pointer-events:all;cursor:pointer" @click="mapSelectedLoc=(mapSelectedLoc===loc?null:loc)">
