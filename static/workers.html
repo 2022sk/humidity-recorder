@@ -143,33 +143,26 @@
         <template x-if="loginRole==='company'">
           <div x-data="{ open: false }">
             <label class="text-xs font-bold text-gray-500">업체명</label>
-            <!-- 선택 버튼 (업체 목록이 있을 때) -->
-            <template x-if="loginCompanies.length > 0">
-              <div class="relative mt-1">
-                <button type="button" @click="open = !open"
-                        class="w-full text-left px-4 py-3 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 flex items-center justify-between"
-                        style="font-family:inherit">
-                  <span :class="loginCompany ? 'text-gray-800' : 'text-gray-400'"
-                        x-text="loginCompany || '업체를 선택하세요'"></span>
-                  <span class="text-gray-400 text-xs" x-text="open ? '▲' : '▼'"></span>
-                </button>
-                <div x-show="open" @click.outside="open = false"
-                     class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-y-auto"
-                     style="max-height:200px">
-                  <template x-for="c in loginCompanies" :key="c">
-                    <button type="button" @click="loginCompany = c; open = false"
-                            class="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 border-b border-gray-100 last:border-0"
-                            style="font-family:inherit"
-                            :class="loginCompany===c ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'"
-                            x-text="c"></button>
-                  </template>
-                </div>
+            <div class="relative mt-1">
+              <button type="button" @click="open = !open"
+                      class="w-full text-left px-4 py-3 rounded-xl border border-gray-300 bg-white text-sm font-bold text-gray-700 flex items-center justify-between"
+                      style="font-family:inherit">
+                <span :class="loginCompany ? 'text-gray-800' : 'text-gray-400'"
+                      x-text="loginCompany || '업체를 선택하세요'"></span>
+                <span class="text-gray-400 text-xs" x-text="open ? '▲' : '▼'"></span>
+              </button>
+              <div x-show="open" @click.outside="open = false"
+                   class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-y-auto"
+                   style="max-height:200px">
+                <template x-for="c in loginCompanies" :key="c">
+                  <button type="button" @click="loginCompany = c; open = false"
+                          class="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 border-b border-gray-100 last:border-0"
+                          style="font-family:inherit"
+                          :class="loginCompany===c ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'"
+                          x-text="c"></button>
+                </template>
               </div>
-            </template>
-            <!-- 목록 없을 때 직접 입력 -->
-            <template x-if="loginCompanies.length === 0">
-              <input type="text" x-model="loginCompany" placeholder="업체명 직접 입력" class="mt-1">
-            </template>
+            </div>
           </div>
         </template>
         <div>
