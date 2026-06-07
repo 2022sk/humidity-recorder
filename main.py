@@ -423,6 +423,37 @@ class CompanyPinVerifyIn(BaseModel):
     company: str
     pin: str
 
+class CompanyVisibilityIn(BaseModel):
+    site_code: str
+    company: str
+    visible: bool
+
+class DeployStatusIn(BaseModel):
+    status: str
+
+# ── 업체 가시성 관리 ──────────────────────────────────────────────────────────
+@app.get("/api/vw/company-visibility")
+def get_company_visibility(site_code: str):
+    vis = wdb.get_company_visibility(site_code)
+    return {"visibility": vis}
+
+@app.post("/api/vw/company-visibility")
+def set_company_visibility(body: CompanyVisibilityIn):
+    wdb.set_company_visibility(body.site_code, body.company, body.visible)
+    return {"ok": True}
+
+@app.get("/api/vw/visible-companies")
+def get_visible_companies(site_code: str):
+    return {"companies": wdb.get_visible_companies(site_code)}
+
+# ── 미투입 상태 관리 ──────────────────────────────────────────────────────────
+@app.put("/api/vw/workers/{worker_id}/deploy-status")
+def update_deploy_status(worker_id: int, body: DeployStatusIn):
+    if body.status not in ("active", "inactive"):
+        raise HTTPException(400, "status must be active or inactive")
+    wdb.update_worker_deploy_status(worker_id, body.status)
+    return {"ok": True}
+
 # ── /workers 페이지 ───────────────────────────────────────────────────────────
 @app.get("/workers")
 def serve_workers():

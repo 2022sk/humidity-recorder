@@ -41,6 +41,7 @@ class WorkersDatabase:
             ("residence_expiry",  "TEXT DEFAULT ''"),
             ("gender",            "TEXT DEFAULT ''"),
             ("last_exam_date",    "TEXT DEFAULT ''"),
+            ("deploy_status",     "TEXT DEFAULT 'active'"),
         ]
         for col, defn in new_cols:
             if col not in cols:
@@ -145,6 +146,13 @@ class WorkersDatabase:
                     created_at  TEXT DEFAULT (datetime('now','localtime'))
                 );
 
+                CREATE TABLE IF NOT EXISTS vw_company_visibility (
+                    site_code       TEXT NOT NULL,
+                    company         TEXT NOT NULL,
+                    login_visible   INTEGER DEFAULT 1,
+                    PRIMARY KEY (site_code, company)
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_vw_workers_site
                     ON vw_workers(site_code, company);
                 CREATE INDEX IF NOT EXISTS idx_vw_attendance_date
@@ -186,6 +194,40 @@ class WorkersDatabase:
             row['vulnerability_types'] = []
         return row
 
+    # ── Company Visibility ────────────────────────────────────────────────────
+    def get_company_visibility(self, site_code: str) -> dict:
+        with self.conn() as con:
+            rows = con.execute(
+                "SELECT company, login_visible FROM vw_company_visibility WHERE UPPER(site_code)=UPPER(?)",
+                (site_code,)
+            ).fetchall()
+            return {r[0]: bool(r[1]) for r in rows}
+
+    def set_company_visibility(self, site_code: str, company: str, visible: bool):
+        with self.conn() as con:
+            con.execute("""
+                INSERT OR REPLACE INTO vw_company_visibility (site_code, company, login_visible)
+                VALUES (UPPER(?), ?, ?)
+            """, (site_code, company, 1 if visible else 0))
+
+    def get_visible_companies(self, site_code: str) -> list:
+        with self.conn() as con:
+            vis_rows = con.execute(
+                "SELECT company, login_visible FROM vw_company_visibility WHERE UPPER(site_code)=UPPER(?)",
+                (site_code,)
+            ).fetchall()
+            vis_map = {r[0]: bool(r[1]) for r in vis_rows}
+            all_rows = con.execute(
+                "SELECT DISTINCT company FROM vw_workers WHERE UPPER(site_code)=UPPER(?) AND deleted_at IS NULL ORDER BY company",
+                (site_code,)
+            ).fetchall()
+            result = []
+            for r in all_rows:
+                c = r[0]
+                if vis_map.get(c, True):  # default visible if not set
+                    result.append(c)
+            return result
+
     # ── Workers ───────────────────────────────────────────────────────────────
     def get_workers(self, site_code: str, company: str = "") -> list:
         with self.conn() as con:
@@ -193,7 +235,7 @@ class WorkersDatabase:
             p = [site_code]
             if company:
                 q += " AND company=?"; p.append(company)
-            q += " ORDER BY company, is_vulnerable DESC, name"
+            q += " ORDER BY company, CASE WHEN deploy_status='inactive' THEN 1 ELSE 0 END, is_vulnerable DESC, name"
             return [self._parse_vtypes(dict(r)) for r in con.execute(q, p).fetchall()]
 
     def insert_worker(self, data: dict) -> int:
@@ -240,6 +282,14 @@ class WorkersDatabase:
                   data.get('gender',''), data.get('last_exam_date',''),
                   vtypes, data.get('diseases',''), data.get('work_restrictions',''),
                   is_vul, data.get('notes',''), now, worker_id))
+
+    def update_worker_deploy_status(self, worker_id: int, status: str):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self.conn() as con:
+            con.execute(
+                "UPDATE vw_workers SET deploy_status=?, updated_at=? WHERE id=?",
+                (status, now, worker_id)
+            )
 
     def delete_worker(self, worker_id: int):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -362,7 +412,7 @@ class WorkersDatabase:
                     FROM vw_daily_attendance a
                     JOIN vw_workers w ON w.id=a.worker_id
                     WHERE a.site_code=? AND a.company=? AND a.work_date=?
-                      AND w.deleted_at IS NULL
+                      AND w.deleted_at IS NULL AND COALESCE(w.deploy_status,'active')!='inactive'
                     ORDER BY w.is_vulnerable DESC, COALESCE(NULLIF(w.name_korean,''), w.name)
                 """, (site_code, company, work_date)).fetchall()
             else:
@@ -372,7 +422,7 @@ class WorkersDatabase:
                     FROM vw_daily_attendance a
                     JOIN vw_workers w ON w.id=a.worker_id
                     WHERE a.site_code=? AND a.work_date=?
-                      AND w.deleted_at IS NULL
+                      AND w.deleted_at IS NULL AND COALESCE(w.deploy_status,'active')!='inactive'
                     ORDER BY a.company, w.is_vulnerable DESC, COALESCE(NULLIF(w.name_korean,''), w.name)
                 """, (site_code, work_date)).fetchall()
             return [self._parse_vtypes(dict(r)) for r in rows]
