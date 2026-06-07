@@ -694,7 +694,13 @@
           <div class="grid grid-cols-2 gap-2.5">
             <div>
               <label class="text-xs font-bold text-gray-500">협력사명 <span class="text-red-500">*</span></label>
-              <input type="text" x-model="workerModal.data.company" placeholder="업체명" class="mt-1">
+              <input type="text" x-model="workerModal.data.company" placeholder="업체명 선택 또는 입력"
+                     list="company-list" class="mt-1">
+              <datalist id="company-list">
+                <template x-for="c in workerCompanies" :key="c">
+                  <option :value="c"></option>
+                </template>
+              </datalist>
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">직종</label>
