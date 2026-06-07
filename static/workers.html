@@ -35,8 +35,7 @@
   .badge-경고{background:#ff9500;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
   .badge-주의{background:#ffcc00;color:#1c1c1e;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
   .badge-관심{background:#34c759;color:white;padding:2px 7px;border-radius:5px;font-size:.72rem;font-weight:800}
-  /* 취약유형 태그 — 단일 색상으로 통일, 크기만 조정 */
-  .vul-tag{display:inline-block;background:#ff3b30;color:white;border-radius:6px;padding:2px 8px;font-size:.68rem;font-weight:800;letter-spacing:-.01em}
+  .vul-tag{display:inline-block;color:white;border-radius:6px;padding:2px 8px;font-size:.68rem;font-weight:800;letter-spacing:-.01em}
   .worker-card{border:1px solid #e8e8ed;border-radius:14px;padding:14px 16px;background:white;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:box-shadow .15s}
   .worker-card:hover{box-shadow:0 2px 14px rgba(0,0,0,.09)}
   .worker-card.vulnerable{border-color:#ffb3b3;background:linear-gradient(135deg,#fff8f8,#fff)}
@@ -207,45 +206,30 @@
         </div>
       </div>
 
-      <!-- 그룹 기준 -->
-      <div class="flex gap-1 bg-gray-100 rounded-lg p-0.5 mb-2 w-fit">
-        <button @click="workerGroupBy='company'; workerFilter=''"
-                :class="workerGroupBy==='company' ? 'btn-primary' : ''"
-                class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">업체별</button>
-        <button @click="workerGroupBy='jobtype'; workerFilter=''"
-                :class="workerGroupBy==='jobtype' ? 'btn-primary' : ''"
-                class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">직종별</button>
-        <button @click="workerGroupBy='company_jobtype'; workerFilter=''"
-                :class="workerGroupBy==='company_jobtype' ? 'btn-primary' : ''"
-                class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">업체+직종</button>
-        <button @click="workerGroupBy='location_vuln'; workerShowFilter='all'"
-                :class="workerGroupBy==='location_vuln' ? 'btn-primary' : ''"
-                class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">📍위치별취약</button>
-      </div>
-
-      <!-- 표시 필터 (위치별 제외) -->
-      <template x-if="workerGroupBy!=='location_vuln'">
-        <div class="flex gap-1 bg-gray-100 rounded-lg p-0.5 mb-2 w-fit">
-          <button @click="workerShowFilter='all'" :class="workerShowFilter==='all' ? 'btn-primary' : ''"
-                  class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">전체</button>
-          <button @click="workerShowFilter='vuln'" :class="workerShowFilter==='vuln' ? 'btn-primary' : ''"
-                  class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">🔴 취약만</button>
-          <button @click="workerShowFilter='attend_vuln'" :class="workerShowFilter==='attend_vuln' ? 'btn-primary' : ''"
-                  class="text-xs py-1 px-2.5 rounded-md font-bold transition-all">오늘출근취약</button>
-        </div>
-      </template>
-
-      <!-- 업체 필터 (업체별/업체+직종 모드) -->
-      <template x-if="workerGroupBy==='company' || workerGroupBy==='company_jobtype'">
-        <div class="flex gap-1 flex-wrap mb-2">
-          <button @click="workerFilter=''" :class="workerFilter==='' ? 'btn-primary' : 'btn-secondary'"
-                  class="text-xs py-1 px-2.5 rounded-lg">전체</button>
+      <!-- 정렬/필터 드롭다운 -->
+      <div class="flex gap-2 items-center mb-3 flex-wrap">
+        <select x-model="workerGroupBy" @change="workerFilter=''; if(workerGroupBy==='location_vuln') workerShowFilter='all'"
+                class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
+          <option value="company">업체별</option>
+          <option value="jobtype">직종별</option>
+          <option value="company_jobtype">업체+직종</option>
+          <option value="location_vuln">📍 위치별취약</option>
+        </select>
+        <select x-show="workerGroupBy!=='location_vuln'" x-model="workerShowFilter"
+                class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
+          <option value="all">전체</option>
+          <option value="vuln">🔴 취약만</option>
+          <option value="attend_vuln">오늘출근취약</option>
+        </select>
+        <select x-show="workerGroupBy==='company' || workerGroupBy==='company_jobtype'"
+                x-model="workerFilter"
+                class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
+          <option value="">전체 업체</option>
           <template x-for="c in workerCompanies" :key="c">
-            <button @click="workerFilter=c" :class="workerFilter===c ? 'btn-primary' : 'btn-secondary'"
-                    class="text-xs py-1 px-2.5 rounded-lg" x-text="c"></button>
+            <option :value="c" x-text="c"></option>
           </template>
-        </div>
-      </template>
+        </select>
+      </div>
       <!-- 근로자 목록 -->
       <div class="space-y-4">
         <template x-for="grp in groupedWorkers" :key="grp.company">
@@ -306,7 +290,7 @@
                         </div>
                         <div x-show="(w.vulnerability_types||[]).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1 mb-1">
                           <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
-                            <span class="vul-tag" x-text="vt"></span>
+                            <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                           </template>
                         </div>
                         <div x-show="filteredDiseases(w).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
@@ -366,7 +350,7 @@
                               </div>
                               <div x-show="(w.vulnerability_types||[]).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
                                 <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
-                                  <span class="vul-tag" x-text="vt"></span>
+                                  <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                                 </template>
                               </div>
                             </div>
@@ -420,7 +404,7 @@
               <span class="text-xs text-gray-400 ml-2" x-text="a.company"></span>
               <div class="flex flex-wrap gap-1 mt-0.5">
                 <template x-for="vt in a.vulnerability_types" :key="vt">
-                  <span class="vul-tag" x-text="vt"></span>
+                  <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                 </template>
               </div>
             </div>
@@ -542,7 +526,7 @@
                     </div>
                     <div class="flex flex-wrap gap-1 mt-0.5">
                       <template x-for="vt in w.vulnerability_types" :key="vt">
-                        <span class="vul-tag" x-text="vt"></span>
+                        <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                       </template>
                     </div>
                     <div x-show="w.work_restrictions" class="text-xs text-orange-600 mt-0.5" x-text="'⚠ '+w.work_restrictions"></div>
@@ -602,7 +586,7 @@
                     </div>
                     <div x-show="w.is_vulnerable" class="flex flex-wrap gap-1 mt-0.5">
                       <template x-for="vt in w.vulnerability_types" :key="vt">
-                        <span class="vul-tag" x-text="vt"></span>
+                        <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                       </template>
                     </div>
                   </div>
@@ -740,7 +724,7 @@
                       <span class="font-bold text-gray-800" x-text="a.name_korean||a.name"></span>
                       <span x-show="!healthCompanyFilter && a.company" class="info-tag" x-text="a.company"></span>
                       <template x-for="vt in a.vulnerability_types" :key="vt">
-                        <span class="vul-tag" x-text="vt"></span>
+                        <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                       </template>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -1845,6 +1829,23 @@ function app() {
     parseDiseases(str) {
       if (!str) return [];
       return str.split(',').map(s => s.trim()).filter(Boolean);
+    },
+
+    vtypeColor(vt) {
+      const map = {
+        '고령':          'background:#ff9500',
+        '초고령':         'background:#ff6c00',
+        '혈압':          'background:#ff3b30',
+        '심뇌혈관질환':    'background:#ff2d55',
+        '당뇨':          'background:#af52de',
+        '기타유질환':     'background:#636366',
+        '신규배치자':     'background:#007aff',
+        '특정약물복용자':  'background:#5856d6',
+        '온열질환병력':    'background:#ff6b00',
+        '신장질환':       'background:#00c7be',
+        '비만':          'background:#ff375f',
+      };
+      return (map[vt] || 'background:#ff3b30') + ';color:white';
     },
 
     filteredDiseases(w) {
