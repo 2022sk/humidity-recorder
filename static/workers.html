@@ -281,7 +281,7 @@
                       </div>
                     </div>
                     <div class="flex gap-1 flex-shrink-0 mt-0.5">
-                      <button @click="toggleDeployStatus(w)"
+                      <button @click="toggleDeployStatus(w, loadWorkers.bind(this))"
                               :class="w.deploy_status==='inactive' ? 'btn-primary' : 'btn-secondary'"
                               class="text-xs py-1 px-2"
                               x-text="w.deploy_status==='inactive' ? '투입' : '미투입'"></button>
@@ -520,25 +520,46 @@
       </div>
     </template>
 
-    <!-- 미투입 근로자 (항상 맨 아래) -->
+    <!-- 미투입 근로자 (항상 맨 아래, 업체 담당자도 토글 가능) -->
     <template x-if="companyWorkers.filter(w=>w.deploy_status==='inactive').length > 0">
       <div class="mt-4">
         <div class="text-xs font-extrabold text-gray-400 mb-2">⛔ 미투입 근로자</div>
         <div class="space-y-1.5">
           <template x-for="w in companyWorkers.filter(w=>w.deploy_status==='inactive')" :key="w.id">
-            <div class="worker-card opacity-40" style="pointer-events:none">
+            <div class="worker-card opacity-50">
               <div class="flex items-center gap-3">
                 <div class="w-5 h-5 rounded border border-gray-300 bg-gray-100 flex-shrink-0"></div>
                 <div class="flex-1">
                   <span class="font-bold text-gray-500 line-through" x-text="w.name_korean||w.name"></span>
                   <span x-show="w.job_type" class="text-xs text-gray-400 ml-2" x-text="w.job_type"></span>
                 </div>
+                <button @click="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
+                        class="btn-primary text-xs py-1 px-2.5 flex-shrink-0">투입 복귀</button>
               </div>
             </div>
           </template>
         </div>
       </div>
     </template>
+
+    <!-- 미투입 추가 버튼 (active 근로자에서 미투입 처리) -->
+    <div class="mt-4 pt-3 border-t border-gray-100">
+      <div x-data="{ showMitooip: false }">
+        <button @click="showMitooip = !showMitooip" class="text-xs text-gray-400 font-bold">
+          <span x-text="showMitooip ? '▲ 미투입 처리 접기' : '▼ 미투입 처리'"></span>
+        </button>
+        <div x-show="showMitooip" class="mt-2 space-y-1.5">
+          <div class="text-xs text-gray-500 mb-1">이 근로자를 미투입으로 처리하면 출근체크에서 제외됩니다.</div>
+          <template x-for="w in companyWorkers.filter(w=>w.deploy_status!=='inactive')" :key="w.id">
+            <div class="flex items-center justify-between p-2 rounded-lg border border-gray-100 bg-gray-50">
+              <span class="text-sm font-bold text-gray-700" x-text="w.name_korean||w.name"></span>
+              <button @click="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
+                      class="btn-secondary text-xs py-0.5 px-2">미투입</button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
 
     <div x-show="companyWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
   </div>
@@ -1905,14 +1926,15 @@ function app() {
     },
 
     // ── 관리자: 미투입 ────────────────────────────────────────────────────────
-    async toggleDeployStatus(w) {
+    async toggleDeployStatus(w, reloadFn) {
       const newStatus = (w.deploy_status || 'active') === 'active' ? 'inactive' : 'active';
       await fetch(API_BASE+'/api/vw/workers/'+w.id+'/deploy-status', {
         method:'PUT', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ status: newStatus })
       });
-      await this.loadWorkers();
       this.showToast(newStatus === 'inactive' ? '미투입으로 변경됨' : '투입으로 복귀됨');
+      if (reloadFn) await reloadFn();
+      else await this.loadWorkers();
     },
 
     // ── 관리자: 출근현황 ──────────────────────────────────────────────────────
