@@ -747,7 +747,7 @@
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">생년월일</label>
-              <input type="date" x-model="workerModal.data.birth_date" @change="autoFillAgeVtypes()" class="mt-1">
+              <input type="date" x-model="workerModal.data.birth_date" @change="autoFillVtypes()" class="mt-1">
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">성별</label>
@@ -792,7 +792,7 @@
         <div class="space-y-2.5 p-3 rounded-xl" style="background:#f9f9fb;border:1px solid #e8e8ed">
           <div>
             <label class="text-xs font-bold text-gray-500">기저질환 상세 <span class="font-normal text-gray-400">(쉼표로 구분)</span></label>
-            <input type="text" x-model="workerModal.data.diseases" placeholder="혈압, 당뇨 등" class="mt-1">
+            <input type="text" x-model="workerModal.data.diseases" placeholder="혈압, 당뇨 등" class="mt-1" @input="autoFillVtypes()">
           </div>
           <div>
             <label class="text-xs font-bold text-gray-500">작업 제한사항</label>
@@ -1499,19 +1499,28 @@ function app() {
       return str.split(',').map(s => s.trim()).filter(Boolean);
     },
 
-    autoFillAgeVtypes() {
+    autoFillVtypes() {
+      const AUTO = ['고령(만60세이상)', '초고령(만66세이상)', '혈압', '당뇨', '심뇌혈관질환'];
+      let vtypes = this.workerModal.data.vulnerability_types.filter(v => !AUTO.includes(v));
+
+      // 나이 기반
       const bd = this.workerModal.data.birth_date;
-      if (!bd) return;
-      const today = new Date();
-      const birth = new Date(bd);
-      let age = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-      const ELDERLY = '고령(만60세이상)';
-      const SUPER   = '초고령(만66세이상)';
-      const vtypes = this.workerModal.data.vulnerability_types.filter(v => v !== ELDERLY && v !== SUPER);
-      if (age >= 66) { vtypes.push(SUPER); }
-      else if (age >= 60) { vtypes.push(ELDERLY); }
+      if (bd) {
+        const today = new Date();
+        const birth = new Date(bd);
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        if (age >= 66) vtypes.push('초고령(만66세이상)');
+        else if (age >= 60) vtypes.push('고령(만60세이상)');
+      }
+
+      // 기저질환 기반
+      const d = this.workerModal.data.diseases || '';
+      if (d.includes('혈압')) vtypes.push('혈압');
+      if (d.includes('당뇨')) vtypes.push('당뇨');
+      if (d.includes('심장') || d.includes('뇌혈관') || d.includes('심뇌혈관')) vtypes.push('심뇌혈관질환');
+
       this.workerModal.data.vulnerability_types = vtypes;
     },
 
