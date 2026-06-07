@@ -132,12 +132,12 @@
         <div>
           <label class="text-xs font-bold text-gray-500">접속 유형</label>
           <div class="grid grid-cols-2 gap-2 mt-1">
-            <button @click="loginRole='admin'"
-                    :class="loginRole==='admin' ? 'btn-primary' : 'btn-secondary'"
-                    class="py-2.5 text-sm rounded-xl font-bold">🔑 관리자</button>
             <button @click="loginRole='company'; loadLoginCompanies()"
                     :class="loginRole==='company' ? 'btn-primary' : 'btn-secondary'"
                     class="py-2.5 text-sm rounded-xl font-bold">🏢 업체</button>
+            <button @click="loginRole='admin'"
+                    :class="loginRole==='admin' ? 'btn-primary' : 'btn-secondary'"
+                    class="py-2.5 text-sm rounded-xl font-bold">🔑 관리자</button>
           </div>
         </div>
         <template x-if="loginRole==='company'">
