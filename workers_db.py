@@ -217,6 +217,15 @@ class WorkersDatabase:
                 (site_code,)
             ).fetchall()
             vis_map = {r[0]: bool(r[1]) for r in vis_rows}
+            # 전체 미투입 업체 목록 (active 근로자가 한 명도 없는 업체)
+            inactive_rows = con.execute("""
+                SELECT company FROM vw_workers
+                WHERE UPPER(site_code)=UPPER(?) AND deleted_at IS NULL
+                GROUP BY company
+                HAVING COUNT(*) > 0
+                   AND COUNT(CASE WHEN COALESCE(deploy_status,'active')='active' THEN 1 END) = 0
+            """, (site_code,)).fetchall()
+            all_inactive = {r[0] for r in inactive_rows}
             all_rows = con.execute(
                 "SELECT DISTINCT company FROM vw_workers WHERE UPPER(site_code)=UPPER(?) AND deleted_at IS NULL ORDER BY company",
                 (site_code,)
@@ -224,7 +233,9 @@ class WorkersDatabase:
             result = []
             for r in all_rows:
                 c = r[0]
-                if vis_map.get(c, True):  # default visible if not set
+                if c in all_inactive:
+                    continue  # 전체 미투입 업체 자동 제외
+                if vis_map.get(c, True):
                     result.append(c)
             return result
 
