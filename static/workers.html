@@ -187,7 +187,7 @@
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
       <button class="tab-btn flex-1" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='locations'}" @click="adminTab='locations';loadLocations()">📍 위치</button>
+      <button class="tab-btn flex-1" :class="{active:adminTab==='map'}" @click="adminTab='map';loadMapAttendance()">🗺 도면</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 업체PIN</button>
     </div>
 
@@ -408,7 +408,13 @@
                 </template>
               </div>
             </div>
-            <div class="text-xs text-gray-500 font-bold" x-text="a.work_location || '위치미정'"></div>
+            <div class="flex flex-wrap gap-1 mt-0.5">
+              <template x-if="parseLocations(a.work_location).length>0">
+                <template x-for="loc in parseLocations(a.work_location)" :key="loc">
+                  <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#e0f2fe;color:#0369a1" x-text="loc"></span>
+                </template>
+              </template>
+            </div>
           </div>
         </template>
         <div x-show="attendance.length===0" class="text-center text-gray-400 py-8 text-sm">출근 기록이 없습니다</div>
@@ -1564,10 +1570,24 @@ function app() {
       preview:[], importing:false, result:null,
     },
 
+    // ── 도면 위치 상수 ──
+    LOCATION_PRESETS: ['①','②','③','④','⑤','⑥','Ⅰ','Ⅱ','Ⅲ','Ⅳ','A','B','C','D','E','F','G','GATE1','GATE2','GATE3','GATE4'],
+    LOCATION_COORDS: {
+      '①':{x:44.4,y:57.4}, '②':{x:59.4,y:51.9}, '③':{x:52.4,y:53.1},
+      '④':{x:45.5,y:48.1}, '⑤':{x:42.0,y:58.6}, '⑥':{x:58.3,y:74.1},
+      'Ⅰ':{x:76.0,y:47.5}, 'Ⅱ':{x:66.3,y:41.4}, 'Ⅲ':{x:43.6,y:71.0}, 'Ⅳ':{x:75.7,y:38.3},
+      'A':{x:84.0,y:36.4}, 'B':{x:87.2,y:31.5}, 'C':{x:85.8,y:62.3},
+      'D':{x:76.7,y:51.2}, 'E':{x:77.4,y:56.2}, 'F':{x:75.3,y:40.7}, 'G':{x:85.8,y:51.2},
+      'GATE1':{x:72.9,y:88.3}, 'GATE2':{x:49.3,y:93.2}, 'GATE3':{x:35.4,y:44.4}, 'GATE4':{x:91.0,y:60.5},
+    },
+    mapShow: false,
+    mapSelectedLoc: null,
+    mapAttendance: [],
+
     // ── 출근 ──
     attDate: new Date().toISOString().slice(0,10),
     attCompany: '',
-    attWorkLocation: '',
+    attWorkLocations: [],
     attendance: [],
     companyWorkers: [],
     checkedIds: [],
