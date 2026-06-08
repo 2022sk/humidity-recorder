@@ -206,23 +206,15 @@
         </div>
       </div>
 
-      <!-- 정렬/필터 드롭다운 -->
+      <!-- 필터 -->
       <div class="flex gap-2 items-center mb-3 flex-wrap">
-        <select x-model="workerGroupBy" @change="workerFilter=''; if(workerGroupBy==='location_vuln') workerShowFilter='all'"
-                class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
-          <option value="company">업체별</option>
-          <option value="jobtype">직종별</option>
-          <option value="company_jobtype">업체+직종</option>
-          <option value="location_vuln">📍 위치별취약</option>
-        </select>
-        <select x-show="workerGroupBy!=='location_vuln'" x-model="workerShowFilter"
+        <select x-model="workerShowFilter"
                 class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
           <option value="all">전체</option>
           <option value="vuln">🔴 취약만</option>
           <option value="attend_vuln">오늘출근취약</option>
         </select>
-        <select x-show="workerGroupBy==='company' || workerGroupBy==='company_jobtype'"
-                x-model="workerFilter"
+        <select x-model="workerFilter"
                 class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
           <option value="">전체 업체</option>
           <template x-for="c in workerCompanies" :key="c">
@@ -230,13 +222,18 @@
           </template>
         </select>
       </div>
-      <!-- 근로자 목록 -->
-      <div class="space-y-4">
+
+      <!-- 근로자 목록 (업체 → 공종 2단계 그룹) -->
+      <div class="space-y-3">
         <template x-for="grp in groupedWorkers" :key="grp.company">
           <div :class="grp.allInactive ? 'opacity-50' : ''">
-            <!-- 그룹 헤더 -->
-            <div class="company-header flex items-center justify-between"
-                 :style="grp.allInactive ? 'background:#f3f4f6;color:#9ca3af' : ''">
+
+            <!-- 업체 헤더 (클릭 → 접기/펴기) -->
+            <div class="company-header flex items-center gap-2 cursor-pointer select-none"
+                 :style="grp.allInactive ? 'background:#f3f4f6;color:#9ca3af' : ''"
+                 @click="toggleCollapseCompany(grp.company)">
+              <span class="text-gray-400 flex-shrink-0 text-xs"
+                    :style="collapsedCompanies[grp.company] ? 'display:inline-block;transform:rotate(-90deg);transition:transform .15s' : 'display:inline-block;transition:transform .15s'">▼</span>
               <div class="flex-1 min-w-0">
                 <span x-text="(grp.isLocationGroup ? '📍 ' : (grp.allInactive ? '⛔ ' : '🏢 ')) + grp.company"></span>
                 <span x-show="!grp.isLocationGroup" class="ml-1 text-gray-500"
@@ -247,130 +244,143 @@
                 <span x-show="!grp.isLocationGroup">)</span>
                 <span x-show="grp.isLocationGroup" class="ml-1 text-gray-500" x-text="'('+grp.workers.length+'명)'"></span>
               </div>
-              <!-- 업체 전체 미투입 토글 -->
-              <button x-show="!grp.isLocationGroup && (workerGroupBy==='company' || workerGroupBy==='company_jobtype')"
-                      @click="companyToggleDeployStatus(grp.company)"
-                      :class="grp.workers.length>0 && grp.workers.every(w=>w.deploy_status==='inactive') ? 'btn-primary text-xs py-0.5 px-2 ml-2 flex-shrink-0' : 'btn-secondary text-xs py-0.5 px-2 ml-2 flex-shrink-0'"
+              <button x-show="!grp.isLocationGroup"
+                      @click.stop="companyToggleDeployStatus(grp.company)"
+                      :class="grp.workers.every(w=>w.deploy_status==='inactive') ? 'btn-primary text-xs py-0.5 px-2 flex-shrink-0' : 'btn-secondary text-xs py-0.5 px-2 flex-shrink-0'"
                       x-text="grp.workers.every(w=>w.deploy_status==='inactive') ? '업체 투입복귀' : '업체 미투입'">
               </button>
             </div>
 
-            <!-- 일반 뷰 (단순 목록) -->
-            <template x-if="!grp.isNested">
-              <div class="space-y-2">
-                <template x-for="w in grp.workers" :key="w.id">
-                  <div class="worker-card"
-                       :class="[w.is_vulnerable&&w.deploy_status!=='inactive'?'vulnerable':'', w.deploy_status==='inactive'?'opacity-40':'']">
-                    <div class="flex items-start justify-between gap-2">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
-                          <span x-show="w.is_vulnerable&&w.deploy_status!=='inactive'" class="text-red-500 font-black text-sm leading-none">🔴</span>
-                          <template x-if="!w.nationality||w.nationality==='대한민국'">
-                            <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
-                          </template>
-                          <template x-if="w.nationality&&w.nationality!=='대한민국'">
-                            <span class="flex items-baseline gap-1.5 flex-wrap">
-                              <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
-                              <span x-show="w.name_korean&&w.name" class="text-xs text-gray-400 font-normal" x-text="w.name"></span>
-                            </span>
-                          </template>
-                          <span x-show="grp.isLocationGroup&&w._company" class="info-tag" style="background:#dbeafe;color:#1d4ed8" x-text="w._company"></span>
-                        </div>
-                        <div class="flex flex-wrap gap-1 mb-1.5">
-                          <span x-show="workerGroupBy==='jobtype'||workerGroupBy==='location_vuln'" class="info-tag" style="background:#dbeafe;color:#1d4ed8" x-text="w.company"></span>
-                          <span x-show="w.job_type" class="info-tag" x-text="w.job_type"></span>
-                          <span x-show="w.gender" class="info-tag" x-text="w.gender"></span>
-                          <span x-show="w.nationality&&w.nationality!=='대한민국'" class="info-tag" x-text="w.nationality"></span>
-                          <span x-show="w.birth_date" class="info-tag"
-                                x-text="w.birth_date?(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세':''"></span>
-                          <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8"
-                                x-text="'투입일 '+(w.education_date||'')"></span>
-                          <span x-show="w.last_exam_date" class="info-tag" style="background:#e8f4e8;color:#1a7a1a"
-                                x-text="'건강진단 '+(w.last_exam_date||'')"></span>
-                        </div>
-                        <div x-show="(w.vulnerability_types||[]).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1 mb-1">
-                          <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
-                            <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
-                          </template>
-                        </div>
-                        <div x-show="filteredDiseases(w).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
-                          <template x-for="ds in filteredDiseases(w)" :key="ds">
-                            <span class="disease-tag" x-text="ds"></span>
-                          </template>
-                        </div>
-                      </div>
-                      <div x-show="!grp.isLocationGroup" class="flex gap-1 flex-shrink-0 mt-0.5">
-                        <button @click="toggleDeployStatus(w, loadWorkers.bind(this))"
-                                :class="w.deploy_status==='inactive'?'btn-primary':'btn-secondary'"
-                                class="text-xs py-1 px-2"
-                                x-text="w.deploy_status==='inactive'?'투입':'미투입'"></button>
-                        <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2.5">편집</button>
-                        <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </template>
+            <!-- 업체 내용 -->
+            <div x-show="!collapsedCompanies[grp.company]">
 
-            <!-- 중첩 뷰 (업체+직종) -->
-            <template x-if="grp.isNested">
-              <div class="space-y-3 pl-1">
-                <template x-for="sub in grp.subgroups" :key="sub.label">
-                  <div>
-                    <div class="text-xs font-extrabold text-gray-500 mb-1.5 mt-1 pl-1"
-                         x-text="'🔧 '+sub.label+' ('+sub.workers.filter(w=>w.deploy_status!=='inactive').length+'명)'"></div>
-                    <div class="space-y-2">
-                      <template x-for="w in sub.workers" :key="w.id">
-                        <div class="worker-card"
-                             :class="[w.is_vulnerable&&w.deploy_status!=='inactive'?'vulnerable':'', w.deploy_status==='inactive'?'opacity-40':'']">
-                          <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1 min-w-0">
-                              <div class="flex items-center gap-1.5 flex-wrap mb-1">
-                                <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
-                                <span x-show="w.is_vulnerable&&w.deploy_status!=='inactive'" class="text-red-500 font-black text-sm leading-none">🔴</span>
-                                <template x-if="!w.nationality||w.nationality==='대한민국'">
-                                  <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
-                                </template>
-                                <template x-if="w.nationality&&w.nationality!=='대한민국'">
-                                  <span class="flex items-baseline gap-1.5 flex-wrap">
-                                    <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
-                                    <span x-show="w.name_korean&&w.name" class="text-xs text-gray-400 font-normal" x-text="w.name"></span>
-                                  </span>
-                                </template>
-                              </div>
-                              <div class="flex flex-wrap gap-1 mb-1">
-                                <span x-show="w.gender" class="info-tag" x-text="w.gender"></span>
-                                <span x-show="w.birth_date" class="info-tag"
-                                      x-text="w.birth_date?(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세':''"></span>
-                                <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8"
-                                      x-text="'투입일 '+(w.education_date||'')"></span>
-                                <span x-show="w.last_exam_date" class="info-tag" style="background:#e8f4e8;color:#1a7a1a"
-                                      x-text="'건강진단 '+(w.last_exam_date||'')"></span>
-                              </div>
-                              <div x-show="(w.vulnerability_types||[]).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
-                                <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
-                                  <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
-                                </template>
-                              </div>
-                            </div>
-                            <div class="flex gap-1 flex-shrink-0 mt-0.5">
-                              <button @click="toggleDeployStatus(w, loadWorkers.bind(this))"
-                                      :class="w.deploy_status==='inactive'?'btn-primary':'btn-secondary'"
-                                      class="text-xs py-1 px-2"
-                                      x-text="w.deploy_status==='inactive'?'투입':'미투입'"></button>
-                              <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2.5">편집</button>
-                              <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
-                            </div>
+              <!-- 단순 목록 (업체별·직종별·위치별) -->
+              <template x-if="!grp.isNested">
+                <div class="space-y-2 mt-1.5">
+                  <template x-for="w in grp.workers" :key="w.id">
+                    <div class="worker-card"
+                         :class="[w.is_vulnerable&&w.deploy_status!=='inactive'?'vulnerable':'', w.deploy_status==='inactive'?'opacity-40':'']">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                            <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
+                            <span x-show="w.is_vulnerable&&w.deploy_status!=='inactive'" class="text-red-500 font-black text-sm leading-none">🔴</span>
+                            <template x-if="!w.nationality||w.nationality==='대한민국'">
+                              <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                            </template>
+                            <template x-if="w.nationality&&w.nationality!=='대한민국'">
+                              <span class="flex items-baseline gap-1.5 flex-wrap">
+                                <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                                <span x-show="w.name_korean&&w.name" class="text-xs text-gray-400 font-normal" x-text="w.name"></span>
+                              </span>
+                            </template>
+                            <span x-show="grp.isLocationGroup&&w._company" class="info-tag" style="background:#dbeafe;color:#1d4ed8" x-text="w._company"></span>
+                          </div>
+                          <div class="flex flex-wrap gap-1 mb-1.5">
+                            <span x-show="w.job_type" class="info-tag" x-text="w.job_type"></span>
+                            <span x-show="w.gender" class="info-tag" x-text="w.gender"></span>
+                            <span x-show="w.nationality&&w.nationality!=='대한민국'" class="info-tag" x-text="w.nationality"></span>
+                            <span x-show="w.birth_date" class="info-tag"
+                                  x-text="w.birth_date?(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세':''"></span>
+                            <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8"
+                                  x-text="'투입일 '+(w.education_date||'')"></span>
+                            <span x-show="w.last_exam_date" class="info-tag" style="background:#e8f4e8;color:#1a7a1a"
+                                  x-text="'건강진단 '+(w.last_exam_date||'')"></span>
+                          </div>
+                          <div x-show="(w.vulnerability_types||[]).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1 mb-1">
+                            <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                              <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                            </template>
+                          </div>
+                          <div x-show="filteredDiseases(w).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
+                            <template x-for="ds in filteredDiseases(w)" :key="ds">
+                              <span class="disease-tag" x-text="ds"></span>
+                            </template>
                           </div>
                         </div>
-                      </template>
+                        <div x-show="!grp.isLocationGroup" class="flex gap-1 flex-shrink-0 mt-0.5">
+                          <button @click="toggleDeployStatus(w, loadWorkers.bind(this))"
+                                  :class="w.deploy_status==='inactive'?'btn-primary':'btn-secondary'"
+                                  class="text-xs py-1 px-2"
+                                  x-text="w.deploy_status==='inactive'?'투입':'미투입'"></button>
+                          <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2.5">편집</button>
+                          <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </div>
-            </template>
+                  </template>
+                </div>
+              </template>
+
+              <!-- 업체+공종 중첩 뷰 -->
+              <template x-if="grp.isNested">
+                <div class="space-y-1 pl-2 mt-1 border-l-2 border-gray-100">
+                  <template x-for="sub in grp.subgroups" :key="sub.label">
+                    <div class="mt-2">
+                      <!-- 공종 헤더 (클릭 → 접기/펴기) -->
+                      <div class="flex items-center gap-1.5 cursor-pointer select-none py-1 px-1 rounded-lg hover:bg-gray-50"
+                           @click="toggleCollapseJobType(grp.company+'::'+sub.label)">
+                        <span class="text-gray-400 flex-shrink-0 text-xs"
+                              :style="collapsedJobTypes[grp.company+'::'+sub.label] ? 'display:inline-block;transform:rotate(-90deg);transition:transform .15s' : 'display:inline-block;transition:transform .15s'">▾</span>
+                        <span class="text-xs font-extrabold text-gray-500"
+                              x-text="'🔧 '+sub.label"></span>
+                        <span class="text-xs text-gray-400"
+                              x-text="'('+sub.workers.filter(w=>w.deploy_status!=='inactive').length+'명'+(sub.workers.some(w=>w.deploy_status==='inactive') ? ' · 미투입 '+sub.workers.filter(w=>w.deploy_status==='inactive').length+'명' : '')+')'"></span>
+                      </div>
+                      <!-- 공종 내 근로자 -->
+                      <div x-show="!collapsedJobTypes[grp.company+'::'+sub.label]" class="space-y-2 mt-1">
+                        <template x-for="w in sub.workers" :key="w.id">
+                          <div class="worker-card"
+                               :class="[w.is_vulnerable&&w.deploy_status!=='inactive'?'vulnerable':'', w.deploy_status==='inactive'?'opacity-40':'']">
+                            <div class="flex items-start justify-between gap-2">
+                              <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                  <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
+                                  <span x-show="w.is_vulnerable&&w.deploy_status!=='inactive'" class="text-red-500 font-black text-sm leading-none">🔴</span>
+                                  <template x-if="!w.nationality||w.nationality==='대한민국'">
+                                    <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                                  </template>
+                                  <template x-if="w.nationality&&w.nationality!=='대한민국'">
+                                    <span class="flex items-baseline gap-1.5 flex-wrap">
+                                      <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
+                                      <span x-show="w.name_korean&&w.name" class="text-xs text-gray-400 font-normal" x-text="w.name"></span>
+                                    </span>
+                                  </template>
+                                </div>
+                                <div class="flex flex-wrap gap-1 mb-1">
+                                  <span x-show="w.gender" class="info-tag" x-text="w.gender"></span>
+                                  <span x-show="w.nationality&&w.nationality!=='대한민국'" class="info-tag" x-text="w.nationality"></span>
+                                  <span x-show="w.birth_date" class="info-tag"
+                                        x-text="w.birth_date?(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세':''"></span>
+                                  <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8"
+                                        x-text="'투입일 '+(w.education_date||'')"></span>
+                                  <span x-show="w.last_exam_date" class="info-tag" style="background:#e8f4e8;color:#1a7a1a"
+                                        x-text="'건강진단 '+(w.last_exam_date||'')"></span>
+                                </div>
+                                <div x-show="(w.vulnerability_types||[]).length>0&&w.deploy_status!=='inactive'" class="flex flex-wrap gap-1">
+                                  <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                                    <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                                  </template>
+                                </div>
+                              </div>
+                              <div class="flex gap-1 flex-shrink-0 mt-0.5">
+                                <button @click="toggleDeployStatus(w, loadWorkers.bind(this))"
+                                        :class="w.deploy_status==='inactive'?'btn-primary':'btn-secondary'"
+                                        class="text-xs py-1 px-2"
+                                        x-text="w.deploy_status==='inactive'?'투입':'미투입'"></button>
+                                <button @click="openWorkerModal(w)" class="btn-secondary text-xs py-1 px-2.5">편집</button>
+                                <button @click="deleteWorker(w)" class="btn-danger text-xs py-1 px-2">삭제</button>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+
+            </div>
           </div>
         </template>
         <div x-show="groupedWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">근로자가 없습니다</div>
@@ -1703,8 +1713,10 @@ function app() {
     adminTab: 'workers',
     workers: [],
     workerFilter: '',
-    workerGroupBy: 'company',      // 'company' | 'jobtype' | 'company_jobtype' | 'location_vuln'
-    workerShowFilter: 'all',       // 'all' | 'vuln' | 'attend_vuln'
+    workerGroupBy: 'company_jobtype', // 'company' | 'jobtype' | 'company_jobtype' | 'location_vuln'
+    workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
+    collapsedCompanies: {},
+    collapsedJobTypes: {},
     workerCompanies: [],
     adminTodayAttendance: [],
     vtypeOptions: ['고령','초고령','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
@@ -2072,6 +2084,13 @@ function app() {
         return Object.values(this.workerLocations).filter(locs => locs.includes('전구역')).length;
       }
       return Object.values(this.workerLocations).filter(locs => locs.includes(loc)).length;
+    },
+
+    toggleCollapseCompany(company) {
+      this.collapsedCompanies = {...this.collapsedCompanies, [company]: !this.collapsedCompanies[company]};
+    },
+    toggleCollapseJobType(key) {
+      this.collapsedJobTypes = {...this.collapsedJobTypes, [key]: !this.collapsedJobTypes[key]};
     },
 
     getCoord(loc) {
