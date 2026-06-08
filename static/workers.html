@@ -264,7 +264,8 @@
                         <div class="flex-1 min-w-0">
                           <div class="flex items-center gap-1.5 flex-wrap mb-1">
                             <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
-                            <span x-show="w.is_vulnerable&&w.deploy_status!=='inactive'" class="text-red-500 font-black text-sm leading-none">🔴</span>
+                            <span x-show="hasOtherVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🔴</span>
+                            <span x-show="isElderlyVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🟠</span>
                             <template x-if="!w.nationality||w.nationality==='대한민국'">
                               <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
                             </template>
@@ -336,7 +337,8 @@
                               <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-1.5 flex-wrap mb-1">
                                   <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
-                                  <span x-show="w.is_vulnerable&&w.deploy_status!=='inactive'" class="text-red-500 font-black text-sm leading-none">🔴</span>
+                                  <span x-show="hasOtherVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🔴</span>
+                            <span x-show="isElderlyVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🟠</span>
                                   <template x-if="!w.nationality||w.nationality==='대한민국'">
                                     <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
                                   </template>
@@ -409,7 +411,8 @@
       <div class="space-y-2">
         <template x-for="a in attendance" :key="a.id">
           <div class="worker-card flex items-center gap-3" :class="a.is_vulnerable ? 'vulnerable' : ''">
-            <span x-show="a.is_vulnerable" class="text-red-500">🔴</span>
+            <span x-show="hasOtherVuln(a)" class="font-black">🔴</span>
+            <span x-show="isElderlyVuln(a)" class="font-black">🟠</span>
             <div class="flex-1">
               <span class="font-bold" x-text="a.name_korean||a.name"></span>
               <span class="text-xs text-gray-400 ml-2" x-text="a.company"></span>
@@ -526,7 +529,8 @@
           <div class="space-y-1.5">
             <template x-for="w in mapWorkersAt(mapSelectedLoc)" :key="w.worker_id">
               <div class="flex items-center gap-2 p-2 rounded-lg" :class="w.is_vulnerable ? 'bg-red-50' : 'bg-gray-50'">
-                <span x-show="w.is_vulnerable" class="text-red-500 text-xs">🔴</span>
+                <span x-show="hasOtherVuln(w)" class="font-black text-xs">🔴</span>
+                <span x-show="isElderlyVuln(w)" class="font-black text-xs">🟠</span>
                 <span class="font-bold text-sm text-gray-800" x-text="w.name_korean||w.name"></span>
                 <span class="text-xs text-gray-400" x-text="w.company"></span>
                 <div class="flex flex-wrap gap-1 ml-auto">
@@ -765,7 +769,8 @@
         <div class="space-y-1">
           <template x-for="w in companyWorkers.filter(w=>(workerLocations[w.id]||[]).length>0)" :key="w.id">
             <div class="flex items-center gap-2 py-1 px-2 rounded-lg bg-gray-50">
-              <span x-show="w.is_vulnerable" class="text-red-500 text-xs">🔴</span>
+              <span x-show="hasOtherVuln(w)" class="font-black text-xs">🔴</span>
+              <span x-show="isElderlyVuln(w)" class="font-black text-xs">🟠</span>
               <span class="text-sm font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
               <div class="flex flex-wrap gap-1 ml-auto">
                 <template x-for="loc in (workerLocations[w.id]||[])" :key="loc">
@@ -2133,6 +2138,15 @@ function app() {
 
     get totalAttended() {
       return Object.values(this.workerLocations).filter(locs => locs.length > 0).length;
+    },
+
+    isElderlyVuln(w) {
+      const vt = w.vulnerability_types || [];
+      return vt.includes('고령') || vt.includes('초고령');
+    },
+    hasOtherVuln(w) {
+      const vt = w.vulnerability_types || [];
+      return vt.some(v => v !== '고령' && v !== '초고령');
     },
 
     vtypeColor(vt) {
