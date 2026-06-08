@@ -169,7 +169,12 @@ async def extract_photo(body: dict):
         return result
     except Exception as e:
         logger.warning("AI 추출 실패: photo_id=%s error=%s", photo_id, e)
-        raise HTTPException(422, str(e))
+        err = str(e)
+        if "RESOURCE_EXHAUSTED" in err or "prepayment" in err.lower() or "credits" in err.lower():
+            raise HTTPException(503, "Gemini API 크레딧이 소진되었습니다. aistudio.google.com 에서 충전 후 다시 시도해 주세요.")
+        if "API_KEY_INVALID" in err or "API key" in err:
+            raise HTTPException(401, "Gemini API 키가 유효하지 않습니다. 상단 AI 버튼에서 키를 확인해 주세요.")
+        raise HTTPException(502, f"AI 분석 실패: {err[:200]}")
 
 
 # ── 기록 CRUD ─────────────────────────────────────────────────────────────────
