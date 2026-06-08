@@ -437,85 +437,116 @@
 
     <!-- 도면 탭 -->
     <div x-show="adminTab==='map'">
-      <!-- 편집 모드 토글 -->
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex flex-wrap gap-1.5">
-          <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-red-600"></span>출근 있음</span>
-          <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-500"></span>출근 없음</span>
-          <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>선택됨</span>
-          <span class="text-xs text-gray-400" x-text="'총 '+mapAttendance.length+'명 출근'"></span>
+      <!-- 상단 컨트롤 -->
+      <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+        <div class="flex flex-wrap gap-2 items-center text-xs text-gray-500">
+          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-red-600"></span>출근</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-gray-500"></span>미출근</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-blue-600"></span>선택됨</span>
+          <span class="text-gray-400" x-text="'총 '+mapAttendance.length+'명'"></span>
         </div>
-        <div class="flex items-center gap-2">
-          <button x-show="locEditMode" @click="resetLocCoords()"
-                  class="text-xs px-2 py-1 rounded-lg font-bold"
-                  style="background:#fff3cd;color:#856404;border:1px solid #ffc107">초기화</button>
-          <button @click="locEditMode=!locEditMode; dragLoc=null"
-                  class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
-                  :style="locEditMode ? 'background:#f59e0b;color:white' : 'background:#f2f2f7;color:#1c1c1e'">
-            <span x-text="locEditMode ? '✓ 편집 완료' : '📌 위치 편집'"></span>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <template x-if="locEditMode">
+            <div class="flex items-center gap-1.5">
+              <input type="text" x-model="newLocationName" placeholder="마커 이름"
+                     @keydown.enter="addLocationAtPoint(50,50)"
+                     class="text-xs py-1.5 px-2 rounded-lg" style="width:96px;border:1.5px solid #fcd34d">
+              <button @click="newLocationName.trim() ? (locAddMode=!locAddMode) : showToast('이름을 먼저 입력하세요')"
+                      :style="locAddMode ? 'background:#16a34a;color:white' : 'background:#dcfce7;color:#15803d;border:1px solid #86efac'"
+                      class="text-xs px-2 py-1.5 rounded-lg font-bold whitespace-nowrap">
+                <span x-text="locAddMode ? '📍 클릭 배치 중...' : '➕ 추가'"></span>
+              </button>
+              <button x-show="LOCATION_PRESETS.length===0" @click="seedDefaultLocations()"
+                      class="btn-secondary text-xs py-1.5">기본 마커</button>
+              <button @click="resetLocCoords()"
+                      class="text-xs px-2 py-1.5 rounded-lg font-bold"
+                      style="background:#fff3cd;color:#856404;border:1px solid #ffc107">좌표초기화</button>
+            </div>
+          </template>
+          <button @click="locEditMode=!locEditMode; dragLoc=null; editingMarkerKey=null; locAddMode=false; newLocationName=''"
+                  :style="locEditMode ? 'background:#f59e0b;color:white' : 'background:#f2f2f7;color:#1c1c1e'"
+                  class="text-xs px-3 py-1.5 rounded-lg font-bold">
+            <span x-text="locEditMode ? '✓ 편집 완료' : '✏️ 마커 편집'"></span>
           </button>
         </div>
       </div>
-      <div x-show="locEditMode" class="mb-2 px-3 py-2 rounded-lg text-xs font-bold"
-           style="background:#fff8e1;color:#92400e;border:1px solid #fde68a">
-        마커를 드래그해서 위치를 조정하세요. 변경사항은 자동 저장됩니다.
+
+      <!-- 안내 배너 -->
+      <div x-show="locAddMode" class="mb-2 px-3 py-2 rounded-lg text-xs font-bold"
+           style="background:#f0fdf4;color:#166534;border:1px solid #86efac">
+        도면에서 원하는 위치를 클릭하면 '<span x-text="newLocationName"></span>' 마커가 배치됩니다.
       </div>
-      <!-- 지도 + SVG 마커 -->
+      <div x-show="locEditMode && !locAddMode" class="mb-2 px-3 py-2 rounded-lg text-xs"
+           style="background:#fff8e1;color:#92400e;border:1px solid #fde68a">
+        <b>드래그</b>: 위치 이동 &nbsp;|&nbsp; <b>✏️</b>: 이름 수정 &nbsp;|&nbsp; <b>✕</b>: 삭제
+      </div>
+
+      <!-- 지도 + HTML 마커 -->
       <div class="relative select-none" x-ref="adminMapEl"
-           style="border-radius:12px;overflow:hidden;background:#f0f0f0;touch-action:none"
-           :style="locEditMode ? 'cursor:crosshair' : ''"
+           style="border-radius:12px;background:#f0f0f0;touch-action:none"
+           :style="locAddMode ? 'cursor:crosshair' : (locEditMode ? 'cursor:move' : '')"
            @mousemove.prevent="onMapMouseMove($event)"
            @mouseup="endLocDrag()"
            @mouseleave="endLocDrag()"
            @touchmove.prevent="onMapTouchMove($event)"
            @touchend="endLocDrag()"
-           @touchcancel="endLocDrag()">
-        <img src="/site_map.png" style="width:100%;display:block" draggable="false">
-        <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
-          <template x-for="loc in LOCATION_PRESETS" :key="loc">
-            <g :style="locEditMode ? 'pointer-events:all;cursor:grab' : 'pointer-events:all;cursor:pointer'"
-               @mousedown="locEditMode ? startLocDrag($event, loc) : null"
-               @touchstart.prevent="locEditMode ? startLocDragTouch($event, loc) : null"
-               @click="!locEditMode && (mapSelectedLoc = (mapSelectedLoc===loc ? null : loc))">
-              <!-- 편집 모드 외곽 링 -->
-              <circle x-show="locEditMode"
-                :cx="getCoord(loc).x+'%'"
-                :cy="getCoord(loc).y+'%'"
-                r="22"
-                fill="none"
-                :stroke="dragLoc===loc ? '#f59e0b' : 'rgba(245,158,11,0.5)'"
-                stroke-width="2"
-                stroke-dasharray="4 3"
-              ></circle>
-              <circle
-                :cx="getCoord(loc).x+'%'"
-                :cy="getCoord(loc).y+'%'"
-                r="18"
-                :fill="dragLoc===loc ? '#f59e0b' : (mapSelectedLoc===loc ? '#2563eb' : (mapWorkersAt(loc).length>0 ? '#dc2626' : '#6b7280'))"
-                fill-opacity="0.82"
-                stroke="white" stroke-width="2.5"
-              ></circle>
-              <text
-                :x="getCoord(loc).x+'%'"
-                :y="getCoord(loc).y+'%'"
-                text-anchor="middle" dominant-baseline="central"
-                fill="white" font-size="11" font-weight="bold"
-                style="pointer-events:none"
-                x-text="loc.length<=2 ? loc : loc.replace('GATE','G')"
-              ></text>
-              <template x-if="!locEditMode && mapWorkersAt(loc).length>0">
-                <text
-                  :x="(getCoord(loc).x+3)+'%'"
-                  :y="(getCoord(loc).y-3)+'%'"
-                  fill="white" font-size="9" font-weight="900"
-                  style="pointer-events:none"
-                  x-text="mapWorkersAt(loc).length"
-                ></text>
-              </template>
-            </g>
-          </template>
-        </svg>
+           @touchcancel="endLocDrag()"
+           @click="locAddMode ? placeNewMarker($event) : null">
+        <img src="/site_map.png" style="width:100%;display:block;border-radius:12px" draggable="false">
+
+        <!-- 마커 배지들 -->
+        <template x-for="loc in LOCATION_PRESETS" :key="loc">
+          <div class="absolute"
+               :style="`left:${getCoord(loc).x}%;top:${getCoord(loc).y}%;transform:translate(-50%,-50%);z-index:${editingMarkerKey===loc?20:dragLoc===loc?15:5}`"
+               @mousedown.stop="locEditMode && !editingMarkerKey && !locAddMode ? startLocDrag($event, loc) : null"
+               @touchstart.prevent.stop="locEditMode && !editingMarkerKey && !locAddMode ? startLocDragTouch($event, loc) : null"
+               @click.stop="!locEditMode ? (mapSelectedLoc = mapSelectedLoc===loc ? null : loc) : null">
+
+            <!-- 배지 -->
+            <div class="flex items-center gap-1 text-white text-xs font-bold shadow-lg rounded-lg px-2 py-1 whitespace-nowrap select-none"
+                 :class="dragLoc===loc ? 'ring-2 ring-white ring-opacity-60' : ''"
+                 :style="getBadgeStyle(loc)">
+              <span x-text="loc"></span>
+              <span x-show="!locEditMode && (mapWorkersAt(loc)||[]).length>0"
+                    class="bg-white rounded-full px-1 font-black leading-4"
+                    style="color:#dc2626;font-size:10px"
+                    x-text="(mapWorkersAt(loc)||[]).length"></span>
+              <button x-show="locEditMode" @click.stop="startEditMarkerName(loc)"
+                      class="leading-none opacity-80 hover:opacity-100" style="font-size:11px">✏️</button>
+              <button x-show="locEditMode" @click.stop="deleteLocationByName(loc)"
+                      class="leading-none font-black opacity-70 hover:opacity-100 hover:text-red-200"
+                      style="font-size:11px">✕</button>
+            </div>
+
+            <!-- 이름 수정 팝업 -->
+            <div x-show="editingMarkerKey===loc" @click.stop
+                 class="absolute mt-1 bg-white rounded-xl shadow-xl border border-gray-200 p-2.5"
+                 style="top:100%;left:50%;transform:translateX(-50%);min-width:148px;z-index:30">
+              <div class="text-xs text-gray-500 font-bold mb-1.5">이름 수정</div>
+              <input type="text" x-model="editingMarkerNewName"
+                     @keydown.enter="saveMarkerName(loc)"
+                     @keydown.escape="editingMarkerKey=null"
+                     @click.stop
+                     class="text-xs rounded-lg px-2 py-1.5 w-full mb-1.5"
+                     style="border:1.5px solid #d1d5db">
+              <div class="flex gap-1">
+                <button @click.stop="saveMarkerName(loc)" class="btn-primary text-xs py-1 px-2 flex-1">저장</button>
+                <button @click.stop="editingMarkerKey=null" class="btn-secondary text-xs py-1 px-2">취소</button>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 마커 없을 때 안내 -->
+        <div x-show="LOCATION_PRESETS.length===0 && !locEditMode"
+             class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="text-center text-gray-400 text-sm bg-white bg-opacity-80 rounded-xl px-4 py-3">
+            <div class="font-bold mb-1">마커 없음</div>
+            <div class="text-xs">✏️ 마커 편집 후 ➕ 추가해 주세요</div>
+          </div>
+        </div>
       </div>
+
       <!-- 위치 클릭 결과 -->
       <template x-if="mapSelectedLoc && !locEditMode">
         <div class="card mt-3">
@@ -523,11 +554,11 @@
             <span class="font-extrabold text-gray-800" x-text="'📍 '+mapSelectedLoc+' 위치 근로자'"></span>
             <button @click="mapSelectedLoc=null" class="text-gray-400 text-lg leading-none">✕</button>
           </div>
-          <template x-if="mapWorkersAt(mapSelectedLoc).length===0">
+          <template x-if="(mapWorkersAt(mapSelectedLoc)||[]).length===0">
             <div class="text-xs text-gray-400 py-3 text-center">이 위치에 출근한 근로자가 없습니다</div>
           </template>
           <div class="space-y-1.5">
-            <template x-for="w in mapWorkersAt(mapSelectedLoc)" :key="w.worker_id">
+            <template x-for="w in (mapWorkersAt(mapSelectedLoc)||[])" :key="w.worker_id">
               <div class="flex items-center gap-2 p-2 rounded-lg" :class="w.is_vulnerable ? 'bg-red-50' : 'bg-gray-50'">
                 <span x-show="hasOtherVuln(w)" class="font-black text-xs">🔴</span>
                 <span x-show="isElderlyVuln(w)" class="font-black text-xs">🟠</span>
@@ -627,38 +658,23 @@
     <!-- 도면 인라인 -->
     <div class="card mb-3" style="padding:12px">
       <div class="text-xs font-extrabold text-gray-500 mb-2">📍 위치 선택 → 근로자 배치</div>
-      <div class="relative select-none" style="border-radius:10px;overflow:hidden;background:#f0f0f0">
-        <img src="/site_map.png" style="width:100%;display:block" draggable="false">
-        <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
-          <template x-for="loc in LOCATION_PRESETS" :key="loc">
-            <g style="pointer-events:all;cursor:pointer" @click="selectedLocTab=(selectedLocTab===loc?null:loc)">
-              <circle
-                :cx="getCoord(loc).x+'%'"
-                :cy="getCoord(loc).y+'%'"
-                r="18"
-                :fill="selectedLocTab===loc ? '#2563eb' : (countAtLoc(loc)>0 ? '#16a34a' : '#6b7280')"
-                fill-opacity="0.85" stroke="white" stroke-width="2.5"
-              ></circle>
-              <text
-                :x="getCoord(loc).x+'%'"
-                :y="getCoord(loc).y+'%'"
-                text-anchor="middle" dominant-baseline="central"
-                fill="white" font-size="11" font-weight="bold"
-                style="pointer-events:none"
-                x-text="loc.length<=2 ? loc : loc.replace('GATE','G')"
-              ></text>
-              <template x-if="countAtLoc(loc)>0">
-                <text
-                  :x="(getCoord(loc).x+3)+'%'"
-                  :y="(getCoord(loc).y-3)+'%'"
-                  fill="white" font-size="9" font-weight="900"
-                  style="pointer-events:none"
-                  x-text="countAtLoc(loc)"
-                ></text>
-              </template>
-            </g>
-          </template>
-        </svg>
+      <div class="relative select-none" style="border-radius:10px;background:#f0f0f0">
+        <img src="/site_map.png" style="width:100%;display:block;border-radius:10px" draggable="false">
+        <!-- 마커 배지들 -->
+        <template x-for="loc in LOCATION_PRESETS" :key="loc">
+          <div class="absolute cursor-pointer select-none"
+               :style="`left:${getCoord(loc).x}%;top:${getCoord(loc).y}%;transform:translate(-50%,-50%);z-index:5`"
+               @click="selectedLocTab=(selectedLocTab===loc?null:loc)">
+            <div class="flex items-center gap-1 text-white text-xs font-bold shadow-lg rounded-lg px-2 py-1 whitespace-nowrap"
+                 :style="getBadgeStyleCompany(loc)">
+              <span x-text="loc"></span>
+              <span x-show="countAtLoc(loc)>0"
+                    class="bg-white rounded-full px-1 font-black leading-4"
+                    style="color:#16a34a;font-size:10px"
+                    x-text="countAtLoc(loc)"></span>
+            </div>
+          </div>
+        </template>
       </div>
       <!-- 전 구역 버튼 & 범례 -->
       <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
@@ -669,9 +685,9 @@
           <span x-show="countAtLoc('전구역')>0" class="ml-1 text-xs opacity-75" x-text="'('+countAtLoc('전구역')+'명)'"></span>
         </button>
         <div class="flex gap-2 text-xs text-gray-400">
-          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-green-600"></span>배치됨</span>
-          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-500"></span>미배치</span>
-          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-600"></span>선택됨</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-green-600"></span>배치됨</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-gray-500"></span>미배치</span>
+          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-blue-600"></span>선택됨</span>
         </div>
       </div>
     </div>
@@ -1742,7 +1758,11 @@ function app() {
     },
 
     // ── 도면 위치 상수 ──
-    LOCATION_PRESETS: ['①','②','③','④','⑤','⑥','Ⅰ','Ⅱ','Ⅲ','Ⅳ','A','B','C','D','E','F','G','GATE1','GATE2','GATE3','GATE4'],
+    DEFAULT_LOCATION_NAMES: ['①','②','③','④','⑤','⑥','Ⅰ','Ⅱ','Ⅲ','Ⅳ','A','B','C','D','E','F','G','GATE1','GATE2','GATE3','GATE4'],
+    get LOCATION_PRESETS() { return this.locations.map(l => l.location_name); },
+    locAddMode: false,
+    editingMarkerKey: null,
+    editingMarkerNewName: '',
     LOCATION_COORDS: {
       '①':{x:60.7,y:64.9}, '②':{x:51.4,y:52.2}, '③':{x:38.6,y:51.6},
       '④':{x:30.5,y:48.5}, '⑤':{x:30.5,y:59.8}, '⑥':{x:50.0,y:80.2},
@@ -2089,6 +2109,85 @@ function app() {
         return Object.values(this.workerLocations).filter(locs => locs.includes('전구역')).length;
       }
       return Object.values(this.workerLocations).filter(locs => locs.includes(loc)).length;
+    },
+
+    getBadgeStyle(loc) {
+      if (this.dragLoc === loc) return 'background:#f59e0b';
+      if (this.mapSelectedLoc === loc) return 'background:#2563eb';
+      if ((this.mapWorkersAt(loc)||[]).length > 0) return 'background:#dc2626';
+      return 'background:#475569';
+    },
+    getBadgeStyleCompany(loc) {
+      if (this.selectedLocTab === loc) return 'background:#2563eb';
+      if (this.countAtLoc(loc) > 0) return 'background:#16a34a';
+      return 'background:#6b7280';
+    },
+    startEditMarkerName(loc) {
+      this.editingMarkerKey = loc;
+      this.editingMarkerNewName = loc;
+    },
+    async saveMarkerName(oldName) {
+      const newName = this.editingMarkerNewName.trim();
+      this.editingMarkerKey = null;
+      if (!newName || newName === oldName) return;
+      const loc = this.locations.find(l => l.location_name === oldName);
+      if (!loc) return;
+      await fetch(API_BASE+'/api/vw/locations/'+loc.id, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name: newName})
+      });
+      if (this.customCoords[oldName]) {
+        const coord = this.customCoords[oldName];
+        const nc = {...this.customCoords};
+        delete nc[oldName];
+        nc[newName] = coord;
+        this.customCoords = nc;
+        localStorage.setItem('vw_loc_coords_'+this.siteCode, JSON.stringify(this.customCoords));
+      }
+      await this.loadLocations();
+      this.showToast('마커 이름 변경: '+oldName+' → '+newName);
+    },
+    async deleteLocationByName(name) {
+      if (!confirm(`'${name}' 마커를 삭제할까요?`)) return;
+      const loc = this.locations.find(l => l.location_name === name);
+      if (!loc) return;
+      await fetch(API_BASE+'/api/vw/locations/'+loc.id, {method:'DELETE'});
+      const nc = {...this.customCoords};
+      delete nc[name];
+      this.customCoords = nc;
+      localStorage.setItem('vw_loc_coords_'+this.siteCode, JSON.stringify(this.customCoords));
+      await this.loadLocations();
+    },
+    placeNewMarker(e) {
+      if (!this.newLocationName.trim()) { this.showToast('이름을 먼저 입력하세요'); return; }
+      const rect = this.$refs.adminMapEl.getBoundingClientRect();
+      const x = parseFloat(((e.clientX-rect.left)/rect.width*100).toFixed(1));
+      const y = parseFloat(((e.clientY-rect.top)/rect.height*100).toFixed(1));
+      this.addLocationAtPoint(x, y);
+    },
+    async addLocationAtPoint(x, y) {
+      const name = this.newLocationName.trim();
+      if (!name) return;
+      await fetch(API_BASE+'/api/vw/locations', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({site_code: this.siteCode, name})
+      });
+      this.customCoords = {...this.customCoords, [name]: {x, y}};
+      localStorage.setItem('vw_loc_coords_'+this.siteCode, JSON.stringify(this.customCoords));
+      this.newLocationName = '';
+      this.locAddMode = false;
+      await this.loadLocations();
+      this.showToast(name+' 마커 추가');
+    },
+    async seedDefaultLocations() {
+      for (const name of this.DEFAULT_LOCATION_NAMES) {
+        await fetch(API_BASE+'/api/vw/locations', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({site_code: this.siteCode, name})
+        });
+      }
+      await this.loadLocations();
+      this.showToast('기본 마커 불러오기 완료');
     },
 
     toggleCollapseCompany(company) {

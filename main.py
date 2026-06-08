@@ -545,6 +545,11 @@ def del_vw_location(loc_id: int):
     wdb.delete_site_location(loc_id)
     return {"ok": True}
 
+@app.patch("/api/vw/locations/{loc_id}")
+def rename_vw_location(loc_id: int, body: dict):
+    wdb.rename_site_location(loc_id, body["name"])
+    return {"ok": True}
+
 # ── 업체 PIN ──────────────────────────────────────────────────────────────────
 @app.get("/api/vw/company-pins")
 def get_company_pins(site_code: str):

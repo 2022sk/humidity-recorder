@@ -369,6 +369,10 @@ class WorkersDatabase:
         with self.conn() as con:
             con.execute("DELETE FROM vw_site_locations WHERE id=?", (loc_id,))
 
+    def rename_site_location(self, loc_id: int, new_name: str):
+        with self.conn() as con:
+            con.execute("UPDATE vw_site_locations SET location_name=? WHERE id=?", (new_name, loc_id))
+
     # ── Company PINs ──────────────────────────────────────────────────────────
     def get_companies_with_pins(self, site_code: str) -> list:
         with self.conn() as con:
