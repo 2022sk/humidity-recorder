@@ -424,31 +424,76 @@
 
     <!-- 도면 탭 -->
     <div x-show="adminTab==='map'">
-      <div class="relative select-none" style="border-radius:12px;overflow:hidden;background:#f0f0f0">
+      <!-- 편집 모드 토글 -->
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex flex-wrap gap-1.5">
+          <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-red-600"></span>출근 있음</span>
+          <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-500"></span>출근 없음</span>
+          <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>선택됨</span>
+          <span class="text-xs text-gray-400" x-text="'총 '+mapAttendance.length+'명 출근'"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button x-show="locEditMode" @click="resetLocCoords()"
+                  class="text-xs px-2 py-1 rounded-lg font-bold"
+                  style="background:#fff3cd;color:#856404;border:1px solid #ffc107">초기화</button>
+          <button @click="locEditMode=!locEditMode; dragLoc=null"
+                  class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+                  :style="locEditMode ? 'background:#f59e0b;color:white' : 'background:#f2f2f7;color:#1c1c1e'">
+            <span x-text="locEditMode ? '✓ 편집 완료' : '📌 위치 편집'"></span>
+          </button>
+        </div>
+      </div>
+      <div x-show="locEditMode" class="mb-2 px-3 py-2 rounded-lg text-xs font-bold"
+           style="background:#fff8e1;color:#92400e;border:1px solid #fde68a">
+        마커를 드래그해서 위치를 조정하세요. 변경사항은 자동 저장됩니다.
+      </div>
+      <!-- 지도 + SVG 마커 -->
+      <div class="relative select-none" x-ref="adminMapEl"
+           style="border-radius:12px;overflow:hidden;background:#f0f0f0;touch-action:none"
+           :style="locEditMode ? 'cursor:crosshair' : ''"
+           @mousemove.prevent="onMapMouseMove($event)"
+           @mouseup="endLocDrag()"
+           @mouseleave="endLocDrag()"
+           @touchmove.prevent="onMapTouchMove($event)"
+           @touchend="endLocDrag()"
+           @touchcancel="endLocDrag()">
         <img src="/site_map.png" style="width:100%;display:block" draggable="false">
         <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none">
           <template x-for="loc in LOCATION_PRESETS" :key="loc">
-            <g style="pointer-events:all;cursor:pointer" @click="mapSelectedLoc = (mapSelectedLoc===loc ? null : loc)">
+            <g :style="locEditMode ? 'pointer-events:all;cursor:grab' : 'pointer-events:all;cursor:pointer'"
+               @mousedown="locEditMode ? startLocDrag($event, loc) : null"
+               @touchstart.prevent="locEditMode ? startLocDragTouch($event, loc) : null"
+               @click="!locEditMode && (mapSelectedLoc = (mapSelectedLoc===loc ? null : loc))">
+              <!-- 편집 모드 외곽 링 -->
+              <circle x-show="locEditMode"
+                :cx="getCoord(loc).x+'%'"
+                :cy="getCoord(loc).y+'%'"
+                r="22"
+                fill="none"
+                :stroke="dragLoc===loc ? '#f59e0b' : 'rgba(245,158,11,0.5)'"
+                stroke-width="2"
+                stroke-dasharray="4 3"
+              ></circle>
               <circle
-                :cx="(LOCATION_COORDS[loc]?.x||50)+'%'"
-                :cy="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                :cx="getCoord(loc).x+'%'"
+                :cy="getCoord(loc).y+'%'"
                 r="18"
-                :fill="mapSelectedLoc===loc ? '#2563eb' : (mapWorkersAt(loc).length>0 ? '#dc2626' : '#6b7280')"
+                :fill="dragLoc===loc ? '#f59e0b' : (mapSelectedLoc===loc ? '#2563eb' : (mapWorkersAt(loc).length>0 ? '#dc2626' : '#6b7280'))"
                 fill-opacity="0.82"
                 stroke="white" stroke-width="2.5"
               ></circle>
               <text
-                :x="(LOCATION_COORDS[loc]?.x||50)+'%'"
-                :y="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                :x="getCoord(loc).x+'%'"
+                :y="getCoord(loc).y+'%'"
                 text-anchor="middle" dominant-baseline="central"
                 fill="white" font-size="11" font-weight="bold"
                 style="pointer-events:none"
                 x-text="loc.length<=2 ? loc : loc.replace('GATE','G')"
               ></text>
-              <template x-if="mapWorkersAt(loc).length>0">
+              <template x-if="!locEditMode && mapWorkersAt(loc).length>0">
                 <text
-                  :x="((LOCATION_COORDS[loc]?.x||50)+3)+'%'"
-                  :y="((LOCATION_COORDS[loc]?.y||50)-3)+'%'"
+                  :x="(getCoord(loc).x+3)+'%'"
+                  :y="(getCoord(loc).y-3)+'%'"
                   fill="white" font-size="9" font-weight="900"
                   style="pointer-events:none"
                   x-text="mapWorkersAt(loc).length"
@@ -459,7 +504,7 @@
         </svg>
       </div>
       <!-- 위치 클릭 결과 -->
-      <template x-if="mapSelectedLoc">
+      <template x-if="mapSelectedLoc && !locEditMode">
         <div class="card mt-3">
           <div class="flex items-center justify-between mb-2">
             <span class="font-extrabold text-gray-800" x-text="'📍 '+mapSelectedLoc+' 위치 근로자'"></span>
@@ -484,12 +529,6 @@
           </div>
         </div>
       </template>
-      <div class="flex flex-wrap gap-1.5 mt-2">
-        <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-red-600"></span>출근 있음</span>
-        <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-500"></span>출근 없음</span>
-        <span class="text-xs flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>선택됨</span>
-        <span class="text-xs text-gray-400 ml-auto" x-text="'총 '+mapAttendance.length+'명 출근'"></span>
-      </div>
     </div>
 
     <!-- 위치 탭 -->
@@ -580,15 +619,15 @@
           <template x-for="loc in LOCATION_PRESETS" :key="loc">
             <g style="pointer-events:all;cursor:pointer" @click="selectedLocTab=(selectedLocTab===loc?null:loc)">
               <circle
-                :cx="(LOCATION_COORDS[loc]?.x||50)+'%'"
-                :cy="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                :cx="getCoord(loc).x+'%'"
+                :cy="getCoord(loc).y+'%'"
                 r="18"
                 :fill="selectedLocTab===loc ? '#2563eb' : (countAtLoc(loc)>0 ? '#16a34a' : '#6b7280')"
                 fill-opacity="0.85" stroke="white" stroke-width="2.5"
               ></circle>
               <text
-                :x="(LOCATION_COORDS[loc]?.x||50)+'%'"
-                :y="(LOCATION_COORDS[loc]?.y||50)+'%'"
+                :x="getCoord(loc).x+'%'"
+                :y="getCoord(loc).y+'%'"
                 text-anchor="middle" dominant-baseline="central"
                 fill="white" font-size="11" font-weight="bold"
                 style="pointer-events:none"
@@ -596,8 +635,8 @@
               ></text>
               <template x-if="countAtLoc(loc)>0">
                 <text
-                  :x="((LOCATION_COORDS[loc]?.x||50)+3)+'%'"
-                  :y="((LOCATION_COORDS[loc]?.y||50)-3)+'%'"
+                  :x="(getCoord(loc).x+3)+'%'"
+                  :y="(getCoord(loc).y-3)+'%'"
                   fill="white" font-size="9" font-weight="900"
                   style="pointer-events:none"
                   x-text="countAtLoc(loc)"
@@ -1698,6 +1737,9 @@ function app() {
     mapShow: false,
     mapSelectedLoc: null,
     mapAttendance: [],
+    locEditMode: false,
+    dragLoc: null,
+    customCoords: {},
 
     // ── 출근 ──
     attDate: new Date().toISOString().slice(0,10),
@@ -1743,6 +1785,9 @@ function app() {
 
       // ── 세션 자동 복원 (새로고침 유지) ──
       if (this.siteCode) {
+        const savedCoords = localStorage.getItem('vw_loc_coords_'+this.siteCode);
+        if (savedCoords) { try { this.customCoords = JSON.parse(savedCoords); } catch {} }
+
         const savedAdmin = JSON.parse(localStorage.getItem('vw_admin_auth')||'null');
         if (savedAdmin && savedAdmin.site_code === this.siteCode && Date.now() - savedAdmin.ts < 3600000) {
           this.authed = true; this.role = 'admin';
@@ -2027,6 +2072,44 @@ function app() {
         return Object.values(this.workerLocations).filter(locs => locs.includes('전구역')).length;
       }
       return Object.values(this.workerLocations).filter(locs => locs.includes(loc)).length;
+    },
+
+    getCoord(loc) {
+      return this.customCoords[loc] || this.LOCATION_COORDS[loc] || {x:50, y:50};
+    },
+    startLocDrag(e, loc) {
+      e.preventDefault();
+      this.dragLoc = loc;
+    },
+    startLocDragTouch(e, loc) {
+      e.preventDefault();
+      this.dragLoc = loc;
+    },
+    onMapMouseMove(e) {
+      if (!this.locEditMode || !this.dragLoc) return;
+      const rect = this.$refs.adminMapEl.getBoundingClientRect();
+      const x = Math.max(1, Math.min(99, parseFloat(((e.clientX-rect.left)/rect.width*100).toFixed(1))));
+      const y = Math.max(1, Math.min(99, parseFloat(((e.clientY-rect.top)/rect.height*100).toFixed(1))));
+      this.customCoords = {...this.customCoords, [this.dragLoc]: {x, y}};
+    },
+    onMapTouchMove(e) {
+      if (!this.locEditMode || !this.dragLoc || !e.touches[0]) return;
+      e.preventDefault();
+      const rect = this.$refs.adminMapEl.getBoundingClientRect();
+      const t = e.touches[0];
+      const x = Math.max(1, Math.min(99, parseFloat(((t.clientX-rect.left)/rect.width*100).toFixed(1))));
+      const y = Math.max(1, Math.min(99, parseFloat(((t.clientY-rect.top)/rect.height*100).toFixed(1))));
+      this.customCoords = {...this.customCoords, [this.dragLoc]: {x, y}};
+    },
+    endLocDrag() {
+      if (!this.dragLoc) return;
+      this.dragLoc = null;
+      localStorage.setItem('vw_loc_coords_'+this.siteCode, JSON.stringify(this.customCoords));
+    },
+    resetLocCoords() {
+      this.customCoords = {};
+      localStorage.removeItem('vw_loc_coords_'+this.siteCode);
+      this.showToast('기본 위치로 초기화');
     },
 
     get totalAttended() {
