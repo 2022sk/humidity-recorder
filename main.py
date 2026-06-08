@@ -661,6 +661,10 @@ def serve_index():
     resp.headers["Pragma"] = "no-cache"
     return resp
 
+@app.get("/site_map.png")
+def serve_site_map():
+    return FileResponse(str(STATIC_DIR / "site_map.png"), media_type="image/png")
+
 @app.get("/{site_code}")
 def serve_site(site_code: str):
     resp = FileResponse(str(STATIC_DIR / "index.html"))
