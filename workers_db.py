@@ -95,6 +95,7 @@ class WorkersDatabase:
                     id            INTEGER PRIMARY KEY AUTOINCREMENT,
                     site_code     TEXT    NOT NULL,
                     location_name TEXT    NOT NULL,
+                    marker_color  TEXT    DEFAULT '',
                     created_at    TEXT    DEFAULT (datetime('now','localtime'))
                 );
 
@@ -183,6 +184,10 @@ class WorkersDatabase:
                     ON gemini_api_log(created_at, site_code);
             """)
             self._add_worker_columns_if_missing(con)
+            # 마이그레이션: marker_color 컬럼 추가
+            cols = {row[1] for row in con.execute("PRAGMA table_info(vw_site_locations)")}
+            if "marker_color" not in cols:
+                con.execute("ALTER TABLE vw_site_locations ADD COLUMN marker_color TEXT DEFAULT ''")
             con.commit()
         finally:
             con.close()
@@ -394,6 +399,10 @@ class WorkersDatabase:
     def rename_site_location(self, loc_id: int, new_name: str):
         with self.conn() as con:
             con.execute("UPDATE vw_site_locations SET location_name=? WHERE id=?", (new_name, loc_id))
+
+    def set_location_color(self, loc_id: int, color: str):
+        with self.conn() as con:
+            con.execute("UPDATE vw_site_locations SET marker_color=? WHERE id=?", (color, loc_id))
 
     # ── Company PINs ──────────────────────────────────────────────────────────
     def get_companies_with_pins(self, site_code: str) -> list:

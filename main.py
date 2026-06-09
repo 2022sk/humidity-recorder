@@ -637,7 +637,10 @@ def del_vw_location(loc_id: int):
 
 @app.patch("/api/vw/locations/{loc_id}")
 def rename_vw_location(loc_id: int, body: dict):
-    wdb.rename_site_location(loc_id, body["name"])
+    if "name" in body:
+        wdb.rename_site_location(loc_id, body["name"])
+    if "color" in body:
+        wdb.set_location_color(loc_id, body["color"])
     return {"ok": True}
 
 # ── 업체 PIN ──────────────────────────────────────────────────────────────────

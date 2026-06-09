@@ -518,17 +518,26 @@
                       style="font-size:11px">✕</button>
             </div>
 
-            <!-- 이름 수정 팝업 -->
+            <!-- 이름/색상 수정 팝업 -->
             <div x-show="editingMarkerKey===loc" @click.stop
                  class="absolute mt-1 bg-white rounded-xl shadow-xl border border-gray-200 p-2.5"
-                 style="top:100%;left:50%;transform:translateX(-50%);min-width:148px;z-index:30">
+                 style="top:100%;left:50%;transform:translateX(-50%);min-width:160px;z-index:30">
               <div class="text-xs text-gray-500 font-bold mb-1.5">이름 수정</div>
               <input type="text" x-model="editingMarkerNewName"
                      @keydown.enter="saveMarkerName(loc)"
                      @keydown.escape="editingMarkerKey=null"
                      @click.stop
-                     class="text-xs rounded-lg px-2 py-1.5 w-full mb-1.5"
+                     class="text-xs rounded-lg px-2 py-1.5 w-full mb-2"
                      style="border:1.5px solid #d1d5db">
+              <div class="text-xs text-gray-500 font-bold mb-1.5">색상</div>
+              <div class="flex flex-wrap gap-1 mb-2">
+                <template x-for="c in MARKER_COLORS" :key="c">
+                  <button @click.stop="setMarkerColor(loc, c)"
+                          class="rounded-full border-2 transition-all"
+                          :style="`background:${c};width:22px;height:22px;border-color:${getLocColor(loc)===c ? '#1d4ed8' : 'transparent'}`">
+                  </button>
+                </template>
+              </div>
               <div class="flex gap-1">
                 <button @click.stop="saveMarkerName(loc)" class="btn-primary text-xs py-1 px-2 flex-1">저장</button>
                 <button @click.stop="editingMarkerKey=null" class="btn-secondary text-xs py-1 px-2">취소</button>
@@ -2122,15 +2131,34 @@ function app() {
 
     getBadgeStyle(loc) {
       if (this.dragLoc === loc) return 'background:#f59e0b';
-      if (this.mapSelectedLoc === loc) return 'background:#2563eb';
-      if ((this.mapWorkersAt(loc)||[]).length > 0) return 'background:#dc2626';
-      return 'background:#475569';
+      const custom = this.getLocColor(loc);
+      const base = custom || ((this.mapWorkersAt(loc)||[]).length > 0 ? '#dc2626' : '#475569');
+      if (this.mapSelectedLoc === loc) return `background:${base};box-shadow:0 0 0 3px white,0 0 0 5px ${base}`;
+      return `background:${base}`;
     },
     getBadgeStyleCompany(loc) {
       if (this.selectedLocTab === loc) return 'background:#2563eb';
       if (this.countAtLoc(loc) > 0) return 'background:#16a34a';
       return 'background:#6b7280';
     },
+    MARKER_COLORS: ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#475569'],
+
+    getLocColor(loc) {
+      const l = this.locations.find(l => l.location_name === loc);
+      return l?.marker_color || '';
+    },
+
+    async setMarkerColor(loc, color) {
+      const l = this.locations.find(l => l.location_name === loc);
+      if (!l) return;
+      const newColor = l.marker_color === color ? '' : color;
+      await fetch(API_BASE+'/api/vw/locations/'+l.id, {
+        method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({color: newColor})
+      });
+      l.marker_color = newColor;
+    },
+
     startEditMarkerName(loc) {
       this.editingMarkerKey = loc;
       this.editingMarkerNewName = loc;
