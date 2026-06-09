@@ -157,6 +157,11 @@ class WorkersDatabase:
                     PRIMARY KEY (site_code, company)
                 );
 
+                CREATE TABLE IF NOT EXISTS vw_recalc_log (
+                    site_code   TEXT PRIMARY KEY,
+                    last_date   TEXT NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS vw_vuln_daily_log (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
                     site_code   TEXT    NOT NULL,
@@ -419,6 +424,17 @@ class WorkersDatabase:
     def rename_site_location(self, loc_id: int, new_name: str):
         with self.conn() as con:
             con.execute("UPDATE vw_site_locations SET location_name=? WHERE id=?", (new_name, loc_id))
+
+    def needs_daily_recalc(self, site_code: str) -> bool:
+        today = datetime.now().strftime("%Y-%m-%d")
+        with self.conn() as con:
+            row = con.execute("SELECT last_date FROM vw_recalc_log WHERE UPPER(site_code)=UPPER(?)", (site_code,)).fetchone()
+            return not row or row[0] != today
+
+    def mark_daily_recalc(self, site_code: str):
+        today = datetime.now().strftime("%Y-%m-%d")
+        with self.conn() as con:
+            con.execute("INSERT OR REPLACE INTO vw_recalc_log (site_code, last_date) VALUES (UPPER(?),?)", (site_code, today))
 
     def save_vuln_log(self, site_code: str, log_date: str, data: list):
         import json

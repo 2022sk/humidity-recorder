@@ -588,6 +588,10 @@ def serve_workers_site(site_code: str):
 # ── 근로자 관리 ───────────────────────────────────────────────────────────────
 @app.get("/api/vw/workers")
 def get_workers(site_code: str, company: str = ""):
+    # 하루 한 번 신규배치자·고령 자동 재계산
+    if site_code and wdb.needs_daily_recalc(site_code):
+        _auto_recalc(site_code)
+        wdb.mark_daily_recalc(site_code)
     return {"workers": wdb.get_workers(site_code, company)}
 
 @app.post("/api/vw/workers")
@@ -705,6 +709,35 @@ def get_vuln_log(site_code: str, log_date: str):
 @app.get("/api/vw/vuln-log/dates")
 def list_vuln_log_dates(site_code: str):
     return {"dates": wdb.list_vuln_log_dates(site_code)}
+
+def _auto_recalc(site_code: str):
+    """신규배치자·고령 자동 재계산 (내부용)"""
+    from datetime import date, datetime as dt2
+    today = date.today()
+    AGE_LABELS = {'고령(만60세이상)', '초고령(만66세이상)', '고령', '초고령'}
+    for w in wdb.get_workers(site_code):
+        vtypes = [v for v in (w.get('vulnerability_types') or [])
+                  if v not in AGE_LABELS and v != '신규배치자']
+        bd = w.get('birth_date', '')
+        if bd:
+            try:
+                by, bm, bday = (int(x) for x in bd.split('-'))
+                age = today.year - by - (1 if (today.month, today.day) < (bm, bday) else 0)
+                if age >= 66: vtypes.append('초고령')
+                elif age >= 60: vtypes.append('고령')
+            except Exception:
+                pass
+        edu = w.get('education_date', '')
+        if edu:
+            try:
+                edu_date = dt2.strptime(edu[:10], '%Y-%m-%d').date()
+                if 0 <= (today - edu_date).days <= 14:
+                    vtypes.append('신규배치자')
+            except Exception:
+                pass
+        w['vulnerability_types'] = vtypes
+        w['is_vulnerable'] = 1 if vtypes else 0
+        wdb.update_worker(w['id'], w)
 
 # ── 취약구분 일괄 재계산 ───────────────────────────────────────────────────────
 @app.post("/api/vw/workers/recalc-vtypes")
