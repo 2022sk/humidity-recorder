@@ -344,6 +344,7 @@
                               <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-1.5 flex-wrap mb-1">
                                   <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
+                                  <span x-show="w.h_wallet_missing" class="text-xs font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">H-미기입</span>
                                   <span x-show="hasOtherVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🔴</span>
                             <span x-show="isElderlyVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🟠</span>
                                   <template x-if="!w.nationality||w.nationality==='대한민국'">
@@ -1250,6 +1251,13 @@
             <label class="text-xs font-bold text-gray-500">비고</label>
             <textarea x-model="workerModal.data.notes" placeholder="추가 메모" rows="2" class="mt-1"></textarea>
           </div>
+          <div class="flex items-center gap-2 mt-1 px-1">
+            <input type="checkbox" id="h_wallet_missing_chk" x-model="workerModal.data.h_wallet_missing"
+                   class="w-4 h-4 rounded" style="accent-color:#f59e0b">
+            <label for="h_wallet_missing_chk" class="text-xs font-bold text-amber-600 cursor-pointer select-none">
+              H-안전지갑 미기입
+            </label>
+          </div>
         </div>
       </div>
       <button @click="saveWorker()" class="btn-primary w-full py-3" :disabled="workerModal.saving">
@@ -1799,7 +1807,7 @@ function app() {
     adminTodayAttendance: [],
     vtypeOptions: ['고령','초고령','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
     workerModal: { show:false, editing:null, tab:'info',
-      data:{worker_code:'',education_date:'',name:'',name_korean:'',company:'',job_type:'',nationality:'',birth_date:'',birth_year:'',phone:'',residence_status:'',residence_expiry:'',gender:'',last_exam_date:'',vulnerability_types:[],diseases:'',work_restrictions:'',notes:''},
+      data:{worker_code:'',education_date:'',name:'',name_korean:'',company:'',job_type:'',nationality:'',birth_date:'',birth_year:'',phone:'',residence_status:'',residence_expiry:'',gender:'',last_exam_date:'',vulnerability_types:[],diseases:'',work_restrictions:'',notes:'',h_wallet_missing:false},
       exams:[], examSaving:false,
       newExam:{ exam_type:'배치전', exam_date:'', key_values:{ bp:'',glucose:'',result:'' }, notes:'', photo_id:'' },
       saving:false },
@@ -2406,7 +2414,8 @@ function app() {
           residence_status: w.residence_status||'', residence_expiry: w.residence_expiry||'',
           gender: w.gender||'', last_exam_date: w.last_exam_date||'',
           vulnerability_types: [...(w.vulnerability_types||[])],
-          diseases: w.diseases||'', work_restrictions: w.work_restrictions||'', notes: w.notes||''
+          diseases: w.diseases||'', work_restrictions: w.work_restrictions||'', notes: w.notes||'',
+          h_wallet_missing: !!w.h_wallet_missing
         };
         const r = await fetch(API_BASE+'/api/vw/workers/'+w.id+'/exams');
         const d = await r.json();

@@ -42,6 +42,7 @@ class WorkersDatabase:
             ("gender",            "TEXT DEFAULT ''"),
             ("last_exam_date",    "TEXT DEFAULT ''"),
             ("deploy_status",     "TEXT DEFAULT 'active'"),
+            ("h_wallet_missing",  "INTEGER DEFAULT 0"),
         ]
         for col, defn in new_cols:
             if col not in cols:
