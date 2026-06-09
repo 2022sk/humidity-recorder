@@ -1918,11 +1918,10 @@ function app() {
     },
 
     _applyAutoVtypes(w) {
-      // 구·신 레이블 모두 필터링 후 새 단축 레이블로 추가
-      const AUTO = ['고령','초고령','혈압','당뇨','심뇌혈관질환',
-                    '고령(만60세이상)','초고령(만66세이상)'];
+      const AGE_AUTO = ['고령','초고령','고령(만60세이상)','초고령(만66세이상)'];
       const today = new Date();
-      let vtypes = (w.vulnerability_types||[]).filter(v => !AUTO.includes(v));
+      // 나이 기반만 제거 후 재계산, 질환 기반은 수동 체크 유지
+      let vtypes = (w.vulnerability_types||[]).filter(v => !AGE_AUTO.includes(v));
       if (w.birth_date) {
         const birth = new Date(w.birth_date);
         let age = today.getFullYear() - birth.getFullYear();
@@ -1931,10 +1930,11 @@ function app() {
         if (age >= 66) vtypes.push('초고령');
         else if (age >= 60) vtypes.push('고령');
       }
+      // 기저질환에서 감지되면 없을 때만 추가 (수동 체크 덮어쓰지 않음)
       const dis = w.diseases || '';
-      if (dis.includes('혈압')) vtypes.push('혈압');
-      if (dis.includes('당뇨')) vtypes.push('당뇨');
-      if (dis.includes('심장') || dis.includes('뇌혈관') || dis.includes('심뇌혈관')) vtypes.push('심뇌혈관질환');
+      if (dis.includes('혈압') && !vtypes.includes('혈압')) vtypes.push('혈압');
+      if (dis.includes('당뇨') && !vtypes.includes('당뇨')) vtypes.push('당뇨');
+      if ((dis.includes('심장')||dis.includes('뇌혈관')||dis.includes('심뇌혈관')) && !vtypes.includes('심뇌혈관질환')) vtypes.push('심뇌혈관질환');
       return { ...w, vulnerability_types: vtypes, is_vulnerable: vtypes.length > 0 ? 1 : 0 };
     },
 

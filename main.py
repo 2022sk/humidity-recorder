@@ -673,11 +673,11 @@ def recalc_vtypes(site_code: str):
     today = date.today()
     workers = wdb.get_workers(site_code)
     updated = 0
-    AUTO_LABELS = {'고령(만60세이상)', '초고령(만66세이상)', '고령', '초고령',
-                   '혈압', '당뇨', '심뇌혈관질환'}
+    AGE_LABELS = {'고령(만60세이상)', '초고령(만66세이상)', '고령', '초고령'}
     for w in workers:
+        # 나이 기반만 제거, 질환 기반 수동 체크는 유지
         vtypes = [v for v in (w.get('vulnerability_types') or [])
-                  if v not in AUTO_LABELS]
+                  if v not in AGE_LABELS]
         bd = w.get('birth_date', '')
         if bd:
             try:
@@ -688,9 +688,9 @@ def recalc_vtypes(site_code: str):
             except Exception:
                 pass
         diseases = w.get('diseases', '') or ''
-        if '혈압' in diseases: vtypes.append('혈압')
-        if '당뇨' in diseases: vtypes.append('당뇨')
-        if '심장' in diseases or '뇌혈관' in diseases or '심뇌혈관' in diseases:
+        if '혈압' in diseases and '혈압' not in vtypes: vtypes.append('혈압')
+        if '당뇨' in diseases and '당뇨' not in vtypes: vtypes.append('당뇨')
+        if ('심장' in diseases or '뇌혈관' in diseases or '심뇌혈관' in diseases) and '심뇌혈관질환' not in vtypes:
             vtypes.append('심뇌혈관질환')
         w['vulnerability_types'] = vtypes
         w['is_vulnerable'] = 1 if vtypes else 0
