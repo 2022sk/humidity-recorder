@@ -281,6 +281,7 @@ class WorkersDatabase:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         vtypes = json.dumps(data.get('vulnerability_types', []), ensure_ascii=False)
         is_vul = 1 if data.get('vulnerability_types') else 0
+        h_missing = 1 if data.get('h_wallet_missing') else 0
         with self.conn() as con:
             cur = con.execute("""
                 INSERT INTO vw_workers
@@ -288,8 +289,8 @@ class WorkersDatabase:
                      job_type,nationality,birth_date,birth_year,phone,
                      residence_status,residence_expiry,gender,last_exam_date,
                      vulnerability_types,diseases,work_restrictions,
-                     is_vulnerable,notes,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     is_vulnerable,notes,h_wallet_missing,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (data['site_code'], data.get('worker_code',''), data.get('education_date',''),
                   data['name'], data.get('name_korean',''), data['company'],
                   data.get('job_type',''), data.get('nationality',''),
@@ -297,13 +298,14 @@ class WorkersDatabase:
                   data.get('phone',''), data.get('residence_status',''), data.get('residence_expiry',''),
                   data.get('gender',''), data.get('last_exam_date',''),
                   vtypes, data.get('diseases',''), data.get('work_restrictions',''),
-                  is_vul, data.get('notes',''), now, now))
+                  is_vul, data.get('notes',''), h_missing, now, now))
             return cur.lastrowid
 
     def update_worker(self, worker_id: int, data: dict):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         vtypes = json.dumps(data.get('vulnerability_types', []), ensure_ascii=False)
         is_vul = 1 if data.get('vulnerability_types') else 0
+        h_missing = 1 if data.get('h_wallet_missing') else 0
         with self.conn() as con:
             con.execute("""
                 UPDATE vw_workers SET
@@ -311,7 +313,7 @@ class WorkersDatabase:
                     job_type=?,nationality=?,birth_date=?,birth_year=?,phone=?,
                     residence_status=?,residence_expiry=?,gender=?,last_exam_date=?,
                     vulnerability_types=?,diseases=?,work_restrictions=?,
-                    is_vulnerable=?,notes=?,updated_at=?
+                    is_vulnerable=?,notes=?,h_wallet_missing=?,updated_at=?
                 WHERE id=?
             """, (data.get('worker_code',''), data.get('education_date',''),
                   data['name'], data.get('name_korean',''), data['company'],
@@ -320,7 +322,7 @@ class WorkersDatabase:
                   data.get('phone',''), data.get('residence_status',''), data.get('residence_expiry',''),
                   data.get('gender',''), data.get('last_exam_date',''),
                   vtypes, data.get('diseases',''), data.get('work_restrictions',''),
-                  is_vul, data.get('notes',''), now, worker_id))
+                  is_vul, data.get('notes',''), h_missing, now, worker_id))
 
     def update_worker_deploy_status(self, worker_id: int, status: str):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
