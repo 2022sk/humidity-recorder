@@ -228,13 +228,13 @@
       <div class="mb-3">
         <!-- 검색바 한 줄 -->
         <div class="flex gap-2 mb-1.5">
-          <div class="relative flex-1">
-            <svg class="absolute pointer-events-none text-gray-400" style="left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <div class="flex items-center flex-1 rounded-xl border border-gray-200 bg-white" style="padding:0 10px;gap:6px">
+            <svg class="flex-shrink-0 text-gray-400" style="width:14px;height:14px;min-width:14px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input type="text" x-model="workerSearch" placeholder="이름 검색"
-                   class="w-full text-xs rounded-xl border border-gray-200 bg-white"
-                   style="padding:8px 28px 8px 34px">
+                   class="flex-1 text-xs bg-transparent"
+                   style="border:none;outline:none;padding:8px 0;min-width:0">
             <button x-show="workerSearch" @click="workerSearch=''"
-                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs leading-none">✕</button>
+                    class="flex-shrink-0 text-gray-400 text-xs leading-none">✕</button>
           </div>
           <button @click="workerFilterOpen=!workerFilterOpen"
                   class="flex-shrink-0 flex items-center gap-1 text-xs font-bold px-3 rounded-xl border transition-all"
