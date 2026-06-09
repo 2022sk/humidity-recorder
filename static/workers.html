@@ -731,7 +731,7 @@
         <div class="grid grid-cols-2 gap-2 mb-2">
           <div>
             <label class="text-xs text-gray-500 font-bold">날짜</label>
-            <input type="date" x-model="adminHL.date" @change="loadAdminHealthLog()" class="mt-0.5">
+            <input type="date" x-model="adminHL.date" @change="loadAdminHealthLog()" @input="loadAdminHealthLog()" class="mt-0.5">
           </div>
           <div>
             <label class="text-xs text-gray-500 font-bold">슬롯</label>
@@ -755,38 +755,63 @@
         </div>
       </div>
       <!-- 기록 목록 -->
-      <div x-show="adminHL.records.length===0" class="text-center text-gray-400 py-6 text-sm">측정 기록이 없습니다</div>
-      <div class="space-y-2">
-        <template x-for="r in adminHL.records" :key="r.id">
-          <div class="card" style="padding:10px 14px">
-            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span class="font-extrabold text-gray-800" x-text="r.name_korean||r.name"></span>
-              <span class="text-xs text-gray-400" x-text="r.company"></span>
-              <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#eff6ff;color:#1d4ed8" x-text="r.slot"></span>
-              <span x-show="r.heat_level" class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#fff3cd;color:#856404" x-text="r.heat_level"></span>
-            </div>
-            <div class="flex flex-wrap gap-3 text-xs">
-              <span x-show="r.body_temp" class="flex items-center gap-1">
-                <span class="text-gray-400">체온</span>
-                <span class="font-bold" :class="r.body_temp>=38?'text-red-600':'text-gray-800'" x-text="r.body_temp+'°C'"></span>
-              </span>
-              <span x-show="r.bp_sys" class="flex items-center gap-1">
-                <span class="text-gray-400">혈압</span>
-                <span class="font-bold text-gray-800" x-text="r.bp_sys+'/'+(r.bp_dia||'-')"></span>
-              </span>
-              <span x-show="r.measure_time" class="flex items-center gap-1">
-                <span class="text-gray-400">시각</span>
-                <span class="font-bold text-gray-800" x-text="r.measure_time"></span>
-              </span>
-              <span class="flex items-center gap-1">
-                <span class="text-gray-400">상태</span>
-                <span class="font-bold" :class="r.health_status==='불량'?'text-red-600':r.health_status==='주의'?'text-amber-600':'text-green-700'"
-                      x-text="r.health_status||'양호'"></span>
-              </span>
-            </div>
-          </div>
-        </template>
+      <div x-show="adminHL.loaded && adminHL.records.length===0"
+           class="text-center py-8">
+        <div class="text-3xl mb-2">🌤</div>
+        <div class="text-sm font-bold text-gray-500">해당 날짜에 혹서기 건강관리 기록이 없습니다</div>
+        <div class="text-xs text-gray-400 mt-1">폭염단계 미발령 또는 측정 미실시</div>
       </div>
+
+      <!-- 슬롯별 그룹핑 (슬롯 필터 없을 때) -->
+      <template x-if="adminHL.records.length > 0">
+        <div>
+          <!-- 슬롯 요약 칩 (필터 없을 때만) -->
+          <template x-if="!adminHL.slot">
+            <div class="flex flex-wrap gap-1.5 mb-3">
+              <template x-for="sl in ['오전1','오전2','오후1','오후2'].filter(s=>adminHL.records.some(r=>r.slot===s))" :key="sl">
+                <div class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+                     style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
+                  <span x-text="sl"></span>
+                  <span class="text-blue-400" x-text="'·'+adminHL.records.find(r=>r.slot===sl)?.heat_level"></span>
+                  <span class="text-gray-400" x-text="adminHL.records.filter(r=>r.slot===sl).length+'명'"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <div class="space-y-2">
+            <template x-for="r in adminHL.records" :key="r.id">
+              <div class="card" style="padding:10px 14px">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span class="font-extrabold text-gray-800" x-text="r.name_korean||r.name"></span>
+                  <span class="text-xs text-gray-400" x-text="r.company"></span>
+                  <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#eff6ff;color:#1d4ed8" x-text="r.slot"></span>
+                  <span x-show="r.heat_level" class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#fff3cd;color:#856404" x-text="r.heat_level"></span>
+                </div>
+                <div class="flex flex-wrap gap-3 text-xs">
+                  <span x-show="r.body_temp" class="flex items-center gap-1">
+                    <span class="text-gray-400">체온</span>
+                    <span class="font-bold" :class="r.body_temp>=38?'text-red-600':'text-gray-800'" x-text="r.body_temp+'°C'"></span>
+                  </span>
+                  <span x-show="r.bp_sys" class="flex items-center gap-1">
+                    <span class="text-gray-400">혈압</span>
+                    <span class="font-bold text-gray-800" x-text="r.bp_sys+'/'+(r.bp_dia||'-')"></span>
+                  </span>
+                  <span x-show="r.measure_time" class="flex items-center gap-1">
+                    <span class="text-gray-400">시각</span>
+                    <span class="font-bold text-gray-800" x-text="r.measure_time"></span>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="text-gray-400">상태</span>
+                    <span class="font-bold" :class="r.health_status==='불량'?'text-red-600':r.health_status==='주의'?'text-amber-600':'text-green-700'"
+                          x-text="r.health_status||'양호'"></span>
+                  </span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- 위치 탭 -->
@@ -2203,6 +2228,11 @@ function rowsToWorkers(headers, rows, colMap, siteCode) {
   }).filter(w => w.name || w.name_korean);
 }
 
+function localDateStr() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 function app() {
   return {
     // ── 공통 상태 ──
@@ -2230,7 +2260,7 @@ function app() {
     workerEduTo: '',
     workerFilterOpen: false,
     vulnListModal: { show: false, viewDate: '', viewData: null },
-    adminHL: { date: new Date().toISOString().slice(0,10), slot: '', company: '', records: [] },
+    adminHL: { date: localDateStr(), slot: '', company: '', records: [], loaded: false },
     workerGroupBy: 'company_jobtype', // 'company' | 'jobtype' | 'company_jobtype' | 'location_vuln'
     workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
     collapsedCompanies: {},
@@ -2381,13 +2411,14 @@ function app() {
     },
 
     async loadAdminHealthLog() {
-      const q = new URLSearchParams({ site_code: this.siteCode });
-      if (this.adminHL.date) q.set('record_date', this.adminHL.date);
-      if (this.adminHL.slot) q.set('slot', this.adminHL.slot);
+      this.adminHL.loaded = false;
+      const q = new URLSearchParams({ site_code: this.siteCode, record_date: this.adminHL.date || localDateStr() });
+      if (this.adminHL.slot)    q.set('slot', this.adminHL.slot);
       if (this.adminHL.company) q.set('company', this.adminHL.company);
       const r = await fetch(API_BASE+'/api/vw/health-records?'+q);
       const d = await r.json();
       this.adminHL.records = d.records || [];
+      this.adminHL.loaded = true;
     },
 
     async saveVulnLog() {
