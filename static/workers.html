@@ -51,6 +51,24 @@
   .temp-danger{color:#ff3b30;font-weight:800}
   .exemption-alert{background:linear-gradient(135deg,#fff0f0,#ffe8e8);border:1.5px solid #ff4d4d;border-radius:12px;padding:10px 12px}
   .info-tag{display:inline-flex;align-items:center;background:#f2f2f7;color:#3c3c43;border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;letter-spacing:-.01em}
+  /* 배치표 매트릭스 */
+  .mx-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;border:1px solid #e8e8ed;background:white}
+  .mx-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+  .mx-name{position:sticky;left:0;z-index:2;background:white;width:72px;min-width:72px;max-width:72px;padding:0 8px;font-size:.72rem;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mx-head-name{position:sticky;left:0;z-index:3;background:#f9fafb;padding:8px 8px;font-size:.65rem;font-weight:800;color:#6b7280;border-bottom:1px solid #e8e8ed}
+  .mx-head-loc{min-width:38px;width:38px;text-align:center;font-size:.65rem;font-weight:700;color:#6b7280;padding:6px 2px;border-bottom:1px solid #e8e8ed;white-space:nowrap;overflow:hidden}
+  .mx-cell{width:38px;min-width:38px;height:38px;text-align:center;vertical-align:middle;cursor:pointer;border-bottom:1px solid #f3f4f6}
+  .mx-cell:active{background:#f0f5ff}
+  .mx-dot{width:24px;height:24px;border-radius:50%;background:#e5e7eb;margin:auto;transition:background .12s,transform .1s}
+  .mx-cell:active .mx-dot{transform:scale(.85)}
+  .mx-dot-blue{background:#2563eb}
+  .mx-dot-green{background:#16a34a}
+  .mx-vuln .mx-name{border-left:3px solid #ef4444;color:#dc2626}
+  .mx-vuln .mx-name.bg-stripe{background:repeating-linear-gradient(135deg,#fff8f8,#fff8f8 6px,white 6px,white 12px)}
+  .mx-section td{font-size:.62rem;font-weight:800;color:#9ca3af;padding:10px 10px 2px;letter-spacing:.04em;background:white}
+  .mx-section .mx-name{background:white}
+  .mx-even .mx-name{background:#fafafa}
+  .mx-even td.mx-cell,.mx-even .mx-head-loc{background:#fafafa}
   .disease-tag{display:inline-flex;align-items:center;background:#fff3e8;color:#cc5500;border-radius:6px;padding:2px 7px;font-size:.68rem;font-weight:700;border:1px solid #ffd3a8}
   .company-header{font-size:.78rem;font-weight:800;color:#86868b;letter-spacing:.03em;padding:4px 2px;margin-bottom:4px;border-bottom:1px solid #e8e8ed}
   .modal-tab-btn{flex:1;padding:8px 4px;font-size:.82rem;font-weight:700;border:none;background:transparent;cursor:pointer;font-family:inherit;border-radius:8px;transition:all .15s;color:#86868b}
@@ -778,45 +796,120 @@
       </div>
     </div>
 
-    <!-- 도면 인라인 -->
-    <div class="card mb-3" style="padding:12px">
-      <div class="text-xs font-extrabold text-gray-500 mb-2">📍 위치 선택 → 근로자 배치</div>
-      <div class="relative select-none" style="border-radius:10px;background:#f0f0f0">
-        <img :src="'/site_map.png?v='+mapVer" style="width:100%;display:block;border-radius:10px" draggable="false">
-        <!-- 마커 배지들 -->
-        <template x-for="loc in LOCATION_PRESETS" :key="loc">
-          <div class="absolute cursor-pointer select-none"
-               :style="`left:${getCoord(loc).x}%;top:${getCoord(loc).y}%;transform:translate(-50%,-50%);z-index:5`"
-               @click="selectedLocTab=(selectedLocTab===loc?null:loc)">
-            <div class="flex items-center gap-1 text-white text-xs font-bold shadow-lg rounded-lg px-2 py-1 whitespace-nowrap"
-                 :style="getBadgeStyleCompany(loc)">
-              <span x-text="loc"></span>
-              <span x-show="countAtLoc(loc)>0"
-                    class="bg-white rounded-full px-1 font-black leading-4"
-                    style="color:#16a34a;font-size:10px"
-                    x-text="countAtLoc(loc)"></span>
+    <!-- 뷰 토글 -->
+    <div class="flex bg-gray-100 rounded-xl p-1 mb-3" style="gap:2px">
+      <button @click="locViewMode='map';selectedLocTab=null"
+              class="flex-1 text-xs font-bold py-1.5 rounded-lg transition-all"
+              :class="locViewMode==='map' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'">🗺 도면</button>
+      <button @click="locViewMode='matrix'"
+              class="flex-1 text-xs font-bold py-1.5 rounded-lg transition-all"
+              :class="locViewMode==='matrix' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'">⊞ 배치표</button>
+    </div>
+
+    <!-- 도면 뷰 -->
+    <div x-show="locViewMode==='map'">
+      <div class="card mb-3" style="padding:12px">
+        <div class="text-xs font-extrabold text-gray-500 mb-2">📍 위치 선택 → 근로자 배치</div>
+        <div class="relative select-none" style="border-radius:10px;background:#f0f0f0">
+          <img :src="'/site_map.png?v='+mapVer" style="width:100%;display:block;border-radius:10px" draggable="false">
+          <template x-for="loc in LOCATION_PRESETS" :key="loc">
+            <div class="absolute cursor-pointer select-none"
+                 :style="`left:${getCoord(loc).x}%;top:${getCoord(loc).y}%;transform:translate(-50%,-50%);z-index:5`"
+                 @click="selectedLocTab=(selectedLocTab===loc?null:loc)">
+              <div class="flex items-center gap-1 text-white text-xs font-bold shadow-lg rounded-lg px-2 py-1 whitespace-nowrap"
+                   :style="getBadgeStyleCompany(loc)">
+                <span x-text="loc"></span>
+                <span x-show="countAtLoc(loc)>0"
+                      class="bg-white rounded-full px-1 font-black leading-4"
+                      style="color:#16a34a;font-size:10px"
+                      x-text="countAtLoc(loc)"></span>
+              </div>
             </div>
+          </template>
+        </div>
+        <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
+          <button @click="selectedLocTab=(selectedLocTab==='전구역'?null:'전구역')"
+                  :class="selectedLocTab==='전구역' ? 'btn-primary' : 'btn-secondary'"
+                  class="text-sm py-1.5 px-4">
+            🌐 전 구역
+            <span x-show="countAtLoc('전구역')>0" class="ml-1 text-xs opacity-75" x-text="'('+countAtLoc('전구역')+'명)'"></span>
+          </button>
+          <div class="flex gap-2 text-xs text-gray-400">
+            <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-green-600"></span>배치됨</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-gray-500"></span>미배치</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-blue-600"></span>선택됨</span>
           </div>
-        </template>
-      </div>
-      <!-- 전 구역 버튼 & 범례 -->
-      <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
-        <button @click="selectedLocTab=(selectedLocTab==='전구역'?null:'전구역')"
-                :class="selectedLocTab==='전구역' ? 'btn-primary' : 'btn-secondary'"
-                class="text-sm py-1.5 px-4">
-          🌐 전 구역
-          <span x-show="countAtLoc('전구역')>0" class="ml-1 text-xs opacity-75" x-text="'('+countAtLoc('전구역')+'명)'"></span>
-        </button>
-        <div class="flex gap-2 text-xs text-gray-400">
-          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-green-600"></span>배치됨</span>
-          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-gray-500"></span>미배치</span>
-          <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded bg-blue-600"></span>선택됨</span>
         </div>
       </div>
     </div>
 
-    <!-- 선택된 위치의 근로자 배치 -->
-    <template x-if="selectedLocTab">
+    <!-- 배치표 뷰 -->
+    <div x-show="locViewMode==='matrix'" class="mb-3">
+      <div class="mx-wrap">
+        <table class="mx-table">
+          <!-- 헤더 -->
+          <thead>
+            <tr>
+              <th class="mx-head-name">이름</th>
+              <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                <th class="mx-head-loc" x-text="loc"></th>
+              </template>
+              <th class="mx-head-loc" title="전 구역">🌐</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 취약 근로자 -->
+            <template x-if="companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length>0">
+              <tr class="mx-section"><td class="mx-name" :colspan="LOCATION_PRESETS.length+2">🔴 취약근로자</td></tr>
+            </template>
+            <template x-for="(w,i) in companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
+              <tr class="mx-vuln" :class="i%2===1?'mx-even':''">
+                <td class="mx-name" :class="i%2===1?'bg-stripe':''" :title="w.name_korean||w.name">
+                  <span x-text="(w.name_korean||w.name||'').slice(0,6)"></span>
+                </td>
+                <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                  <td class="mx-cell" @click="toggleWorkerAtLoc(w.id, loc)">
+                    <div class="mx-dot" :class="isWorkerAtLoc(w.id,loc)?'mx-dot-blue':''"></div>
+                  </td>
+                </template>
+                <td class="mx-cell" @click="toggleAllZone(w.id)">
+                  <div class="mx-dot" :class="isWorkerAtLoc(w.id,'전구역')?'mx-dot-green':''"></div>
+                </td>
+              </tr>
+            </template>
+            <!-- 일반 근로자 -->
+            <template x-if="companyWorkers.filter(w=>!w.is_vulnerable&&w.deploy_status!=='inactive').length>0">
+              <tr class="mx-section"><td class="mx-name" :colspan="LOCATION_PRESETS.length+2">일반근로자</td></tr>
+            </template>
+            <template x-for="(w,i) in companyWorkers.filter(w=>!w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
+              <tr :class="i%2===1?'mx-even':''">
+                <td class="mx-name" :class="i%2===1?'bg-stripe':''" :title="w.name_korean||w.name">
+                  <span x-text="(w.name_korean||w.name||'').slice(0,6)"></span>
+                </td>
+                <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                  <td class="mx-cell" @click="toggleWorkerAtLoc(w.id, loc)">
+                    <div class="mx-dot" :class="isWorkerAtLoc(w.id,loc)?'mx-dot-blue':''"></div>
+                  </td>
+                </template>
+                <td class="mx-cell" @click="toggleAllZone(w.id)">
+                  <div class="mx-dot" :class="isWorkerAtLoc(w.id,'전구역')?'mx-dot-green':''"></div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <!-- 범례 -->
+      <div class="flex gap-3 text-xs text-gray-400 mt-1.5 px-1">
+        <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>배치</span>
+        <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>전구역</span>
+        <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-200"></span>미배치</span>
+        <span class="text-gray-300 ml-auto">← 가로 스크롤</span>
+      </div>
+    </div>
+
+    <!-- 선택된 위치의 근로자 배치 (도면 뷰에서만) -->
+    <template x-if="selectedLocTab && locViewMode==='map'">
       <div class="card mb-3">
         <div class="flex items-center justify-between mb-3">
           <div>
@@ -1936,6 +2029,7 @@ function app() {
     companyWorkers: [],
     workerLocations: {},
     selectedLocTab: null,
+    locViewMode: 'map',
     attSaving: false,
     locations: [],
     newLocationName: '',
