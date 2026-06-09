@@ -273,6 +273,32 @@ def get_companies(site_code: str = "", week_monday: str = ""):
     return {"companies": db.get_companies(site_code=site_code, week_monday=week_monday)}
 
 
+@app.get("/api/heat-summary")
+def get_heat_summary(site_code: str, measure_date: str):
+    """날짜별 폭염단계 요약: 업체별 슬롯·단계 반환"""
+    records = db.get_records(site_code=site_code, measure_date=measure_date)
+    NORMAL = {"정상", "", None}
+    # 업체별 폭염 슬롯 집계
+    by_company: dict = {}
+    for r in records:
+        co = r.get("company") or "현대건설"
+        hl = r.get("heat_level") or ""
+        if hl in NORMAL:
+            continue
+        if co not in by_company:
+            by_company[co] = {}
+        slot = r.get("slot", "")
+        if slot not in by_company[co] or by_company[co][slot]["feels_like"] is None:
+            by_company[co][slot] = {"heat_level": hl, "feels_like": r.get("feels_like")}
+    companies_with_own = list(by_company.keys())
+    hyundai_slots = by_company.get("현대건설", {})
+    return {
+        "by_company": by_company,
+        "companies_with_own": companies_with_own,
+        "hyundai_slots": hyundai_slots,
+    }
+
+
 @app.get("/api/locations")
 def get_locations(site_code: str = "", company: str = "", week_monday: str = ""):
     return {"locations": db.get_locations(site_code=site_code, company=company, week_monday=week_monday)}
