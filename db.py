@@ -137,6 +137,21 @@ class Database:
                     api_key_enc TEXT NOT NULL,
                     updated_at TEXT DEFAULT (datetime('now','localtime'))
                 )""")
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS site_api_keys_multi (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_code   TEXT NOT NULL,
+                    api_key_enc TEXT NOT NULL,
+                    label       TEXT DEFAULT '',
+                    added_at    TEXT DEFAULT (datetime('now','localtime'))
+                )""")
+            con.execute("CREATE INDEX IF NOT EXISTS idx_api_keys_multi_site ON site_api_keys_multi(site_code)")
+            # 기존 단일키 → 다중키 테이블로 마이그레이션 (한 번만)
+            con.execute("""
+                INSERT OR IGNORE INTO site_api_keys_multi (site_code, api_key_enc, label, added_at)
+                SELECT site_code, api_key_enc, '기본 키', updated_at FROM site_api_keys
+                WHERE site_code NOT IN (SELECT site_code FROM site_api_keys_multi)
+            """)
             self._add_columns_if_missing(con)
             filepaths = self._auto_purge(con)
             con.commit()
@@ -168,6 +183,7 @@ class Database:
         return bytes(b ^ key[i % len(key)] for i, b in enumerate(data)).decode()
 
     def set_api_key(self, site_code: str, api_key: str):
+        """단일 키 등록 (하위 호환) → 다중 키 테이블에 추가."""
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         enc = self._xor(api_key)
         with self.conn() as con:
@@ -176,8 +192,62 @@ class Database:
                 "VALUES (UPPER(?), ?, ?)",
                 (site_code, enc, now),
             )
+            con.execute(
+                "INSERT INTO site_api_keys_multi (site_code, api_key_enc, label, added_at) "
+                "VALUES (UPPER(?), ?, '키 '||(SELECT COUNT(*)+1 FROM site_api_keys_multi WHERE UPPER(site_code)=UPPER(?)), ?)",
+                (site_code, enc, site_code, now),
+            )
+
+    def add_api_key(self, site_code: str, api_key: str, label: str = "") -> int:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        enc = self._xor(api_key)
+        if not label:
+            with self.conn() as con:
+                cnt = con.execute(
+                    "SELECT COUNT(*) FROM site_api_keys_multi WHERE UPPER(site_code)=UPPER(?)", (site_code,)
+                ).fetchone()[0]
+                label = f"키 {cnt + 1}"
+        with self.conn() as con:
+            cur = con.execute(
+                "INSERT INTO site_api_keys_multi (site_code, api_key_enc, label, added_at) VALUES (UPPER(?),?,?,?)",
+                (site_code, enc, label, now),
+            )
+            return cur.lastrowid
+
+    def get_api_keys(self, site_code: str) -> list:
+        """복호화된 API 키 목록 반환."""
+        with self.conn() as con:
+            rows = con.execute(
+                "SELECT id, api_key_enc, label, added_at FROM site_api_keys_multi WHERE UPPER(site_code)=UPPER(?) ORDER BY id",
+                (site_code,),
+            ).fetchall()
+            result = []
+            for r in rows:
+                try:
+                    result.append({"id": r[0], "key": self._unxor(r[1]), "label": r[2], "added_at": r[3]})
+                except Exception:
+                    pass
+            return result
+
+    def get_api_keys_masked(self, site_code: str) -> list:
+        """마스킹된 키 목록 (UI 표시용)."""
+        keys = self.get_api_keys(site_code)
+        for k in keys:
+            raw = k["key"]
+            k["masked"] = raw[:4] + "****" + raw[-4:] if len(raw) > 8 else "****"
+            del k["key"]
+        return keys
+
+    def delete_api_key_by_id(self, key_id: int):
+        with self.conn() as con:
+            con.execute("DELETE FROM site_api_keys_multi WHERE id=?", (key_id,))
 
     def get_api_key(self, site_code: str) -> Optional[str]:
+        """첫 번째 키 반환 (하위 호환)."""
+        keys = self.get_api_keys(site_code)
+        return keys[0]["key"] if keys else None
+
+    def get_api_key_legacy(self, site_code: str) -> Optional[str]:
         with self.conn() as con:
             row = con.execute(
                 "SELECT api_key_enc FROM site_api_keys WHERE UPPER(site_code)=UPPER(?)",
@@ -193,17 +263,15 @@ class Database:
     def has_api_key(self, site_code: str) -> bool:
         with self.conn() as con:
             row = con.execute(
-                "SELECT 1 FROM site_api_keys WHERE UPPER(site_code)=UPPER(?)",
+                "SELECT 1 FROM site_api_keys_multi WHERE UPPER(site_code)=UPPER(?)",
                 (site_code,),
             ).fetchone()
             return row is not None
 
     def delete_api_key(self, site_code: str):
         with self.conn() as con:
-            con.execute(
-                "DELETE FROM site_api_keys WHERE UPPER(site_code)=UPPER(?)",
-                (site_code,),
-            )
+            con.execute("DELETE FROM site_api_keys WHERE UPPER(site_code)=UPPER(?)", (site_code,))
+            con.execute("DELETE FROM site_api_keys_multi WHERE UPPER(site_code)=UPPER(?)", (site_code,))
 
     # ── Photos ────────────────────────────────────────────────────────────────
     def save_photo(self, photo_id: str, filename: str, filepath: str):
@@ -386,9 +454,7 @@ class Database:
 
     @staticmethod
     def _default_pin(site_code: str) -> str:
-        """현장코드에서 숫자만 추출 후 앞에 0을 붙여 4자리로 만든 기본 PIN."""
-        digits = ''.join(c for c in site_code if c.isdigit())
-        return digits.zfill(4)
+        return '0' + site_code.upper()
 
     def verify_pin(self, site_code: str, pin: str) -> bool:
         with self.conn() as con:

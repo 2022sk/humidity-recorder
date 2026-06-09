@@ -153,12 +153,34 @@ class WorkersDatabase:
                     PRIMARY KEY (site_code, company)
                 );
 
+                CREATE TABLE IF NOT EXISTS gemini_api_log (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_code   TEXT    DEFAULT '',
+                    status      TEXT    NOT NULL,
+                    error_code  TEXT    DEFAULT '',
+                    created_at  TEXT    DEFAULT (datetime('now','localtime'))
+                );
+
+                CREATE TABLE IF NOT EXISTS gemini_alerts (
+                    alert_type  TEXT PRIMARY KEY,
+                    sent_date   TEXT NOT NULL,
+                    sent_at     TEXT NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS gemini_ai_errors (
+                    site_code   TEXT PRIMARY KEY,
+                    error_msg   TEXT NOT NULL,
+                    updated_at  TEXT NOT NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_vw_workers_site
                     ON vw_workers(site_code, company);
                 CREATE INDEX IF NOT EXISTS idx_vw_attendance_date
                     ON vw_daily_attendance(site_code, work_date, company);
                 CREATE INDEX IF NOT EXISTS idx_vw_health_date
                     ON vw_health_records(site_code, record_date, slot, company);
+                CREATE INDEX IF NOT EXISTS idx_gemini_log_date
+                    ON gemini_api_log(created_at, site_code);
             """)
             self._add_worker_columns_if_missing(con)
             con.commit()
@@ -569,3 +591,65 @@ class WorkersDatabase:
             ).fetchone()
             con.execute("DELETE FROM vw_health_photos WHERE photo_id=?", (photo_id,))
             return (row[0] or "") if row else ""
+
+    # ── Gemini API Usage Tracking ─────────────────────────────────────────────
+    def log_gemini_call(self, site_code: str, status: str, error_code: str = ""):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self.conn() as con:
+            con.execute(
+                "INSERT INTO gemini_api_log (site_code,status,error_code,created_at) VALUES (?,?,?,?)",
+                (site_code, status, error_code, now)
+            )
+
+    def get_gemini_daily_count(self, site_code: str = "", date_str: str = "") -> dict:
+        today = date_str or datetime.now().strftime("%Y-%m-%d")
+        with self.conn() as con:
+            if site_code:
+                rows = con.execute(
+                    "SELECT status, COUNT(*) FROM gemini_api_log WHERE DATE(created_at)=? AND site_code=? GROUP BY status",
+                    (today, site_code)
+                ).fetchall()
+            else:
+                rows = con.execute(
+                    "SELECT status, COUNT(*) FROM gemini_api_log WHERE DATE(created_at)=? GROUP BY status",
+                    (today,)
+                ).fetchall()
+            result = {r[0]: r[1] for r in rows}
+            result['total'] = sum(result.values())
+            return result
+
+    def should_send_alert(self, alert_type: str) -> bool:
+        today = datetime.now().strftime("%Y-%m-%d")
+        with self.conn() as con:
+            row = con.execute(
+                "SELECT sent_date FROM gemini_alerts WHERE alert_type=?", (alert_type,)
+            ).fetchone()
+            return not row or row[0] != today
+
+    def mark_alert_sent(self, alert_type: str):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        today = datetime.now().strftime("%Y-%m-%d")
+        with self.conn() as con:
+            con.execute("""
+                INSERT OR REPLACE INTO gemini_alerts (alert_type, sent_date, sent_at)
+                VALUES (?,?,?)
+            """, (alert_type, today, now))
+
+    def set_ai_error(self, site_code: str, error_msg: str):
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self.conn() as con:
+            con.execute("""
+                INSERT OR REPLACE INTO gemini_ai_errors (site_code, error_msg, updated_at)
+                VALUES (UPPER(?), ?, ?)
+            """, (site_code, error_msg, now))
+
+    def get_last_ai_error(self, site_code: str) -> Optional[str]:
+        with self.conn() as con:
+            row = con.execute(
+                "SELECT error_msg FROM gemini_ai_errors WHERE UPPER(site_code)=UPPER(?)", (site_code,)
+            ).fetchone()
+            return row[0] if row else None
+
+    def clear_ai_error(self, site_code: str):
+        with self.conn() as con:
+            con.execute("DELETE FROM gemini_ai_errors WHERE UPPER(site_code)=UPPER(?)", (site_code,))

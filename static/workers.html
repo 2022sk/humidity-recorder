@@ -492,7 +492,7 @@
            @touchend="endLocDrag()"
            @touchcancel="endLocDrag()"
            @click="locAddMode ? placeNewMarker($event) : null">
-        <img src="/site_map.png" style="width:100%;display:block;border-radius:12px" draggable="false">
+        <img :src="'/site_map.png?v='+mapVer" style="width:100%;display:block;border-radius:12px" draggable="false">
 
         <!-- 마커 배지들 -->
         <template x-for="loc in LOCATION_PRESETS" :key="loc">
@@ -659,7 +659,7 @@
     <div class="card mb-3" style="padding:12px">
       <div class="text-xs font-extrabold text-gray-500 mb-2">📍 위치 선택 → 근로자 배치</div>
       <div class="relative select-none" style="border-radius:10px;background:#f0f0f0">
-        <img src="/site_map.png" style="width:100%;display:block;border-radius:10px" draggable="false">
+        <img :src="'/site_map.png?v='+mapVer" style="width:100%;display:block;border-radius:10px" draggable="false">
         <!-- 마커 배지들 -->
         <template x-for="loc in LOCATION_PRESETS" :key="loc">
           <div class="absolute cursor-pointer select-none"
@@ -910,6 +910,10 @@
                       <template x-for="vt in a.vulnerability_types" :key="vt">
                         <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                       </template>
+                      <template x-if="parseLocations(a.work_location).length > 0">
+                        <span class="text-xs px-1.5 py-0.5 rounded font-bold" style="background:#e8f4ff;color:#1a6fb5;border:1px solid #b3d6f5"
+                              x-text="'📍 '+parseLocations(a.work_location).join(', ')"></span>
+                      </template>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                       <div>
@@ -961,6 +965,10 @@
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                       <span class="font-bold text-gray-800 text-sm" x-text="a.name_korean||a.name"></span>
                       <span x-show="!healthCompanyFilter && a.company" class="info-tag" x-text="a.company"></span>
+                      <template x-if="parseLocations(a.work_location).length > 0">
+                        <span class="text-xs px-1.5 py-0.5 rounded font-bold" style="background:#f0f4ff;color:#3b5bdb;border:1px solid #c5d0fa"
+                              x-text="'📍 '+parseLocations(a.work_location).join(', ')"></span>
+                      </template>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                       <div>
@@ -1774,6 +1782,7 @@ function app() {
     mapShow: false,
     mapSelectedLoc: null,
     mapAttendance: [],
+    mapVer: Date.now(),
     locEditMode: false,
     dragLoc: null,
     customCoords: {},

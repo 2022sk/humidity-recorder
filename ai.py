@@ -1,9 +1,17 @@
-"""Gemini 2.5 Flash – 온습도계 이미지에서 수치 추출"""
+"""Gemini – 온습도계 이미지에서 수치 추출 (모델 자동 선택)"""
 
 import asyncio, json, logging, re, io, math
 from PIL import Image, ImageOps
 
 logger = logging.getLogger("thermohygrometer.ai")
+
+# 사용 가능한 모델 우선순위 (무료 한도 큰 순서)
+CANDIDATE_MODELS = [
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+]
 
 PROMPT = (
     "이것은 디지털 온습도계(thermo-hygrometer) 사진입니다.\n"
@@ -35,6 +43,36 @@ def _heat_label(hi: float) -> str:
     return "-"
 
 
+def _is_quota_error(e: Exception) -> bool:
+    s = str(e)
+    return "RESOURCE_EXHAUSTED" in s or "429" in s or "quota" in s.lower()
+
+def _is_model_error(e: Exception) -> bool:
+    s = str(e)
+    return "NOT_FOUND" in s or "404" in s or "not found" in s.lower()
+
+
+async def _try_model(client, model: str, img) -> str:
+    """단일 모델로 시도, 재시도 최대 2회. quota/model 오류는 즉시 raise."""
+    last_err = None
+    for attempt in range(2):
+        try:
+            resp = client.models.generate_content(model=model, contents=[PROMPT, img])
+            return resp.text.strip()
+        except Exception as e:
+            if _is_quota_error(e) or _is_model_error(e):
+                raise  # 다음 모델로 넘길 오류
+            err_lower = str(e).lower()
+            retriable = any(k in err_lower for k in ("timeout", "timed out", "connection", "unavailable", "500", "503"))
+            if retriable and attempt == 0:
+                last_err = e
+                logger.warning("Gemini[%s] 재시도: %s", model, e)
+                await asyncio.sleep(2)
+            else:
+                raise
+    raise last_err
+
+
 async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
     from google import genai as google_genai
 
@@ -43,29 +81,23 @@ async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
     img = img.convert("RGB")
 
     client = google_genai.Client(api_key=api_key)
-    _RETRIABLE = ("timeout", "timed out", "connection", "unavailable",
-                  "429", "500", "503", "rate limit", "quota")
+
     last_err = None
-    for attempt in range(3):
+    for model in CANDIDATE_MODELS:
         try:
-            resp = client.models.generate_content(
-                model="gemini-2.5-flash-lite", contents=[PROMPT, img]
-            )
+            text = await _try_model(client, model, img)
+            logger.info("Gemini 모델 사용: %s", model)
             break
         except Exception as e:
-            err_lower = str(e).lower()
-            if any(k in err_lower for k in _RETRIABLE) and attempt < 2:
+            if _is_quota_error(e) or _is_model_error(e):
+                logger.warning("Gemini[%s] 불가 → 다음 모델 시도: %s", model, str(e)[:80])
                 last_err = e
-                wait = min(2 ** attempt, 8)
-                logger.warning("Gemini 재시도 %d/3: %s (%.0fs 후)", attempt + 1, e, wait)
-                await asyncio.sleep(wait)
-            else:
-                logger.error("Gemini 영구 오류: %s", e)
-                raise  # 영구 오류(잘못된 API 키 등)는 즉시 실패
+                continue
+            logger.error("Gemini[%s] 오류: %s", model, e)
+            raise
     else:
-        raise last_err
+        raise last_err  # 모든 모델 실패
 
-    text = resp.text.strip()
     m = re.search(r'\{.*?\}', text, re.DOTALL)
     if not m:
         raise ValueError(f"JSON 파싱 실패: {text[:80]}")
@@ -79,15 +111,14 @@ async def extract_from_image(image_bytes: bytes, api_key: str) -> dict:
         raise ValueError(f"인식된 온도({T}°C)가 측정 범위(-10~60°C)를 벗어났습니다. 사진을 다시 촬영해 주세요.")
     if not (0.0 <= RH <= 100.0):
         raise ValueError(f"인식된 습도({RH}%)가 측정 범위(0~100%)를 벗어났습니다. 사진을 다시 촬영해 주세요.")
-    t  = d.get("time")
+    t = d.get("time")
     if t == "null": t = None
 
     result: dict = {"temperature": T, "humidity": RH, "time": t}
-
     if T is not None and RH is not None:
         hi = _heat_index(T, RH)
-        result["feels_like"]  = hi
-        result["heat_level"]  = _heat_label(hi)
-        result["action"]      = "N/A" if hi < 31 else "추가휴식시간부여"
+        result["feels_like"] = hi
+        result["heat_level"] = _heat_label(hi)
+        result["action"]     = "N/A" if hi < 31 else "추가휴식시간부여"
 
     return result

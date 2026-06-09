@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """체감온도 기록관리 대장 – FastAPI 서버"""
 
-import io, logging, os, uuid, re
+import io, logging, os, uuid, re, smtplib
 from datetime import date
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
@@ -44,6 +46,31 @@ app.add_middleware(CORSMiddleware,
 
 db  = Database(str(DATA_DIR / "data.db"))
 wdb = WorkersDatabase(str(DATA_DIR / "data.db"))
+
+
+def _send_gemini_alert(subject: str, body: str):
+    smtp_user = os.environ.get("SMTP_USER", "")
+    smtp_pass = os.environ.get("SMTP_PASS", "")
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    alert_to  = os.environ.get("ALERT_EMAIL_TO", smtp_user)
+    if not smtp_user or not smtp_pass or not alert_to:
+        logger.warning("이메일 알림 미설정 (SMTP_USER/SMTP_PASS/ALERT_EMAIL_TO): %s", subject)
+        return
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = smtp_user
+        msg["To"] = alert_to
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as srv:
+            srv.ehlo()
+            srv.starttls()
+            srv.login(smtp_user, smtp_pass)
+            srv.send_message(msg)
+        logger.info("알림 이메일 발송: %s → %s", subject, alert_to)
+    except Exception as e:
+        logger.warning("이메일 발송 실패: %s", e)
 
 
 _DATE_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$")
@@ -118,21 +145,36 @@ class AiKeySetIn(BaseModel):
 
 @app.get("/api/ai/status")
 def ai_status(site_code: str = ""):
-    site_has = db.has_api_key(site_code) if site_code else False
-    env_has  = bool(os.environ.get("GEMINI_API_KEY", ""))
-    source   = "site" if site_has else ("env" if env_has else "none")
-    return {"has_key": site_has or env_has, "source": source}
+    site_has  = db.has_api_key(site_code) if site_code else False
+    env_has   = bool(os.environ.get("GEMINI_API_KEY", ""))
+    source    = "site" if site_has else ("env" if env_has else "none")
+    key_count = len(db.get_api_keys(site_code)) if site_code else 0
+    last_err  = wdb.get_last_ai_error(site_code) if site_code else None
+    return {"has_key": site_has or env_has, "source": source,
+            "key_count": key_count, "last_error": last_err}
+
+@app.get("/api/ai/keys")
+def list_ai_keys(site_code: str):
+    if not site_code:
+        raise HTTPException(400, "site_code required")
+    return {"keys": db.get_api_keys_masked(site_code)}
 
 @app.post("/api/ai/key")
 def set_ai_key(body: AiKeySetIn):
-    # Gemini API 키 기본 형식 검증
-    if not body.api_key.startswith("AIza"):
-        raise HTTPException(400, "올바른 Gemini API 키가 아닙니다 (AIza로 시작해야 합니다)")
-    # PIN 검증 (현장 PIN이 설정된 경우)
+    if len(body.api_key.strip()) < 10:
+        raise HTTPException(400, "올바른 API 키를 입력해 주세요")
     if db.has_pin(body.site_code) and not db.verify_pin(body.site_code, body.pin):
         raise HTTPException(403, "PIN이 올바르지 않습니다")
-    db.set_api_key(body.site_code, body.api_key.strip())
+    db.add_api_key(body.site_code, body.api_key.strip())
+    wdb.clear_ai_error(body.site_code)
     logger.info("AI 키 등록: site_code=%s", body.site_code)
+    return {"ok": True}
+
+@app.delete("/api/ai/keys/{key_id}")
+def delete_ai_key_by_id(key_id: int, site_code: str, pin: str = ""):
+    if db.has_pin(site_code) and not db.verify_pin(site_code, pin):
+        raise HTTPException(403, "PIN이 올바르지 않습니다")
+    db.delete_api_key_by_id(key_id)
     return {"ok": True}
 
 @app.delete("/api/ai/key")
@@ -141,6 +183,13 @@ def delete_ai_key(site_code: str, pin: str = ""):
         raise HTTPException(403, "PIN이 올바르지 않습니다")
     db.delete_api_key(site_code)
     return {"ok": True}
+
+@app.get("/api/ai/usage")
+def get_ai_usage(site_code: str = ""):
+    today = date.today().isoformat()
+    usage = wdb.get_gemini_daily_count(site_code, today)
+    daily_limit = int(os.environ.get("GEMINI_DAILY_LIMIT", "150"))
+    return {"today": usage, "daily_limit": daily_limit, "warning_at": int(daily_limit * 0.8)}
 
 
 # ── AI 추출 ───────────────────────────────────────────────────────────────────
@@ -151,10 +200,12 @@ async def extract_photo(body: dict):
     if not photo_id:
         raise HTTPException(400, "photo_id required")
 
-    # 현장별 키 → 환경변수 순으로 폴백
-    api_key = (db.get_api_key(site_code) if site_code else None) \
-              or os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
+    # 현장별 키 목록 → 환경변수 순으로 폴백
+    api_keys = db.get_api_keys(site_code) if site_code else []
+    env_key  = os.environ.get("GEMINI_API_KEY", "")
+    if not api_keys and env_key:
+        api_keys = [{"key": env_key, "label": "환경변수"}]
+    if not api_keys:
         raise HTTPException(500, "AI 키가 등록되지 않았습니다. 상단 AI 버튼을 눌러 키를 등록해 주세요.")
 
     photo = db.get_photo(photo_id)
@@ -162,19 +213,53 @@ async def extract_photo(body: dict):
         raise HTTPException(404, "사진을 찾을 수 없습니다")
 
     image_bytes = Path(photo["filepath"]).read_bytes()
-    try:
-        result = await extract_from_image(image_bytes, api_key)
-        logger.info("AI 추출 성공: photo_id=%s temp=%s humid=%s", photo_id,
-                    result.get("temperature"), result.get("humidity"))
-        return result
-    except Exception as e:
-        logger.warning("AI 추출 실패: photo_id=%s error=%s", photo_id, e)
-        err = str(e)
-        if "RESOURCE_EXHAUSTED" in err or "prepayment" in err.lower() or "credits" in err.lower():
-            raise HTTPException(503, "Gemini API 크레딧이 소진되었습니다. aistudio.google.com 에서 충전 후 다시 시도해 주세요.")
-        if "API_KEY_INVALID" in err or "API key" in err:
-            raise HTTPException(401, "Gemini API 키가 유효하지 않습니다. 상단 AI 버튼에서 키를 확인해 주세요.")
-        raise HTTPException(502, f"AI 분석 실패: {err[:200]}")
+    daily_limit = int(os.environ.get("GEMINI_DAILY_LIMIT", "150"))
+
+    last_err = None
+    all_exhausted = True
+    for key_info in api_keys:
+        try:
+            result = await extract_from_image(image_bytes, key_info["key"])
+            logger.info("AI 추출 성공: photo_id=%s label=%s", photo_id, key_info.get("label",""))
+            wdb.log_gemini_call(site_code, "success")
+            wdb.clear_ai_error(site_code)
+            usage = wdb.get_gemini_daily_count()
+            success_cnt = usage.get("success", 0)
+            if success_cnt >= int(daily_limit * 0.8) and wdb.should_send_alert("daily_warning"):
+                wdb.mark_alert_sent("daily_warning")
+                _send_gemini_alert(
+                    f"[경고] Gemini API 일일 사용량 {success_cnt}/{daily_limit}건",
+                    f"오늘 Gemini API 호출이 {success_cnt}건으로 일일 한도({daily_limit})의 80%에 도달했습니다."
+                )
+            return result
+        except Exception as e:
+            err = str(e)
+            if "RESOURCE_EXHAUSTED" in err or "prepayment" in err.lower() or "quota" in err.lower():
+                wdb.log_gemini_call(site_code, "exhausted")
+                logger.warning("AI 키[%s] 한도 초과, 다음 키 시도", key_info.get("label",""))
+                last_err = e
+                continue  # 다음 키 시도
+            all_exhausted = False
+            last_err = e
+            break
+
+    # 모든 키 실패
+    logger.warning("AI 추출 실패: photo_id=%s error=%s", photo_id, last_err)
+    err = str(last_err)
+    if all_exhausted:
+        msg = f"모든 키({len(api_keys)}개) 한도 초과"
+        wdb.set_ai_error(site_code, msg)
+        if wdb.should_send_alert("exhausted"):
+            wdb.mark_alert_sent("exhausted")
+            _send_gemini_alert("[긴급] Gemini API 크레딧 소진", f"등록된 키 {len(api_keys)}개 모두 한도 초과.\nhttps://aistudio.google.com")
+        raise HTTPException(503, "관리자 문의: Gemini API Credit")
+    if "API_KEY_INVALID" in err or "API key" in err:
+        wdb.set_ai_error(site_code, "키 유효하지 않음")
+        wdb.log_gemini_call(site_code, "error", "invalid_key")
+        raise HTTPException(401, "Gemini API 키가 유효하지 않습니다. 상단 AI 버튼에서 키를 확인해 주세요.")
+    wdb.set_ai_error(site_code, err[:80])
+    wdb.log_gemini_call(site_code, "error", err[:50])
+    raise HTTPException(502, f"AI 분석 실패: {err[:200]}")
 
 
 # ── 기록 CRUD ─────────────────────────────────────────────────────────────────
@@ -673,7 +758,13 @@ def serve_index():
 
 @app.get("/site_map.png")
 def serve_site_map():
-    return FileResponse(str(STATIC_DIR / "site_map.png"), media_type="image/png")
+    import os as _os
+    path = str(STATIC_DIR / "site_map.png")
+    mtime = int(_os.path.getmtime(path))
+    resp = FileResponse(path, media_type="image/png")
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["ETag"] = str(mtime)
+    return resp
 
 @app.get("/{site_code}")
 def serve_site(site_code: str):

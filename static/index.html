@@ -104,13 +104,12 @@
           </template>
         </div>
       </div>
-      <span class="text-xs font-bold mt-1 px-2 py-1 rounded-lg"
+      <span class="text-xs font-bold mt-1 px-2 py-1 rounded-lg cursor-pointer hover:opacity-80"
             style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)"
-            :style="apiOk ? 'color:white' : 'color:#ffd0d0'"
-            :title="apiOk ? 'Gemini AI 연결됨' : 'AI 키를 등록하려면 클릭'"
-            :class="!apiOk ? 'cursor-pointer hover:opacity-80' : ''"
-            @click="!apiOk && openAiKeyModal()"
-            x-text="apiOk ? '✅ AI' : '❌ AI'"></span>
+            :style="apiOk && !aiLastError ? 'color:white' : 'color:#ffd0d0'"
+            :title="aiLastError ? 'AI 오류 - 클릭하여 확인' : (apiOk ? `AI 키 ${aiKeyCount}개 등록됨 - 클릭하여 관리` : 'AI 키를 등록하려면 클릭')"
+            @click="openAiKeyModal()"
+            x-text="aiLastError ? '❌ AI' : (apiOk ? `✅ AI ${aiKeyCount > 1 ? aiKeyCount+'키' : ''}` : '❌ AI')"></span>
     </div>
   </div>
 </header>
@@ -354,10 +353,29 @@
 
     <!-- ── 업로드 탭: 일괄 업로드 → AI 자동 추출 → 전체 저장 ── -->
     <div x-show="activeTab==='upload'">
-      <div class="mb-3 flex items-center gap-2">
-        <label class="text-xs font-bold text-gray-600 whitespace-nowrap">기본 날짜</label>
-        <input type="date" x-model="upld.defaultDate" class="flex-1" style="padding:8px 12px!important;font-size:.85rem!important">
-        <span class="text-xs text-gray-400 whitespace-nowrap">파일명 날짜 우선</span>
+      <div class="card mb-3 space-y-2">
+        <div class="text-xs font-extrabold text-gray-500 mb-1">기본값 설정 <span class="font-normal text-gray-400">(사진 추가 시 자동 적용)</span></div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-gray-600 whitespace-nowrap w-10">날짜</label>
+          <input type="date" x-model="upld.defaultDate" class="flex-1" style="padding:8px 12px!important;font-size:.85rem!important">
+          <span class="text-xs text-gray-400 whitespace-nowrap">파일명 우선</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-gray-600 whitespace-nowrap w-10">업체</label>
+          <input type="text" x-model="upld.defaultCompany" list="upld-company-list" placeholder="업체명" class="flex-1" style="padding:8px 12px!important;font-size:.85rem!important">
+          <datalist id="upld-company-list">
+            <template x-for="c in ac.companies" :key="c"><option :value="c"></option></template>
+          </datalist>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-gray-600 whitespace-nowrap w-10">위치</label>
+          <input type="text" x-model="upld.defaultLocation" list="upld-location-list" placeholder="위치" class="flex-1" style="padding:8px 12px!important;font-size:.85rem!important">
+          <datalist id="upld-location-list">
+            <template x-for="l in ac.locations" :key="l"><option :value="l"></option></template>
+          </datalist>
+        </div>
+        <button x-show="upld.batch.length > 0" @click="applyDefaultsToAll()"
+                class="btn-secondary w-full text-xs py-1.5">전체 항목에 현재 기본값 적용</button>
       </div>
       <label class="drop-zone block cursor-pointer mb-3"
              :style="upld.batch.length > 0 ? 'padding:12px' : 'padding:28px 16px'"
@@ -434,6 +452,16 @@
                             </template>
                           </div>
                         </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                          <div>
+                            <label class="text-xs text-gray-400">업체</label>
+                            <input type="text" x-model="item.company" list="upld-company-list" placeholder="업체명" class="mt-0.5">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-400">위치</label>
+                            <input type="text" x-model="item.location" list="upld-location-list" placeholder="위치" class="mt-0.5">
+                          </div>
+                        </div>
                         <div>
                           <label class="text-xs text-gray-400">조치사항</label>
                           <select x-model="item.result.action" class="mt-0.5">
@@ -454,11 +482,11 @@
           </div>
           <div class="space-y-2">
             <button @click="saveAllUpld()" class="btn-primary w-full"
-                    :disabled="upld.saving || !upld.batch.some(i=>upldItemIsReady(i)) || !meta.siteCode || !meta.location"
+                    :disabled="upld.saving || !upld.batch.some(i=>upldItemIsReady(i)) || !meta.siteCode"
                     x-text="upld.saving ? '저장 중...' : '💾 전체 저장 ('+upld.batch.filter(i=>upldItemIsReady(i)).length+'장 / 전체 '+upld.batch.filter(i=>i.result).length+'장)'">
             </button>
-            <div x-show="!meta.siteCode || !meta.location" class="text-xs text-red-400 text-center">
-              ※ 현장코드와 위치를 입력해야 저장됩니다
+            <div x-show="!meta.siteCode" class="text-xs text-red-400 text-center">
+              ※ 현장코드를 입력해야 저장됩니다
             </div>
             <button @click="resetUpld()" class="btn-secondary w-full text-sm">↩ 초기화</button>
           </div>
@@ -648,7 +676,7 @@
                   </template>
                   <div class="flex-1 min-w-0">
                     <div class="font-bold text-gray-700" x-text="rec.measure_date+' '+rec.slot"></div>
-                    <div class="text-gray-500 truncate" x-text="(rec.location||'위치없음')+(rec.company?' · '+rec.company:'')"></div>
+                    <div class="text-gray-500 truncate" x-text="(rec.company||'')+(rec.company&&rec.location?' · ':'')+(rec.location||'위치없음')"></div>
                     <div class="text-gray-400">
                       <span x-show="rec.temperature!=null" x-text="rec.temperature+'°C '"></span>
                       <span x-show="rec.humidity!=null" x-text="rec.humidity+'% '"></span>
@@ -937,7 +965,7 @@
         <button @click="switchWeekTab(wi)"
                 class="text-xs py-1.5 px-3 rounded-lg font-bold whitespace-nowrap flex-shrink-0 transition-all border-0"
                 :class="wkActiveIdx===wi ? 'btn-primary' : 'btn-secondary'"
-                x-text="(wkInfo.location||'위치미정') + (wkInfo.company ? ' · '+wkInfo.company : '')"></button>
+                x-text="(wkInfo.company||'')+(wkInfo.company&&wkInfo.location?' · ':'')+(wkInfo.location||'위치미정')"></button>
       </template>
     </div>
   </template>
@@ -1164,7 +1192,7 @@ function app() {
     cam: { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false },
 
     // 업로드 탭 상태
-    upld: { batch: [], saving: false, defaultDate: todayStr() },
+    upld: { batch: [], saving: false, defaultDate: todayStr(), defaultCompany: '', defaultLocation: '' },
 
     // 큐 (기간 조회 탭 일괄 추가)
     queue: [],
@@ -1179,6 +1207,9 @@ function app() {
     weekGroups: [],
     wkActiveIdx: 0,
     apiOk: false,
+    aiKeyCount: 0,
+    aiLastError: null,
+    aiRegisteredKeys: [],
     aiKeyModal: { show:false, key:'', pin:'', needPin:false, saving:false, error:'', success:false },
     toast: { show:false, msg:'' },
     lightbox: { show:false, url:'' },
@@ -1235,34 +1266,56 @@ function app() {
       try {
         const q = this.meta.siteCode ? `?site_code=${encodeURIComponent(this.meta.siteCode)}` : '';
         const r = await fetch('/api/ai/status' + q);
-        if (r.ok) { const d = await r.json(); this.apiOk = d.has_key; }
-        else { this.apiOk = false; }
+        if (r.ok) {
+          const d = await r.json();
+          this.apiOk = d.has_key;
+          this.aiKeyCount = d.key_count || 0;
+          this.aiLastError = d.last_error || null;
+        } else { this.apiOk = false; }
       } catch { this.apiOk = false; }
     },
 
     async openAiKeyModal() {
       if (!this.meta.siteCode) { this.showToast('현장코드를 먼저 입력해 주세요'); return; }
-      const hasPinR = await fetch(`/api/pin/status?site_code=${encodeURIComponent(this.meta.siteCode)}`);
+      const [hasPinR, keysR] = await Promise.all([
+        fetch(`/api/pin/status?site_code=${encodeURIComponent(this.meta.siteCode)}`),
+        fetch(`/api/ai/keys?site_code=${encodeURIComponent(this.meta.siteCode)}`),
+      ]);
       const hasPinD = hasPinR.ok ? await hasPinR.json() : { has_pin: false };
+      const keysD   = keysR.ok  ? await keysR.json()   : { keys: [] };
+      this.aiRegisteredKeys = keysD.keys || [];
       this.aiKeyModal = { show:true, key:'', pin:'', needPin:hasPinD.has_pin,
                           saving:false, error:'', success:false };
     },
 
+    async deleteAiKey(keyId) {
+      const pin = this.aiKeyModal.pin || '';
+      const r = await fetch(`/api/ai/keys/${keyId}?site_code=${encodeURIComponent(this.meta.siteCode)}&pin=${encodeURIComponent(pin)}`, { method: 'DELETE' });
+      if (r.ok) {
+        this.aiRegisteredKeys = this.aiRegisteredKeys.filter(k => k.id !== keyId);
+        await this.checkApi();
+      }
+    },
+
     async saveAiKey() {
       const m = this.aiKeyModal;
-      if (!m.key || !m.key.startsWith('AIza') || !this.meta.siteCode) return;
+      const key = (m.key || '').trim();
+      if (key.length < 10 || !this.meta.siteCode) return;
       m.saving = true; m.error = ''; m.success = false;
       try {
         const r = await fetch('/api/ai/key', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ site_code: this.meta.siteCode, api_key: m.key, pin: m.pin }),
+          body: JSON.stringify({ site_code: this.meta.siteCode, api_key: key, pin: m.pin }),
         });
         const d = await r.json();
         if (!r.ok) { m.error = d.detail || '저장 실패'; return; }
         m.success = true;
+        m.key = '';
         await this.checkApi();
-        setTimeout(() => { m.show = false; }, 1500);
+        const keysR = await fetch(`/api/ai/keys?site_code=${encodeURIComponent(this.meta.siteCode)}`);
+        if (keysR.ok) this.aiRegisteredKeys = (await keysR.json()).keys || [];
+        setTimeout(() => { m.success = false; }, 2000);
       } catch { m.error = '네트워크 오류가 발생했습니다'; }
       finally { m.saving = false; }
     },
@@ -1296,6 +1349,8 @@ function app() {
       }
       this.hist.company = ''; this.hist.location = '';
       this.hist.unlocked = false; this.hist.pinInput = '';
+      this.upld.defaultCompany = this.meta.company || '';
+      this.upld.defaultLocation = this.meta.location || '';
       await Promise.all([this.refreshHistFilters(), this.checkPin()]);
     },
 
@@ -1496,9 +1551,10 @@ function app() {
         const g = map.get(key);
         if (g.slotMap[r.slot]) g.slotMap[r.slot].push(r);
       });
-      this.hist.dateGroups = [...map.values()].sort((a, b) =>
-        a.location.localeCompare(b.location, 'ko')
-      );
+      this.hist.dateGroups = [...map.values()].sort((a, b) => {
+        const cmp = (a.company||'').localeCompare(b.company||'', 'ko');
+        return cmp !== 0 ? cmp : (a.location||'').localeCompare(b.location||'', 'ko');
+      });
     },
 
     switchWeekTab(idx) {
@@ -1517,11 +1573,12 @@ function app() {
         const key = r.week_monday + '|' + (r.location || '') + '|' + (r.company || '');
         if (!pairMap.has(key)) pairMap.set(key, { monday: r.week_monday, location: r.location || '', company: r.company || '' });
       });
-      let pairs = [...pairMap.values()].sort((a, b) =>
-        a.monday < b.monday ? -1 : a.monday > b.monday ? 1
-          : (a.location || '') < (b.location || '') ? -1 : a.location > b.location ? 1
-          : (a.company || '') < (b.company || '') ? -1 : 1
-      );
+      let pairs = [...pairMap.values()].sort((a, b) => {
+        if (a.monday < b.monday) return -1;
+        if (a.monday > b.monday) return 1;
+        const cmp = (a.company||'').localeCompare(b.company||'', 'ko');
+        return cmp !== 0 ? cmp : (a.location||'').localeCompare(b.location||'', 'ko');
+      });
       if (pairs.length === 0 && this.currentMonday)
         pairs = [{ monday: this.currentMonday, location: this.hist.location || '', company: this.hist.company || '' }];
 
@@ -1899,6 +1956,13 @@ function app() {
       if (files.length) this.addFilesToBatch(files);
     },
 
+    applyDefaultsToAll() {
+      this.upld.batch.forEach(item => {
+        item.company  = this.upld.defaultCompany  || this.meta.company  || '';
+        item.location = this.upld.defaultLocation || this.meta.location || '';
+      });
+    },
+
     addFilesToBatch(files) {
       files.forEach(file => {
         const id = crypto.randomUUID();
@@ -1906,6 +1970,8 @@ function app() {
           id, filename: file.name,
           preview: URL.createObjectURL(file),
           date: parseDateFromFilename(file.name) || this.upld.defaultDate,
+          company:  this.upld.defaultCompany  || this.meta.company  || '',
+          location: this.upld.defaultLocation || this.meta.location || '',
           photo_id: null, uploading: true, extracting: false,
           elapsed: 0, error: null, result: null,
         };
@@ -1992,7 +2058,7 @@ function app() {
       let saved = 0;
       for (const item of this.upld.batch.filter(i => this.upldItemIsReady(i))) {
         try {
-          await this._saveRecord(item.result, item.date, item.photo_id);
+          await this._saveRecord(item.result, item.date, item.photo_id, item.company, item.location);
           saved++;
         } catch(e) { this.showToast('❌ 저장 실패: '+e.message); }
       }
@@ -2026,12 +2092,12 @@ function app() {
     },
 
     // 공통 저장 (cam/upld 모두 사용)
-    async _saveRecord(r, date, photo_id) {
+    async _saveRecord(r, date, photo_id, company, location) {
       const monday = calcMonday(date);
       const slot   = r.slot || '오전1';
       const payload = {
         site_code: this.meta.siteCode, site_name: this.meta.siteName,
-        company: this.meta.company,    location: this.meta.location,
+        company: company ?? this.meta.company,    location: location ?? this.meta.location,
         measurer: this.meta.measurer,
         measure_date: date, slot, week_monday: monday,
         measure_time: r.time || '',
@@ -2379,7 +2445,7 @@ function heatDotStyle(hi) {
           style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:50%;font-size:1.1rem;border:none;cursor:pointer">✕</button>
 </div>
 
-<!-- ══ AI 키 등록 모달 ══════════════════════════════════════════════════════ -->
+<!-- ══ AI 키 관리 모달 ══════════════════════════════════════════════════════ -->
 <div x-show="aiKeyModal.show" x-cloak
      class="fixed inset-0 z-50 flex items-center justify-center p-4"
      style="background:rgba(0,0,0,.55)"
@@ -2389,56 +2455,89 @@ function heatDotStyle(hi) {
     <!-- 헤더 -->
     <div class="flex items-center justify-between">
       <div>
-        <div class="text-base font-extrabold text-gray-800">🤖 Gemini AI 키 등록</div>
+        <div class="text-base font-extrabold text-gray-800">🤖 AI 키 관리</div>
         <div class="text-xs text-gray-500 mt-0.5" x-text="meta.siteCode ? '현장코드: '+meta.siteCode : '현장코드를 먼저 입력하세요'"></div>
       </div>
       <button @click="aiKeyModal.show=false" class="text-gray-400 hover:text-gray-600 text-xl font-bold border-none bg-transparent cursor-pointer">✕</button>
     </div>
 
-    <!-- 안내 -->
-    <div class="rounded-xl p-4 space-y-2" style="background:#f0f7ff;border:1px solid #bfdbfe">
-      <div class="text-xs font-extrabold text-blue-700 mb-1">📋 API 키 발급 방법</div>
-      <ol class="text-xs text-blue-800 space-y-1.5 list-decimal list-inside leading-relaxed">
-        <li><strong>Google AI Studio</strong> 접속
-          <a href="https://aistudio.google.com/apikey" target="_blank"
-             class="underline text-blue-600 ml-1">aistudio.google.com/apikey ↗</a>
+    <!-- 오류 상태 표시 -->
+    <div x-show="aiLastError" class="rounded-xl p-3" style="background:#fff0f0;border:1.5px solid #ffb3b3">
+      <div class="text-xs font-extrabold text-red-600 mb-1">⚠️ AI 인식 오류</div>
+      <div class="text-xs text-red-700" x-text="aiLastError"></div>
+      <div class="text-xs text-red-500 mt-1">새 키를 추가하거나 기존 키를 확인해 주세요.</div>
+    </div>
+
+    <!-- 등록된 키 목록 -->
+    <div x-show="aiRegisteredKeys.length > 0">
+      <div class="text-xs font-bold text-gray-600 mb-2">등록된 키 (<span x-text="aiRegisteredKeys.length"></span>개)</div>
+      <div class="space-y-2">
+        <template x-for="k in aiRegisteredKeys" :key="k.id">
+          <div class="flex items-center justify-between rounded-lg px-3 py-2" style="background:#f2f2f7">
+            <div>
+              <span class="text-xs font-bold text-gray-700" x-text="k.label"></span>
+              <span class="text-xs text-gray-400 ml-2 font-mono" x-text="k.masked"></span>
+            </div>
+            <button @click="deleteAiKey(k.id)"
+                    class="text-xs text-red-400 hover:text-red-600 font-bold border-none bg-transparent cursor-pointer px-1">✕</button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- 최초 등록 안내 (키가 없을 때만) -->
+    <div x-show="aiRegisteredKeys.length === 0" class="rounded-xl p-4 space-y-3" style="background:#f0f6ff;border:1.5px solid #b3d0ff">
+      <div class="text-xs font-extrabold text-blue-700">📋 API 키 등록 방법 (최초 1회)</div>
+      <ol class="space-y-2.5 text-xs text-gray-700 list-none pl-0">
+        <li class="flex gap-2">
+          <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px]" style="background:#3b82f6">1</span>
+          <span><strong>구글 계정</strong>으로 <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-600 underline font-semibold">aistudio.google.com/apikey ↗</a> 접속</span>
         </li>
-        <li>Google 계정으로 로그인</li>
-        <li><strong>"API 키 만들기"</strong> 버튼 클릭</li>
-        <li>생성된 키(<code class="bg-blue-100 px-1 rounded">AIza...</code>)를 복사</li>
-        <li>아래 입력란에 붙여넣기 후 저장</li>
+        <li class="flex gap-2">
+          <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px]" style="background:#3b82f6">2</span>
+          <span><strong>「API 키 만들기」</strong> 버튼 클릭 → 프로젝트 없이 만들기 선택</span>
+        </li>
+        <li class="flex gap-2">
+          <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px]" style="background:#3b82f6">3</span>
+          <span>생성된 키(<code class="bg-white px-1 rounded text-blue-700">AQ.Ab...</code> 형태)를 <strong>복사</strong></span>
+        </li>
+        <li class="flex gap-2">
+          <span class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px]" style="background:#3b82f6">4</span>
+          <span>아래 입력란에 <strong>붙여넣기</strong> 후 「키 추가」 클릭</span>
+        </li>
       </ol>
-      <div class="text-xs text-blue-600 mt-1">※ 무료 티어 사용 가능 · 키는 서버에만 암호화 저장됩니다</div>
+      <div class="text-xs text-blue-600 rounded-lg px-3 py-2" style="background:#dbeafe">
+        💡 무료 한도는 <strong>구글 계정(아이디)당 하루 약 1,500회</strong>이며 매일 초기화됩니다. 같은 계정의 키는 여러 개여도 한도를 공유하므로, 한도를 늘리려면 <strong>다른 구글 계정</strong>으로 키를 추가로 발급받아 등록하세요.
+      </div>
     </div>
 
-    <!-- 키 입력 -->
+    <!-- 새 키 추가 -->
     <div>
-      <label class="text-xs font-bold text-gray-600">API 키</label>
-      <input type="password" x-model="aiKeyModal.key" placeholder="AIza로 시작하는 키를 붙여넣으세요"
+      <label class="text-xs font-bold text-gray-600" x-text="aiRegisteredKeys.length > 0 ? '새 키 추가' : 'API 키 입력'"></label>
+      <div class="text-xs text-gray-400 mb-1" x-show="aiRegisteredKeys.length > 0">키를 여러 개 등록하면 한도 초과 시 자동 순환합니다</div>
+      <input type="password" x-model="aiKeyModal.key" placeholder="API 키를 붙여넣으세요 (AQ.Ab...)"
              class="mt-1 w-full" autocomplete="off" @keydown.enter="saveAiKey()">
-      <div x-show="aiKeyModal.key && !aiKeyModal.key.startsWith('AIza')"
-           class="text-xs text-red-500 mt-1">AIza로 시작하는 키를 입력해 주세요</div>
     </div>
 
-    <!-- PIN (현장 PIN이 있을 경우) -->
+    <!-- PIN -->
     <div x-show="aiKeyModal.needPin">
       <label class="text-xs font-bold text-gray-600">현장 PIN</label>
-      <input type="password" x-model="aiKeyModal.pin" placeholder="현장 PIN 4자리"
+      <input type="password" x-model="aiKeyModal.pin" placeholder="현장 PIN"
              maxlength="8" class="mt-1 w-full" @keydown.enter="saveAiKey()">
     </div>
 
-    <!-- 에러/성공 메시지 -->
+    <!-- 메시지 -->
     <div x-show="aiKeyModal.error" class="text-xs text-red-500 font-bold" x-text="aiKeyModal.error"></div>
-    <div x-show="aiKeyModal.success" class="text-xs text-green-600 font-bold">✅ AI 키가 등록되었습니다!</div>
+    <div x-show="aiKeyModal.success" class="text-xs text-green-600 font-bold">✅ 키가 추가되었습니다!</div>
 
     <!-- 버튼 -->
     <div class="flex gap-2 pt-1">
       <button @click="saveAiKey()"
-              :disabled="aiKeyModal.saving || !aiKeyModal.key || !aiKeyModal.key.startsWith('AIza') || !meta.siteCode"
+              :disabled="aiKeyModal.saving || aiKeyModal.key.trim().length < 10 || !meta.siteCode || (aiKeyModal.needPin && !aiKeyModal.pin)"
               class="btn-primary flex-1">
-        <span x-text="aiKeyModal.saving ? '저장 중...' : '💾 저장'"></span>
+        <span x-text="aiKeyModal.saving ? '저장 중...' : '➕ 키 추가'"></span>
       </button>
-      <button @click="aiKeyModal.show=false" class="btn-secondary">취소</button>
+      <button @click="aiKeyModal.show=false" class="btn-secondary">닫기</button>
     </div>
   </div>
 </div>
