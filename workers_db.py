@@ -129,6 +129,8 @@ class WorkersDatabase:
                     feels_like    REAL,
                     worker_id     INTEGER NOT NULL,
                     body_temp     REAL,
+                    bp_sys        INTEGER,
+                    bp_dia        INTEGER,
                     measure_time  TEXT DEFAULT '',
                     health_status TEXT DEFAULT '양호',
                     notes         TEXT DEFAULT '',
@@ -198,6 +200,12 @@ class WorkersDatabase:
             cols = {row[1] for row in con.execute("PRAGMA table_info(vw_site_locations)")}
             if "marker_color" not in cols:
                 con.execute("ALTER TABLE vw_site_locations ADD COLUMN marker_color TEXT DEFAULT ''")
+            # 마이그레이션: 혈압 컬럼 추가
+            hcols = {row[1] for row in con.execute("PRAGMA table_info(vw_health_records)")}
+            if "bp_sys" not in hcols:
+                con.execute("ALTER TABLE vw_health_records ADD COLUMN bp_sys INTEGER")
+            if "bp_dia" not in hcols:
+                con.execute("ALTER TABLE vw_health_records ADD COLUMN bp_dia INTEGER")
             con.commit()
         finally:
             con.close()
@@ -596,19 +604,21 @@ class WorkersDatabase:
             if ex:
                 con.execute("""
                     UPDATE vw_health_records SET
-                        body_temp=?,measure_time=?,health_status=?,notes=?,updated_at=?
+                        body_temp=?,bp_sys=?,bp_dia=?,measure_time=?,health_status=?,notes=?,updated_at=?
                     WHERE id=?
-                """, (data.get('body_temp'), data.get('measure_time',''),
+                """, (data.get('body_temp'), data.get('bp_sys'), data.get('bp_dia'),
+                      data.get('measure_time',''),
                       data.get('health_status','양호'), data.get('notes',''), now, ex[0]))
                 return ex[0]
             cur = con.execute("""
                 INSERT INTO vw_health_records
                     (site_code,company,record_date,slot,heat_level,feels_like,
-                     worker_id,body_temp,measure_time,health_status,notes,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                     worker_id,body_temp,bp_sys,bp_dia,measure_time,health_status,notes,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (data['site_code'], data['company'], data['record_date'],
                   data['slot'], data.get('heat_level',''), data.get('feels_like'),
-                  data['worker_id'], data.get('body_temp'), data.get('measure_time',''),
+                  data['worker_id'], data.get('body_temp'), data.get('bp_sys'), data.get('bp_dia'),
+                  data.get('measure_time',''),
                   data.get('health_status','양호'), data.get('notes',''), now, now))
             return cur.lastrowid
 
