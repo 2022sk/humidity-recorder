@@ -319,14 +319,21 @@
                   <template x-for="sub in grp.subgroups" :key="sub.label">
                     <div class="mt-2">
                       <!-- 공종 헤더 (클릭 → 접기/펴기) -->
-                      <div class="flex items-center gap-1.5 cursor-pointer select-none py-1 px-1 rounded-lg hover:bg-gray-50"
-                           @click="toggleCollapseJobType(grp.company+'::'+sub.label)">
-                        <span class="text-gray-400 flex-shrink-0 text-xs"
-                              :style="collapsedJobTypes[grp.company+'::'+sub.label] ? 'display:inline-block;transform:rotate(-90deg);transition:transform .15s' : 'display:inline-block;transition:transform .15s'">▾</span>
-                        <span class="text-xs font-extrabold text-gray-500"
-                              x-text="'🔧 '+sub.label"></span>
-                        <span class="text-xs text-gray-400"
-                              x-text="'('+sub.workers.filter(w=>w.deploy_status!=='inactive').length+'명'+(sub.workers.some(w=>w.deploy_status==='inactive') ? ' · 미투입 '+sub.workers.filter(w=>w.deploy_status==='inactive').length+'명' : '')+')'"></span>
+                      <div class="flex items-center gap-1.5 select-none py-1 px-1 rounded-lg hover:bg-gray-50">
+                        <div class="flex items-center gap-1.5 flex-1 cursor-pointer min-w-0"
+                             @click="toggleCollapseJobType(grp.company+'::'+sub.label)">
+                          <span class="text-gray-400 flex-shrink-0 text-xs"
+                                :style="collapsedJobTypes[grp.company+'::'+sub.label] ? 'display:inline-block;transform:rotate(-90deg);transition:transform .15s' : 'display:inline-block;transition:transform .15s'">▾</span>
+                          <span class="text-xs font-extrabold text-gray-500"
+                                :class="sub.workers.every(w=>w.deploy_status==='inactive') ? 'opacity-40 line-through' : ''"
+                                x-text="'🔧 '+sub.label"></span>
+                          <span class="text-xs text-gray-400"
+                                x-text="'('+sub.workers.filter(w=>w.deploy_status!=='inactive').length+'명'+(sub.workers.some(w=>w.deploy_status==='inactive') ? ' · 미투입 '+sub.workers.filter(w=>w.deploy_status==='inactive').length+'명' : '')+')'"></span>
+                        </div>
+                        <button @click.stop="jobTypeToggleDeployStatus(grp.company, sub.label, sub.workers)"
+                                :class="sub.workers.every(w=>w.deploy_status==='inactive') ? 'btn-primary text-xs py-0.5 px-2 flex-shrink-0' : 'btn-secondary text-xs py-0.5 px-2 flex-shrink-0'"
+                                x-text="sub.workers.every(w=>w.deploy_status==='inactive') ? '공종 투입복귀' : '공종 미투입'">
+                        </button>
                       </div>
                       <!-- 공종 내 근로자 -->
                       <div x-show="!collapsedJobTypes[grp.company+'::'+sub.label]" class="space-y-2 mt-1">
@@ -1974,6 +1981,19 @@ function app() {
       const r = await fetch(API_BASE+'/api/vw/attendance?'+q);
       const d = await r.json();
       this.adminTodayAttendance = d.attendance || [];
+    },
+
+    async jobTypeToggleDeployStatus(company, jobType, subWorkers) {
+      const allInactive = subWorkers.length > 0 && subWorkers.every(w => w.deploy_status === 'inactive');
+      const newStatus = allInactive ? 'active' : 'inactive';
+      await Promise.all(subWorkers.map(w =>
+        fetch(API_BASE+'/api/vw/workers/'+w.id+'/deploy-status', {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ status: newStatus })
+        })
+      ));
+      await this.loadWorkers();
+      this.showToast(newStatus === 'inactive' ? jobType+' 전체 미투입 처리' : jobType+' 전체 투입 복귀');
     },
 
     async companyToggleDeployStatus(company) {
