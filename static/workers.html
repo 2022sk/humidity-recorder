@@ -206,47 +206,66 @@
         </div>
       </div>
 
-      <!-- 검색창 -->
-      <div class="space-y-1.5 mb-2">
-        <!-- 이름 검색 -->
-        <div class="relative">
-          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">🔍</span>
-          <input type="text" x-model="workerSearch" placeholder="이름 검색"
-                 class="w-full text-xs rounded-xl border border-gray-200 bg-white"
-                 style="padding:8px 28px 8px 32px">
-          <button x-show="workerSearch" @click="workerSearch=''"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm leading-none">✕</button>
+      <!-- 검색 + 필터 -->
+      <div class="mb-3">
+        <!-- 검색바 한 줄 -->
+        <div class="flex gap-2 mb-1.5">
+          <div class="relative flex-1">
+            <svg class="absolute pointer-events-none text-gray-400" style="left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" x-model="workerSearch" placeholder="이름 검색"
+                   class="w-full text-xs rounded-xl border border-gray-200 bg-white"
+                   style="padding:8px 28px 8px 30px">
+            <button x-show="workerSearch" @click="workerSearch=''"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs leading-none">✕</button>
+          </div>
+          <button @click="workerFilterOpen=!workerFilterOpen"
+                  class="flex-shrink-0 flex items-center gap-1 text-xs font-bold px-3 rounded-xl border transition-all"
+                  :class="(workerEduFrom||workerEduTo||workerFilter||workerShowFilter!=='all')
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-600 border-gray-200'">
+            <span>필터</span>
+            <span x-text="workerFilterOpen ? '▲' : '▼'" class="text-xs opacity-70"></span>
+            <span x-show="(workerEduFrom||workerEduTo||workerFilter||workerShowFilter!=='all')"
+                  class="bg-white text-blue-600 rounded-full font-black leading-none"
+                  style="font-size:10px;padding:0 4px"
+                  x-text="[workerEduFrom||workerEduTo?'투입일':'', workerFilter, workerShowFilter!=='all'?workerShowFilter:''].filter(Boolean).length">
+            </span>
+          </button>
         </div>
-        <!-- 투입일 기간 검색 -->
-        <div class="flex items-center gap-1.5">
-          <span class="text-xs text-gray-500 font-bold flex-shrink-0">투입일</span>
-          <input type="date" x-model="workerEduFrom"
-                 class="flex-1 text-xs rounded-xl border border-gray-200 bg-white"
-                 style="padding:6px 8px">
-          <span class="text-xs text-gray-400 flex-shrink-0">~</span>
-          <input type="date" x-model="workerEduTo"
-                 class="flex-1 text-xs rounded-xl border border-gray-200 bg-white"
-                 style="padding:6px 8px">
-          <button x-show="workerEduFrom || workerEduTo" @click="workerEduFrom='';workerEduTo=''"
-                  class="text-gray-400 hover:text-gray-600 text-sm leading-none flex-shrink-0">✕</button>
+        <!-- 펼침 필터 패널 -->
+        <div x-show="workerFilterOpen" x-transition:enter="transition ease-out duration-150"
+             x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             class="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+          <!-- 취약/업체 -->
+          <div class="flex gap-2">
+            <select x-model="workerShowFilter"
+                    class="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700">
+              <option value="all">전체</option>
+              <option value="vuln">🔴 취약만</option>
+              <option value="attend_vuln">오늘출근취약</option>
+            </select>
+            <select x-model="workerFilter"
+                    class="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700">
+              <option value="">전체 업체</option>
+              <template x-for="c in workerCompanies" :key="c">
+                <option :value="c" x-text="c"></option>
+              </template>
+            </select>
+          </div>
+          <!-- 투입일 기간 -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-gray-500 font-bold flex-shrink-0">투입일</span>
+            <input type="date" x-model="workerEduFrom"
+                   class="flex-1 text-xs border border-gray-200 rounded-lg bg-white" style="padding:5px 6px">
+            <span class="text-xs text-gray-400">~</span>
+            <input type="date" x-model="workerEduTo"
+                   class="flex-1 text-xs border border-gray-200 rounded-lg bg-white" style="padding:5px 6px">
+          </div>
+          <!-- 초기화 -->
+          <button x-show="workerEduFrom||workerEduTo||workerFilter||workerShowFilter!=='all'"
+                  @click="workerEduFrom='';workerEduTo='';workerFilter='';workerShowFilter='all'"
+                  class="text-xs text-red-400 font-bold">초기화</button>
         </div>
-      </div>
-
-      <!-- 필터 -->
-      <div class="flex gap-2 items-center mb-3 flex-wrap">
-        <select x-model="workerShowFilter"
-                class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
-          <option value="all">전체</option>
-          <option value="vuln">🔴 취약만</option>
-          <option value="attend_vuln">오늘출근취약</option>
-        </select>
-        <select x-model="workerFilter"
-                class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white font-bold text-gray-700 cursor-pointer">
-          <option value="">전체 업체</option>
-          <template x-for="c in workerCompanies" :key="c">
-            <option :value="c" x-text="c"></option>
-          </template>
-        </select>
       </div>
 
       <!-- 검색 결과 평면 목록 -->
@@ -1863,6 +1882,7 @@ function app() {
     workerSearch: '',
     workerEduFrom: '',
     workerEduTo: '',
+    workerFilterOpen: false,
     workerGroupBy: 'company_jobtype', // 'company' | 'jobtype' | 'company_jobtype' | 'location_vuln'
     workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
     collapsedCompanies: {},
