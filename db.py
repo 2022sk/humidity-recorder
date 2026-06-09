@@ -361,13 +361,14 @@ class Database:
             con.execute("""
                 UPDATE records SET
                     site_code=?,site_name=?,company=?,location=?,measurer=?,
-                    measure_time=?,temperature=?,humidity=?,feels_like=?,
+                    slot=?,measure_time=?,temperature=?,humidity=?,feels_like=?,
                     heat_level=?,action=?,other_content=?,notes=?,photo_id=?,updated_at=?
                 WHERE id=?
             """, (
                 data.get("site_code",""), data.get("site_name",""),
                 data.get("company",""),   data.get("location",""),
-                data.get("measurer",""),  data.get("measure_time",""),
+                data.get("measurer",""),  data.get("slot",""),
+                data.get("measure_time",""),
                 data.get("temperature"),  data.get("humidity"),
                 data.get("feels_like"),   data.get("heat_level",""),
                 data.get("action","N/A"), data.get("other_content",""),
