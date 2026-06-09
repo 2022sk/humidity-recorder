@@ -206,7 +206,7 @@
       <button class="tab-btn flex-1" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">🗺 도면</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='healthlog'}" @click="adminTab='healthlog';loadAdminHealthLog()">🩺 측정기록</button>
+      <button class="tab-btn flex-1" :class="{active:adminTab==='healthlog'}" @click="adminTab='healthlog';loadAdminHealthLog()">☀️ 혹서기</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 업체PIN</button>
     </div>
 
