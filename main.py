@@ -666,6 +666,20 @@ def del_company_pin(site_code: str, company: str):
     wdb.delete_company_pin(site_code, company)
     return {"ok": True}
 
+# ── 취약근로자 날짜별 로그 ──────────────────────────────────────────────────────
+@app.post("/api/vw/vuln-log")
+def save_vuln_log(body: dict):
+    wdb.save_vuln_log(body["site_code"], body["log_date"], body.get("data", []))
+    return {"ok": True}
+
+@app.get("/api/vw/vuln-log")
+def get_vuln_log(site_code: str, log_date: str):
+    return {"data": wdb.get_vuln_log(site_code, log_date)}
+
+@app.get("/api/vw/vuln-log/dates")
+def list_vuln_log_dates(site_code: str):
+    return {"dates": wdb.list_vuln_log_dates(site_code)}
+
 # ── 취약구분 일괄 재계산 ───────────────────────────────────────────────────────
 @app.post("/api/vw/workers/recalc-vtypes")
 def recalc_vtypes(site_code: str):

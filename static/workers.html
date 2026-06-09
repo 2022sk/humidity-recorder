@@ -205,7 +205,7 @@
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
       <button class="tab-btn flex-1" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='map'}" @click="adminTab='map';loadMapAttendance()">🗺 도면</button>
+      <button class="tab-btn flex-1" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">🗺 도면</button>
       <button class="tab-btn flex-1" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 업체PIN</button>
     </div>
 
@@ -1705,9 +1705,39 @@
 
     <!-- 근로자 목록 -->
     <div style="max-height:55vh;overflow-y:auto;padding:12px 16px">
-      <template x-if="workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length===0">
-        <div class="text-center text-gray-400 py-8 text-sm">취약근로자가 없습니다</div>
+      <!-- 과거 날짜 데이터 조회 시 -->
+      <template x-if="vulnListModal.viewDate && vulnListModal.viewData">
+        <div>
+          <div class="text-xs font-bold text-gray-500 mb-2" x-text="vulnListModal.viewDate+' 저장 기록 — '+vulnListModal.viewData.length+'명'"></div>
+          <template x-for="(w,i) in vulnListModal.viewData" :key="w.id">
+            <div class="flex items-start gap-3 py-2" :class="i>0?'border-t border-gray-100':''">
+              <div class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-600 font-extrabold text-xs flex items-center justify-center" x-text="i+1"></div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-extrabold text-gray-900" x-text="w.name"></span>
+                  <span class="text-xs text-gray-400" x-text="w.company+(w.job_type?' · '+w.job_type:'')"></span>
+                </div>
+                <div class="flex flex-wrap gap-1 mt-0.5">
+                  <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                    <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                  </template>
+                </div>
+              </div>
+              <div x-show="(w.location||[]).length>0" class="flex flex-wrap gap-1 justify-end">
+                <template x-for="loc in (w.location||[])" :key="loc">
+                  <span class="text-xs font-bold px-1.5 py-0.5 rounded-md" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
       </template>
+      <!-- 현재 취약근로자 목록 -->
+      <template x-if="!vulnListModal.viewDate || !vulnListModal.viewData">
+        <div>
+        <template x-if="workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length===0">
+          <div class="text-center text-gray-400 py-8 text-sm">취약근로자가 없습니다</div>
+        </template>
       <template x-for="(w,i) in workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
         <div class="flex items-start gap-3 py-2.5" :class="i>0?'border-t border-gray-100':''">
           <!-- 번호 -->
@@ -1744,12 +1774,28 @@
           </div>
         </div>
       </template>
+      </div>
+      </template>
     </div>
 
+    <!-- 날짜별 조회 -->
+    <div class="px-4 pb-2 border-t border-gray-100 pt-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-gray-500 font-bold flex-shrink-0">날짜 조회</span>
+        <input type="date" x-model="vulnListModal.viewDate" @change="loadVulnLog()"
+               class="flex-1 text-xs rounded-lg border border-gray-200" style="padding:5px 8px">
+        <span x-show="vulnListModal.viewDate && vulnListModal.viewData"
+              class="text-xs text-gray-400" x-text="vulnListModal.viewData ? vulnListModal.viewData.length+'명 저장됨' : ''"></span>
+        <button x-show="vulnListModal.viewDate" @click="vulnListModal.viewDate='';vulnListModal.viewData=null"
+                class="text-gray-400 text-xs">✕</button>
+      </div>
+    </div>
     <!-- 하단 버튼 -->
     <div class="flex gap-2 p-3 border-t border-gray-100 bg-gray-50">
+      <button @click="saveVulnLog()"
+              class="flex-1 btn-primary text-sm font-bold py-2.5">💾 오늘 현황 저장</button>
       <button @click="copyVulnList()"
-              class="flex-1 btn-secondary text-sm font-bold py-2.5">📋 텍스트 복사</button>
+              class="flex-1 btn-secondary text-sm font-bold py-2.5">📋 복사</button>
       <button @click="vulnListModal.show=false"
               class="btn-secondary text-sm py-2.5 px-4">닫기</button>
     </div>
@@ -2089,7 +2135,7 @@ function app() {
     workerEduFrom: '',
     workerEduTo: '',
     workerFilterOpen: false,
-    vulnListModal: { show: false },
+    vulnListModal: { show: false, viewDate: '', viewData: null },
     workerGroupBy: 'company_jobtype', // 'company' | 'jobtype' | 'company_jobtype' | 'location_vuln'
     workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
     collapsedCompanies: {},
@@ -2237,6 +2283,29 @@ function app() {
         if (diffDays >= 0 && diffDays <= 14) vtypes.push('신규배치자');
       }
       return { ...w, vulnerability_types: vtypes, is_vulnerable: vtypes.length > 0 ? 1 : 0 };
+    },
+
+    async saveVulnLog() {
+      const today = new Date().toISOString().slice(0,10);
+      const vuln = this.workers.filter(w => w.is_vulnerable && w.deploy_status !== 'inactive');
+      const data = vuln.map(w => ({
+        id: w.id, name: w.name_korean||w.name, company: w.company, job_type: w.job_type||'',
+        vulnerability_types: w.vulnerability_types||[],
+        location: this.workerLocations[w.id]||[],
+      }));
+      await fetch(API_BASE+'/api/vw/vuln-log', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ site_code: this.siteCode, log_date: today, data })
+      });
+      this.showToast('💾 취약현황 저장 완료 ('+data.length+'명)');
+    },
+
+    async loadVulnLog() {
+      if (!this.vulnListModal.viewDate) { this.vulnListModal.viewData = null; return; }
+      const r = await fetch(API_BASE+'/api/vw/vuln-log?site_code='+this.siteCode+'&log_date='+this.vulnListModal.viewDate);
+      const d = await r.json();
+      this.vulnListModal.viewData = d.data && d.data.length ? d.data : null;
+      if (!d.data || !d.data.length) this.showToast('해당 날짜 저장 기록 없음');
     },
 
     copyVulnList() {
@@ -2480,7 +2549,13 @@ function app() {
     },
 
     mapWorkersAt(loc) {
-      return this.mapAttendance.filter(a => this.parseLocations(a.work_location).includes(loc));
+      if (loc === '전구역') {
+        return this.mapAttendance.filter(a => this.parseLocations(a.work_location).includes('전구역'));
+      }
+      return this.mapAttendance.filter(a => {
+        const locs = this.parseLocations(a.work_location);
+        return locs.includes(loc) || locs.includes('전구역');
+      });
     },
 
     async loadMapAttendance() {
@@ -2489,7 +2564,24 @@ function app() {
       const companyQ = this.role === 'company' ? '&company='+encodeURIComponent(this.company) : '';
       const r = await fetch(API_BASE+'/api/vw/attendance?site_code='+this.siteCode+'&work_date='+date+companyQ);
       const d = await r.json();
-      this.mapAttendance = (d.attendance || []).map(a => this._applyAutoVtypes(a));
+
+      if (this.role === 'admin') {
+        // 관리자: 전 근로자 기반, 위치 데이터는 출근 기록에서 합산
+        const locMap = {};
+        (d.attendance || []).forEach(a => {
+          try { locMap[a.worker_id] = JSON.parse(a.work_location || '[]'); }
+          catch { locMap[a.worker_id] = a.work_location ? [a.work_location] : []; }
+        });
+        this.mapAttendance = (this.workers || [])
+          .filter(w => w.deploy_status !== 'inactive')
+          .map(w => ({
+            ...this._applyAutoVtypes(w),
+            worker_id: w.id,
+            work_location: JSON.stringify(locMap[w.id] || []),
+          }));
+      } else {
+        this.mapAttendance = (d.attendance || []).map(a => this._applyAutoVtypes(a));
+      }
     },
 
     isWorkerAtLoc(wid, loc) {

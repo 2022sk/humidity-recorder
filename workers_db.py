@@ -155,6 +155,15 @@ class WorkersDatabase:
                     PRIMARY KEY (site_code, company)
                 );
 
+                CREATE TABLE IF NOT EXISTS vw_vuln_daily_log (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_code   TEXT    NOT NULL,
+                    log_date    TEXT    NOT NULL,
+                    data_json   TEXT    NOT NULL DEFAULT '[]',
+                    saved_at    TEXT    DEFAULT (datetime('now','localtime')),
+                    UNIQUE(site_code, log_date)
+                );
+
                 CREATE TABLE IF NOT EXISTS gemini_api_log (
                     id          INTEGER PRIMARY KEY AUTOINCREMENT,
                     site_code   TEXT    DEFAULT '',
@@ -402,6 +411,35 @@ class WorkersDatabase:
     def rename_site_location(self, loc_id: int, new_name: str):
         with self.conn() as con:
             con.execute("UPDATE vw_site_locations SET location_name=? WHERE id=?", (new_name, loc_id))
+
+    def save_vuln_log(self, site_code: str, log_date: str, data: list):
+        import json
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with self.conn() as con:
+            con.execute("""
+                INSERT INTO vw_vuln_daily_log (site_code, log_date, data_json, saved_at)
+                VALUES (?,?,?,?)
+                ON CONFLICT(site_code, log_date) DO UPDATE SET data_json=excluded.data_json, saved_at=excluded.saved_at
+            """, (site_code, log_date, json.dumps(data, ensure_ascii=False), now))
+
+    def get_vuln_log(self, site_code: str, log_date: str) -> list:
+        import json
+        with self.conn() as con:
+            row = con.execute(
+                "SELECT data_json, saved_at FROM vw_vuln_daily_log WHERE UPPER(site_code)=UPPER(?) AND log_date=?",
+                (site_code, log_date)
+            ).fetchone()
+            if not row: return []
+            try: return json.loads(row[0])
+            except: return []
+
+    def list_vuln_log_dates(self, site_code: str) -> list:
+        with self.conn() as con:
+            rows = con.execute(
+                "SELECT log_date, saved_at FROM vw_vuln_daily_log WHERE UPPER(site_code)=UPPER(?) ORDER BY log_date DESC",
+                (site_code,)
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def set_location_color(self, loc_id: int, color: str):
         with self.conn() as con:
