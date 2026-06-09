@@ -819,8 +819,15 @@
     <!-- 미투입 근로자 -->
     <template x-if="companyWorkers.filter(w=>w.deploy_status==='inactive').length > 0">
       <div class="mt-2">
-        <div class="text-xs font-extrabold text-gray-400 mb-2">⛔ 미투입 근로자</div>
-        <div class="space-y-1.5">
+        <div class="flex items-center gap-1.5 cursor-pointer select-none py-1 rounded-lg hover:bg-gray-50"
+             @click="inactiveCollapsed = !inactiveCollapsed">
+          <span class="text-gray-400 text-xs flex-shrink-0"
+                :style="inactiveCollapsed ? 'display:inline-block;transform:rotate(-90deg);transition:transform .15s' : 'display:inline-block;transition:transform .15s'">▾</span>
+          <span class="text-xs font-extrabold text-gray-400">⛔ 미투입 근로자</span>
+          <span class="text-xs text-gray-400"
+                x-text="'('+companyWorkers.filter(w=>w.deploy_status==='inactive').length+'명)'"></span>
+        </div>
+        <div x-show="!inactiveCollapsed" class="space-y-1.5 mt-1">
           <template x-for="w in companyWorkers.filter(w=>w.deploy_status==='inactive')" :key="w.id">
             <div class="worker-card opacity-50">
               <div class="flex items-center gap-3">
@@ -1762,6 +1769,7 @@ function app() {
     workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
     collapsedCompanies: {},
     collapsedJobTypes: {},
+    inactiveCollapsed: false,
     workerCompanies: [],
     adminTodayAttendance: [],
     vtypeOptions: ['고령','초고령','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
