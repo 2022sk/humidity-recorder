@@ -1147,7 +1147,7 @@
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">신규교육일</label>
-              <input type="date" x-model="workerModal.data.education_date" class="mt-1">
+              <input type="date" x-model="workerModal.data.education_date" @change="autoFillVtypes()" class="mt-1">
             </div>
             <div>
               <label class="text-xs font-bold text-gray-500">건강진단일</label>
@@ -1926,10 +1926,10 @@ function app() {
     },
 
     _applyAutoVtypes(w) {
+      // 로딩 시: 나이·신규배치자만 재계산. 질환 기반은 저장값 존중.
       const AGE_AUTO = ['고령','초고령','고령(만60세이상)','초고령(만66세이상)'];
-      const today = new Date();
-      // 나이 기반만 제거 후 재계산, 질환 기반은 수동 체크 유지
-      let vtypes = (w.vulnerability_types||[]).filter(v => !AGE_AUTO.includes(v));
+      const today = new Date(); today.setHours(0,0,0,0);
+      let vtypes = (w.vulnerability_types||[]).filter(v => !AGE_AUTO.includes(v) && v !== '신규배치자');
       if (w.birth_date) {
         const birth = new Date(w.birth_date);
         let age = today.getFullYear() - birth.getFullYear();
@@ -1938,11 +1938,11 @@ function app() {
         if (age >= 66) vtypes.push('초고령');
         else if (age >= 60) vtypes.push('고령');
       }
-      // 기저질환에서 감지되면 없을 때만 추가 (수동 체크 덮어쓰지 않음)
-      const dis = w.diseases || '';
-      if (dis.includes('혈압') && !vtypes.includes('혈압')) vtypes.push('혈압');
-      if (dis.includes('당뇨') && !vtypes.includes('당뇨')) vtypes.push('당뇨');
-      if ((dis.includes('심장')||dis.includes('뇌혈관')||dis.includes('심뇌혈관')) && !vtypes.includes('심뇌혈관질환')) vtypes.push('심뇌혈관질환');
+      if (w.education_date) {
+        const edu = new Date(w.education_date); edu.setHours(0,0,0,0);
+        const diffDays = Math.floor((today - edu) / 86400000);
+        if (diffDays >= 0 && diffDays <= 14) vtypes.push('신규배치자');
+      }
       return { ...w, vulnerability_types: vtypes, is_vulnerable: vtypes.length > 0 ? 1 : 0 };
     },
 
@@ -2374,14 +2374,14 @@ function app() {
     },
 
     autoFillVtypes() {
-      const AUTO = ['고령','초고령','혈압','당뇨','심뇌혈관질환',
-                    '고령(만60세이상)','초고령(만66세이상)'];
-      let vtypes = this.workerModal.data.vulnerability_types.filter(v => !AUTO.includes(v));
+      const AGE_AUTO = ['고령','초고령','고령(만60세이상)','초고령(만66세이상)'];
+      const today = new Date(); today.setHours(0,0,0,0);
+      // 나이·신규배치자만 재계산, 질환 기반은 현재 체크 상태 유지하되 미기입 시 자동 제안
+      let vtypes = this.workerModal.data.vulnerability_types.filter(v => !AGE_AUTO.includes(v) && v !== '신규배치자');
 
       // 나이 기반
       const bd = this.workerModal.data.birth_date;
       if (bd) {
-        const today = new Date();
         const birth = new Date(bd);
         let age = today.getFullYear() - birth.getFullYear();
         const m = today.getMonth() - birth.getMonth();
@@ -2390,11 +2390,19 @@ function app() {
         else if (age >= 60) vtypes.push('고령');
       }
 
-      // 기저질환 기반
+      // 신규배치자 (투입일 기준 14일 이내)
+      const edu = this.workerModal.data.education_date;
+      if (edu) {
+        const eduDate = new Date(edu); eduDate.setHours(0,0,0,0);
+        const diffDays = Math.floor((today - eduDate) / 86400000);
+        if (diffDays >= 0 && diffDays <= 14) vtypes.push('신규배치자');
+      }
+
+      // 기저질환 기반 (체크 안 된 경우만 자동 제안)
       const d = this.workerModal.data.diseases || '';
-      if (d.includes('혈압')) vtypes.push('혈압');
-      if (d.includes('당뇨')) vtypes.push('당뇨');
-      if (d.includes('심장') || d.includes('뇌혈관') || d.includes('심뇌혈관')) vtypes.push('심뇌혈관질환');
+      if (d.includes('혈압') && !vtypes.includes('혈압')) vtypes.push('혈압');
+      if (d.includes('당뇨') && !vtypes.includes('당뇨')) vtypes.push('당뇨');
+      if ((d.includes('심장')||d.includes('뇌혈관')||d.includes('심뇌혈관')) && !vtypes.includes('심뇌혈관질환')) vtypes.push('심뇌혈관질환');
 
       this.workerModal.data = { ...this.workerModal.data, vulnerability_types: vtypes };
     },
