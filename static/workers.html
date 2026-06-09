@@ -367,6 +367,7 @@
                             <span x-show="w.deploy_status==='inactive'" class="text-xs font-black text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">미투입</span>
                             <span x-show="hasOtherVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🔴</span>
                             <span x-show="isElderlyVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🟠</span>
+                            <span x-show="isNewWorker(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🆕</span>
                             <template x-if="!w.nationality||w.nationality==='대한민국'">
                               <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
                             </template>
@@ -448,6 +449,7 @@
                                   <span x-show="w.h_wallet_missing" class="text-xs font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">H-미기입</span>
                                   <span x-show="hasOtherVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🔴</span>
                             <span x-show="isElderlyVuln(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🟠</span>
+                            <span x-show="isNewWorker(w)&&w.deploy_status!=='inactive'" class="font-black text-sm leading-none">🆕</span>
                                   <template x-if="!w.nationality||w.nationality==='대한민국'">
                                     <span class="font-extrabold text-gray-800" style="font-size:.98rem" x-text="w.name_korean||w.name"></span>
                                   </template>
@@ -547,6 +549,7 @@
           <div class="worker-card flex items-center gap-3" :class="a.is_vulnerable ? 'vulnerable' : ''">
             <span x-show="hasOtherVuln(a)" class="font-black">🔴</span>
             <span x-show="isElderlyVuln(a)" class="font-black">🟠</span>
+            <span x-show="isNewWorker(a)" class="font-black">🆕</span>
             <div class="flex-1">
               <span class="font-bold" x-text="a.name_korean||a.name"></span>
               <span class="text-xs text-gray-400 ml-2" x-text="a.company"></span>
@@ -705,6 +708,7 @@
               <div class="flex items-center gap-2 p-2 rounded-lg" :class="w.is_vulnerable ? 'bg-red-50' : 'bg-gray-50'">
                 <span x-show="hasOtherVuln(w)" class="font-black text-xs">🔴</span>
                 <span x-show="isElderlyVuln(w)" class="font-black text-xs">🟠</span>
+                <span x-show="isNewWorker(w)" class="font-black text-xs">🆕</span>
                 <span class="font-bold text-sm text-gray-800" x-text="w.name_korean||w.name"></span>
                 <span class="text-xs text-gray-400" x-text="w.company"></span>
                 <div class="flex flex-wrap gap-1 ml-auto">
@@ -861,7 +865,8 @@
                 <div class="flex items-center gap-1.5 rounded-lg px-2 py-1.5"
                      :class="w.is_vulnerable ? 'bg-red-50' : 'bg-gray-50'">
                   <span x-show="hasOtherVuln(w)" class="text-xs leading-none">🔴</span>
-                  <span x-show="isElderlyVuln(w)&&!hasOtherVuln(w)" class="text-xs leading-none">🟠</span>
+                  <span x-show="isElderlyVuln(w)" class="text-xs leading-none">🟠</span>
+                  <span x-show="isNewWorker(w)" class="text-xs leading-none">🆕</span>
                   <span class="text-xs font-bold text-gray-800 flex-1 truncate" x-text="w.name_korean||w.name"></span>
                   <span x-show="w.job_type" class="text-xs text-gray-400 truncate" style="max-width:50px" x-text="w.job_type"></span>
                 </div>
@@ -962,50 +967,39 @@
           </div>
           <button @click="selectedLocTab=null" class="text-gray-400 text-lg leading-none">✕</button>
         </div>
-        <!-- 취약근로자 -->
-        <template x-if="companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length>0">
-          <div class="mb-3">
-            <div class="text-xs font-extrabold text-red-600 mb-1.5">🔴 취약근로자</div>
-            <div class="space-y-2">
-              <template x-for="w in companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
-                <label class="worker-card vulnerable flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox"
-                         :checked="isWorkerAtLoc(w.id, selectedLocTab)"
-                         @change="selectedLocTab==='전구역' ? toggleAllZone(w.id) : toggleWorkerAtLoc(w.id, selectedLocTab)"
-                         class="mt-1 accent-red-500" style="width:20px;min-width:20px;padding:0!important">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
-                      <span x-show="w.birth_date" class="text-xs text-gray-400"
-                            x-text="w.birth_date?(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세':''"></span>
-                      <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8"
-                            x-text="'투입 '+(w.education_date||'')"></span>
-                    </div>
-                    <div class="flex flex-wrap gap-1 mt-0.5">
-                      <template x-for="vt in w.vulnerability_types" :key="vt">
-                        <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
-                      </template>
-                    </div>
-                    <div x-show="(workerLocations[w.id]||[]).length>0" class="flex flex-wrap gap-1 mt-0.5">
-                      <template x-for="loc in (workerLocations[w.id]||[])" :key="loc">
-                        <span class="text-xs font-bold px-1.5 py-0.5 rounded"
-                              style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
-                      </template>
-                    </div>
-                  </div>
-                  <button @click.stop="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
-                          class="btn-secondary text-xs py-0.5 px-2 flex-shrink-0 mt-0.5">미투입</button>
-                </label>
-              </template>
-            </div>
-          </div>
+        <!-- 배치된 근로자만 표시 -->
+        <template x-if="companyWorkers.filter(w=>isWorkerAtLoc(w.id,selectedLocTab)&&w.deploy_status!=='inactive').length===0">
+          <div class="text-xs text-gray-400 text-center py-4">이 위치에 배치된 근로자가 없습니다</div>
         </template>
-        <!-- 일반 근로자 -->
-        <div>
-          <div x-show="companyWorkers.filter(w=>!w.is_vulnerable&&w.deploy_status!=='inactive').length>0"
-               class="text-xs font-extrabold text-gray-500 mb-1.5">일반 근로자</div>
+        <div class="space-y-2">
+          <template x-for="w in companyWorkers.filter(w=>isWorkerAtLoc(w.id,selectedLocTab)&&w.deploy_status!=='inactive')" :key="w.id">
+            <div class="worker-card flex items-center gap-2" :class="w.is_vulnerable?'vulnerable':''">
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <span x-show="hasOtherVuln(w)" class="text-sm leading-none">🔴</span>
+                <span x-show="isElderlyVuln(w)" class="text-sm leading-none">🟠</span>
+                <span x-show="isNewWorker(w)" class="text-sm leading-none">🆕</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+                  <span x-show="w.birth_date" class="text-xs text-gray-400"
+                        x-text="w.birth_date?(new Date().getFullYear()-parseInt(w.birth_date.slice(0,4)))+'세':''"></span>
+                </div>
+                <div x-show="(w.vulnerability_types||[]).length>0" class="flex flex-wrap gap-1 mt-0.5">
+                  <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                    <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <!-- (숨김) 일반 근로자 체크박스 영역 제거됨 -->
+        <div style="display:none">
+          <div>
+          <div x-show="false">일반 근로자</div>
           <div class="space-y-2">
-            <template x-for="w in companyWorkers.filter(w=>!w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
+            <template x-for="w in []" :key="w.id">
               <label class="worker-card flex items-start gap-3 cursor-pointer">
                 <input type="checkbox"
                        :checked="isWorkerAtLoc(w.id, selectedLocTab)"
@@ -1019,19 +1013,11 @@
                     <span x-show="w.education_date" class="info-tag" style="background:#eff6ff;color:#1d4ed8"
                           x-text="'투입 '+(w.education_date||'')"></span>
                   </div>
-                  <div x-show="(workerLocations[w.id]||[]).length>0" class="flex flex-wrap gap-1 mt-0.5">
-                    <template x-for="loc in (workerLocations[w.id]||[])" :key="loc">
-                      <span class="text-xs font-bold px-1.5 py-0.5 rounded"
-                            style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
-                    </template>
-                  </div>
                 </div>
-                <button @click.stop="toggleDeployStatus(w, loadCompanyWorkers.bind(this))"
-                        class="btn-secondary text-xs py-0.5 px-2 flex-shrink-0 mt-0.5">미투입</button>
               </label>
             </template>
           </div>
-        </div>
+        </div></div>
       </div>
     </template>
 
@@ -2108,7 +2094,7 @@ function app() {
     workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
     collapsedCompanies: {},
     collapsedJobTypes: {},
-    inactiveCollapsed: false,
+    inactiveCollapsed: true,
     workerCompanies: [],
     adminTodayAttendance: [],
     vtypeOptions: ['고령','초고령','혈압','당뇨','기타유질환','신규배치자','특정약물복용자','온열질환병력','신장질환','비만','심뇌혈관질환'],
@@ -2683,9 +2669,12 @@ function app() {
       const vt = w.vulnerability_types || [];
       return vt.includes('고령') || vt.includes('초고령');
     },
+    isNewWorker(w) {
+      return (w.vulnerability_types || []).includes('신규배치자');
+    },
     hasOtherVuln(w) {
       const vt = w.vulnerability_types || [];
-      return vt.some(v => v !== '고령' && v !== '초고령');
+      return vt.some(v => v !== '고령' && v !== '초고령' && v !== '신규배치자');
     },
 
     vtypeColor(vt) {
