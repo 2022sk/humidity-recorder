@@ -202,12 +202,134 @@
 <template x-if="authed && role==='admin'">
   <div>
     <!-- 탭 -->
-    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3">
-      <button class="tab-btn flex-1" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">🗺 도면</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='healthlog'}" @click="adminTab='healthlog';loadAdminHealthLog()">☀️ 혹서기</button>
-      <button class="tab-btn flex-1" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 업체PIN</button>
+    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3" style="flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none">
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='dashboard'}" @click="adminTab='dashboard';loadDashboard()">🏠 현황</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">🗺 도면</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='healthlog'}" @click="adminTab='healthlog';loadAdminHealthLog()">☀️ 혹서기</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 PIN</button>
+    </div>
+
+    <!-- 🏠 오늘 현황 대시보드 -->
+    <div x-show="adminTab==='dashboard'">
+
+      <!-- 로딩 -->
+      <div x-show="!dashboard.loaded" class="text-center py-10 text-gray-400 text-sm">현황 불러오는 중...</div>
+
+      <template x-if="dashboard.loaded">
+        <div class="space-y-3">
+
+          <!-- ① 오늘 날짜 + 폭염 상태 카드 -->
+          <div class="rounded-2xl overflow-hidden shadow-sm"
+               :style="dashboard.maxHeat==='위험'?'background:linear-gradient(135deg,#7c0000,#b91c1c)':dashboard.maxHeat==='경고'?'background:linear-gradient(135deg,#7c3400,#ea580c)':dashboard.maxHeat==='주의'?'background:linear-gradient(135deg,#713f12,#ca8a04)':dashboard.maxHeat==='관심'?'background:linear-gradient(135deg,#1d4ed8,#3b82f6)':'background:linear-gradient(135deg,#374151,#6b7280)'">
+            <div style="padding:16px 18px">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-white text-xs opacity-75 font-bold" x-text="new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'})"></div>
+                  <div class="text-white font-extrabold mt-0.5" style="font-size:1.3rem"
+                       x-text="dashboard.maxHeat ? dashboard.maxHeat+'단계' : '폭염단계 미발령'"></div>
+                  <div x-show="dashboard.maxFeels" class="text-white opacity-80 text-sm mt-0.5"
+                       x-text="'체감온도 '+dashboard.maxFeels+'°C'"></div>
+                </div>
+                <div class="text-white opacity-30" style="font-size:3rem;line-height:1">
+                  <span x-text="dashboard.maxHeat?'☀️':'🌤'"></span>
+                </div>
+              </div>
+              <!-- 슬롯별 폭염 현황 -->
+              <div x-show="dashboard.heatSlots.length > 0" class="flex flex-wrap gap-1.5 mt-3">
+                <template x-for="s in dashboard.heatSlots" :key="s.slot">
+                  <div class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,.2);color:white"
+                       x-text="s.slot+' '+s.heat_level+(s.feels_like?' '+s.feels_like+'°C':'')"></div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- ② 취약근로자 현황 카드 -->
+          <div class="card" style="padding:16px">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-sm font-extrabold text-gray-800">🔴 취약근로자 현황</span>
+              <button @click="vulnListModal.show=true" class="text-xs text-blue-600 font-bold">전체보기</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="text-center rounded-xl py-2.5" style="background:#fff0f0">
+                <div class="font-extrabold text-red-600" style="font-size:1.6rem" x-text="dashboard.vulnTotal"></div>
+                <div class="text-xs text-red-400 font-bold">전체</div>
+              </div>
+              <div class="text-center rounded-xl py-2.5" style="background:#f0fdf4">
+                <div class="font-extrabold text-green-600" style="font-size:1.6rem" x-text="dashboard.checkedCount"></div>
+                <div class="text-xs text-green-500 font-bold">건강확인 ✓</div>
+              </div>
+              <div class="text-center rounded-xl py-2.5"
+                   :style="(dashboard.vulnTotal-dashboard.checkedCount)>0?'background:#fffbeb':'background:#f9fafb'">
+                <div class="font-extrabold" style="font-size:1.6rem"
+                     :class="(dashboard.vulnTotal-dashboard.checkedCount)>0?'text-amber-500':'text-gray-300'"
+                     x-text="dashboard.vulnTotal-dashboard.checkedCount"></div>
+                <div class="text-xs font-bold"
+                     :class="(dashboard.vulnTotal-dashboard.checkedCount)>0?'text-amber-400':'text-gray-300'">미확인 ⚠️</div>
+              </div>
+            </div>
+            <!-- 미확인 근로자 목록 -->
+            <template x-if="dashboard.unchecked.length > 0">
+              <div>
+                <div class="text-xs font-extrabold text-amber-600 mb-1.5">⚠️ 건강기록 미입력</div>
+                <div class="space-y-1.5">
+                  <template x-for="w in dashboard.unchecked" :key="w.id">
+                    <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl" style="background:#fffbeb;border:1px solid #fde68a">
+                      <span x-show="hasOtherVuln(w)" class="text-xs leading-none">🔴</span>
+                      <span x-show="isElderlyVuln(w)" class="text-xs leading-none">🟠</span>
+                      <span x-show="isNewWorker(w)" class="text-xs leading-none">🆕</span>
+                      <span class="text-sm font-bold text-gray-800 flex-1" x-text="w.name_korean||w.name"></span>
+                      <span class="text-xs text-gray-500" x-text="w.company"></span>
+                      <template x-if="(dashboard.workerLocs[w.id]||[]).length>0">
+                        <div class="flex gap-1">
+                          <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
+                            <span class="text-xs font-bold px-1.5 py-0.5 rounded-md" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+            <template x-if="dashboard.unchecked.length===0 && dashboard.vulnTotal>0">
+              <div class="text-center py-2 text-sm font-bold text-green-600">✅ 모든 취약근로자 건강기록 완료</div>
+            </template>
+          </div>
+
+          <!-- ③ 위치별 배치 현황 -->
+          <template x-if="Object.keys(dashboard.byLocation).length > 0">
+            <div class="card" style="padding:16px">
+              <div class="text-sm font-extrabold text-gray-800 mb-2.5">📍 위치별 배치 현황</div>
+              <div class="flex flex-wrap gap-2">
+                <template x-for="[loc, workers] in Object.entries(dashboard.byLocation)" :key="loc">
+                  <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
+                       :style="workers.some(w=>w.is_vulnerable)?'background:#fff0f0;border:1px solid #fecaca;color:#dc2626':'background:#f0f7ff;border:1px solid #bfdbfe;color:#1d4ed8'">
+                    <span x-text="loc"></span>
+                    <span class="opacity-70" x-text="workers.length+'명'"></span>
+                    <span x-show="workers.filter(w=>w.is_vulnerable).length > 0"
+                          class="font-black" x-text="'🔴'+workers.filter(w=>w.is_vulnerable).length"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <!-- ④ 액션 버튼 -->
+          <div class="flex gap-2">
+            <button @click="saveVulnLog();showToast('💾 현황 저장 완료')"
+                    class="flex-1 btn-primary py-3 font-bold">💾 오늘 현황 저장</button>
+            <button @click="copyDashboard()"
+                    class="flex-1 btn-secondary py-3 font-bold">📋 공유 복사</button>
+          </div>
+
+          <!-- 새로고침 -->
+          <button @click="loadDashboard()" class="w-full btn-secondary text-xs py-2">🔄 새로고침</button>
+
+        </div>
+      </template>
     </div>
 
     <!-- 근로자 탭 -->
@@ -2296,7 +2418,8 @@ function app() {
     toast: { show:false, msg:'' },
 
     // ── 관리자 ──
-    adminTab: 'workers',
+    adminTab: 'dashboard',
+    dashboard: { loaded: false, heatSlots: [], maxHeat: '', maxFeels: null, vulnTotal: 0, checkedCount: 0, unchecked: [], byLocation: {}, allHealthRecs: [] },
     workers: [],
     workerFilter: '',
     workerSearch: '',
@@ -2402,7 +2525,7 @@ function app() {
         const savedAdmin = JSON.parse(localStorage.getItem('vw_admin_auth')||'null');
         if (savedAdmin && savedAdmin.site_code === this.siteCode && Date.now() - savedAdmin.ts < 3600000) {
           this.authed = true; this.role = 'admin';
-          await this.loadWorkers(); await this.loadLocations();
+          await this.loadWorkers(); await this.loadLocations(); this.loadDashboard();
         }
         if (!this.authed) {
           const savedCompany = JSON.parse(localStorage.getItem('vw_company_auth')||'null');
@@ -2452,6 +2575,95 @@ function app() {
         if (diffDays >= 0 && diffDays <= 14) vtypes.push('신규배치자');
       }
       return { ...w, vulnerability_types: vtypes, is_vulnerable: vtypes.length > 0 ? 1 : 0 };
+    },
+
+    async loadDashboard() {
+      this.dashboard.loaded = false;
+      const today = localDateStr();
+      try {
+        // 병렬 조회
+        const [hsRes, attRes, hrRes] = await Promise.all([
+          fetch(API_BASE+'/api/heat-summary?site_code='+this.siteCode+'&measure_date='+today),
+          fetch(API_BASE+'/api/vw/attendance?site_code='+this.siteCode+'&work_date='+today),
+          fetch(API_BASE+'/api/vw/health-records?site_code='+this.siteCode+'&record_date='+today),
+        ]);
+        const [hs, att, hr] = await Promise.all([hsRes.json(), attRes.json(), hrRes.json()]);
+
+        // 폭염 슬롯 집계
+        const HEAT_ORDER = ['위험','경고','주의','관심'];
+        const allSlots = [];
+        Object.entries(hs.by_company||{}).forEach(([co, slots]) => {
+          Object.entries(slots).forEach(([slot, info]) => {
+            allSlots.push({slot, heat_level: info.heat_level, feels_like: info.feels_like?.toFixed(1)||null, company: co});
+          });
+        });
+        allSlots.sort((a,b) => HEAT_ORDER.indexOf(a.heat_level) - HEAT_ORDER.indexOf(b.heat_level));
+        const maxHeat = allSlots[0]?.heat_level || '';
+        const maxFeels = allSlots[0]?.feels_like || null;
+
+        // 취약근로자 + 건강기록 교차
+        if (!this.workers.length) await this.loadWorkers();
+        const vuln = this.workers.filter(w => w.is_vulnerable && w.deploy_status !== 'inactive');
+        const checkedIds = new Set((hr.records||[]).map(r => r.worker_id));
+        const unchecked = vuln.filter(w => !checkedIds.has(w.id));
+
+        // 위치별 배치
+        const locMap = {};
+        (att.attendance||[]).forEach(a => {
+          try {
+            const locs = JSON.parse(a.work_location||'[]');
+            locs.forEach(loc => {
+              if (!locMap[loc]) locMap[loc] = [];
+              const worker = this.workers.find(w => w.id === a.worker_id);
+              if (worker) locMap[loc].push(worker);
+            });
+          } catch {}
+        });
+
+        // workerLocs 맵 (미확인 근로자 위치 표시용)
+        const wlocs = {};
+        (att.attendance||[]).forEach(a => {
+          try { wlocs[a.worker_id] = JSON.parse(a.work_location||'[]'); } catch {}
+        });
+
+        this.dashboard = {
+          loaded: true, heatSlots: allSlots, maxHeat, maxFeels,
+          vulnTotal: vuln.length, checkedCount: checkedIds.size,
+          unchecked, byLocation: locMap, workerLocs: wlocs,
+          allHealthRecs: hr.records||[],
+        };
+      } catch(e) {
+        console.error(e);
+        this.dashboard.loaded = true;
+      }
+    },
+
+    copyDashboard() {
+      const today = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+      const d = this.dashboard;
+      let t = `☀️ 혹서기 건강관리 현황\n📅 ${today}  현장: ${this.siteCode}\n${'─'.repeat(24)}\n`;
+      if (d.maxHeat) t += `🌡 최고 ${d.maxHeat}단계${d.maxFeels?' ('+d.maxFeels+'°C)':''}\n`;
+      else t += `🌤 폭염단계 미발령\n`;
+      t += `\n🔴 취약근로자 ${d.vulnTotal}명\n`;
+      t += `   ✅ 건강확인 ${d.checkedCount}명\n`;
+      t += `   ⚠️ 미확인 ${d.vulnTotal-d.checkedCount}명\n`;
+      if (d.unchecked.length) {
+        t += `\n⚠️ 미확인 근로자\n`;
+        d.unchecked.forEach(w => {
+          const locs = (d.workerLocs[w.id]||[]).join('·')||'위치미정';
+          t += `  • ${w.name_korean||w.name} (${w.company}) → ${locs}\n`;
+        });
+      }
+      if (Object.keys(d.byLocation).length) {
+        t += `\n📍 위치별 배치\n`;
+        Object.entries(d.byLocation).forEach(([loc, ws]) => {
+          const v = ws.filter(w=>w.is_vulnerable).length;
+          t += `  ${loc}: ${ws.length}명${v>0?' 🔴'+v:''}　`;
+        });
+        t += '\n';
+      }
+      t += `\n${'─'.repeat(24)}`;
+      navigator.clipboard.writeText(t).then(() => this.showToast('📋 공유 텍스트 복사됨'));
     },
 
     async loadAdminHealthLog() {
@@ -2551,6 +2763,7 @@ function app() {
           localStorage.setItem('vw_admin_auth', JSON.stringify({ site_code: this.siteCode, ts: Date.now() }));
           await this.loadWorkers();
           await this.loadLocations();
+          this.loadDashboard();
         } else {
           if (!this.loginCompany) { this.loginError='업체명을 입력하세요'; return; }
           const r = await fetch(API_BASE+'/api/vw/company-pins/verify', {
