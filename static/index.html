@@ -1717,6 +1717,7 @@ function app() {
         const method = row.id ? 'PUT' : 'POST';
         const url = row.id ? `/api/records/${row.id}` : '/api/records';
         const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+        if (!res.ok) { this.showToast('❌ 저장 실패'); return; }
         const d = await res.json();
         if (!row.id && d.id) row.id = d.id;
         if (!this.records.find(r=>r.id===row.id)) this.records.push({...payload, id:row.id});
@@ -1763,11 +1764,13 @@ function app() {
     },
 
     // ── 측정시각 변경 → 구분 자동 업데이트 ───────────────────────────
-    onTimeChange(row, wkInfo) {
+    async onTimeChange(row, wkInfo) {
       row.measure_time = fmtTime(row.measure_time);
+      const prevSlot = row.slot;
       const newSlot = slotFromTime(row.measure_time);
       if (newSlot) row.slot = newSlot;
-      this.autoSaveRow(row, wkInfo.monday);
+      await this.autoSaveRow(row, wkInfo.monday);
+      if (newSlot && newSlot !== prevSlot) this.buildWeekGroups();
     },
 
     // ── 날짜별 레코드 자동 저장 ───────────────────────────────────────

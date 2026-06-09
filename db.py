@@ -357,7 +357,17 @@ class Database:
 
     def update_record(self, rec_id: int, data: dict):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        new_slot = data.get("slot", "")
         with self.conn() as con:
+            old = con.execute("SELECT slot FROM records WHERE id=?", (rec_id,)).fetchone()
+            if old and old[0] != new_slot and new_slot:
+                # 목표 슬롯에 다른 레코드가 있으면 소프트 삭제로 비워둠
+                con.execute("""
+                    UPDATE records SET deleted_at=? WHERE
+                    UPPER(site_code)=UPPER(?) AND location=? AND measure_date=? AND slot=?
+                    AND id!=? AND deleted_at IS NULL
+                """, (now, data.get("site_code",""), data.get("location",""),
+                      data.get("measure_date",""), new_slot, rec_id))
             con.execute("""
                 UPDATE records SET
                     site_code=?,site_name=?,company=?,location=?,measurer=?,
@@ -367,7 +377,7 @@ class Database:
             """, (
                 data.get("site_code",""), data.get("site_name",""),
                 data.get("company",""),   data.get("location",""),
-                data.get("measurer",""),  data.get("slot",""),
+                data.get("measurer",""),  new_slot,
                 data.get("measure_time",""),
                 data.get("temperature"),  data.get("humidity"),
                 data.get("feels_like"),   data.get("heat_level",""),
