@@ -217,6 +217,8 @@
           <span class="text-gray-400 text-xs ml-1" x-text="workers.length > filteredWorkers.filter(w=>w.deploy_status!=='inactive').length ? '/ 전체 '+workers.length : ''"></span>
         </div>
         <div class="flex gap-1.5 flex-wrap justify-end">
+          <button @click="vulnListModal.show=true"
+                  class="btn-secondary text-xs py-1.5">🔴 취약명단</button>
           <button @click="pasteModal.show=true;pasteModal.raw='';pasteModal.headers=[];pasteModal.rows=[];pasteModal.preview=[];pasteModal.result=null"
                   class="btn-secondary text-xs py-1.5">📋 붙여넣기</button>
           <button @click="recalcVtypes()" class="btn-secondary text-xs py-1.5">취약구분</button>
@@ -1684,6 +1686,90 @@
   </div>
 </div>
 
+<!-- ══ 모달: 취약근로자 명단 ══ -->
+<div x-show="vulnListModal.show" x-cloak class="modal-bg" @click.self="vulnListModal.show=false">
+  <div class="modal" style="max-width:520px;width:100%;padding:0;overflow:hidden">
+
+    <!-- 인쇄용 헤더 -->
+    <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:18px 20px 14px">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-white font-extrabold" style="font-size:1.05rem">🔴 취약근로자 현황</div>
+          <div class="text-red-200 text-xs mt-0.5" x-text="siteCode + ' · ' + new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})"></div>
+        </div>
+        <button @click="vulnListModal.show=false" class="text-red-200 hover:text-white text-xl leading-none mt-0.5">✕</button>
+      </div>
+      <div class="flex gap-4 mt-3">
+        <div class="text-center">
+          <div class="text-white font-extrabold text-xl" x-text="workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length"></div>
+          <div class="text-red-200 text-xs">취약 총원</div>
+        </div>
+        <div class="text-center">
+          <div class="text-white font-extrabold text-xl"
+               x-text="workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive'&&(workerLocations[w.id]||[]).length>0).length"></div>
+          <div class="text-red-200 text-xs">위치 배정</div>
+        </div>
+        <div class="text-center">
+          <div class="text-white font-extrabold text-xl"
+               x-text="workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive'&&(workerLocations[w.id]||[]).length===0).length"></div>
+          <div class="text-red-200 text-xs">위치 미배정</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 근로자 목록 -->
+    <div style="max-height:55vh;overflow-y:auto;padding:12px 16px">
+      <template x-if="workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length===0">
+        <div class="text-center text-gray-400 py-8 text-sm">취약근로자가 없습니다</div>
+      </template>
+      <template x-for="(w,i) in workers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
+        <div class="flex items-start gap-3 py-2.5" :class="i>0?'border-t border-gray-100':''">
+          <!-- 번호 -->
+          <div class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-600 font-extrabold text-xs flex items-center justify-center"
+               x-text="i+1"></div>
+          <!-- 정보 -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span x-show="hasOtherVuln(w)" class="text-sm leading-none">🔴</span>
+              <span x-show="isElderlyVuln(w)&&!hasOtherVuln(w)" class="text-sm leading-none">🟠</span>
+              <span class="font-extrabold text-gray-900" x-text="w.name_korean||w.name"></span>
+              <span class="text-xs text-gray-400" x-text="w.company+(w.job_type?' · '+w.job_type:'')"></span>
+            </div>
+            <!-- 취약구분 뱃지 -->
+            <div class="flex flex-wrap gap-1 mt-1">
+              <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+              </template>
+            </div>
+          </div>
+          <!-- 위치 -->
+          <div class="flex-shrink-0 text-right">
+            <template x-if="(workerLocations[w.id]||[]).length>0">
+              <div class="flex flex-wrap gap-1 justify-end">
+                <template x-for="loc in (workerLocations[w.id]||[])" :key="loc">
+                  <span class="text-xs font-bold px-1.5 py-0.5 rounded-md"
+                        style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
+                </template>
+              </div>
+            </template>
+            <template x-if="!(workerLocations[w.id]||[]).length">
+              <span class="text-xs text-gray-300">미배정</span>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 하단 버튼 -->
+    <div class="flex gap-2 p-3 border-t border-gray-100 bg-gray-50">
+      <button @click="copyVulnList()"
+              class="flex-1 btn-secondary text-sm font-bold py-2.5">📋 텍스트 복사</button>
+      <button @click="vulnListModal.show=false"
+              class="btn-secondary text-sm py-2.5 px-4">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ 모달: 일괄 붙여넣기 ══ -->
 <div x-show="pasteModal.show" x-cloak class="modal-bg" @click.self="pasteModal.show=false">
   <div class="modal" style="max-width:900px;width:100%">
@@ -2017,6 +2103,7 @@ function app() {
     workerEduFrom: '',
     workerEduTo: '',
     workerFilterOpen: false,
+    vulnListModal: { show: false },
     workerGroupBy: 'company_jobtype', // 'company' | 'jobtype' | 'company_jobtype' | 'location_vuln'
     workerShowFilter: 'all',          // 'all' | 'vuln' | 'attend_vuln'
     collapsedCompanies: {},
@@ -2164,6 +2251,25 @@ function app() {
         if (diffDays >= 0 && diffDays <= 14) vtypes.push('신규배치자');
       }
       return { ...w, vulnerability_types: vtypes, is_vulnerable: vtypes.length > 0 ? 1 : 0 };
+    },
+
+    copyVulnList() {
+      const today = new Date().toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric'});
+      const vuln = this.workers.filter(w => w.is_vulnerable && w.deploy_status !== 'inactive');
+      let text = `🔴 취약근로자 현황\n`;
+      text += `📅 ${today}  현장: ${this.siteCode}\n`;
+      text += `${'─'.repeat(28)}\n`;
+      text += `총 ${vuln.length}명\n\n`;
+      vuln.forEach((w, i) => {
+        const name = w.name_korean || w.name;
+        const info = [w.company, w.job_type].filter(Boolean).join(' / ');
+        const vtypes = (w.vulnerability_types || []).join(', ');
+        const locs = (this.workerLocations[w.id] || []).join('·') || '미배정';
+        text += `${i+1}. ${name}  (${info})\n`;
+        text += `   └ ${vtypes}  |  위치: ${locs}\n`;
+      });
+      text += `\n${'─'.repeat(28)}\n`;
+      navigator.clipboard.writeText(text).then(() => this.showToast('📋 클립보드에 복사됐어요'));
     },
 
     async recalcVtypes() {
@@ -2401,7 +2507,9 @@ function app() {
     },
 
     isWorkerAtLoc(wid, loc) {
-      return (this.workerLocations[wid] || []).includes(loc);
+      const locs = this.workerLocations[wid] || [];
+      if (loc === '전구역') return locs.includes('전구역');
+      return locs.includes(loc) || locs.includes('전구역');
     },
 
     toggleWorkerAtLoc(wid, loc) {
@@ -2420,7 +2528,8 @@ function app() {
       if (loc === '전구역') {
         return Object.values(this.workerLocations).filter(locs => locs.includes('전구역')).length;
       }
-      return Object.values(this.workerLocations).filter(locs => locs.includes(loc)).length;
+      // 전구역 배정된 근로자도 각 위치에 포함
+      return Object.values(this.workerLocations).filter(locs => locs.includes(loc) || locs.includes('전구역')).length;
     },
 
     getBadgeStyle(loc) {
