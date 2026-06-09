@@ -34,6 +34,8 @@
   input:focus,select:focus,textarea:focus{border-color:#0071e3;box-shadow:0 0 0 3px rgba(0,113,227,.12)}
   input::placeholder,textarea::placeholder{font-size:.85rem!important;color:#b0b0b8}
   .tab-btn{transition:all .2s;border-radius:.5625rem;padding:.5rem .625rem;font-weight:700;font-size:.82rem;cursor:pointer;white-space:nowrap;border:none;background:transparent;font-family:inherit}
+  .company-tab{transition:background .18s,color .18s,border-color .18s}
+  .location-slide{transition:max-height .25s ease,opacity .2s ease}
   .tab-btn.active{background:white;box-shadow:0 1px 6px rgba(0,0,0,.12);color:#0071e3}
   .tab-btn:not(.active){color:#86868b}
   .tab-btn:not(.active):hover{background:rgba(255,255,255,.6)}
@@ -539,25 +541,49 @@
                 </template>
               </select>
             </div>
-            <div>
-              <label class="text-xs text-gray-500 font-bold">업체명</label>
-              <select x-model="hist.company" @change="onHistCompanyChange" class="mt-1">
-                <option value="">전체</option>
-                <template x-for="c in hist.companies" :key="c">
-                  <option :value="c" x-text="c"></option>
-                </template>
-              </select>
-            </div>
-            <div>
-              <label class="text-xs text-gray-500 font-bold">온습도계 위치</label>
-              <select x-model="hist.location" class="mt-1">
-                <option value="">전체</option>
-                <template x-for="l in hist.locations" :key="l">
-                  <option :value="l" x-text="l"></option>
-                </template>
-              </select>
-            </div>
           </div>
+          <!-- 업체 탭 + 위치 슬라이드다운 -->
+          <template x-if="hist.companies.length > 0">
+            <div class="mb-2">
+              <label class="text-xs text-gray-500 font-bold mb-1 block">업체 · 위치</label>
+              <!-- 탭 바 -->
+              <div class="flex gap-1.5 overflow-x-auto pb-1" style="scrollbar-width:none;-webkit-overflow-scrolling:touch">
+                <button @click="selectCompanyTab('')"
+                        class="company-tab flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border transition-all"
+                        :class="hist.company==='' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'">
+                  전체
+                </button>
+                <template x-for="c in hist.companies" :key="c">
+                  <button @click="selectCompanyTab(c)"
+                          class="company-tab flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1"
+                          :class="hist.company===c ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'">
+                    <span x-text="c"></span>
+                    <span x-show="companyLocationMap[c] && companyLocationMap[c].length > 1"
+                          x-text="hist.company===c ? '▲' : '▾'"
+                          class="text-xs opacity-70"></span>
+                  </button>
+                </template>
+              </div>
+              <!-- 위치 슬라이드다운 -->
+              <div class="overflow-hidden location-slide"
+                   :style="hist.company && hist.locations.length > 1 ? 'max-height:120px;opacity:1;margin-top:6px' : 'max-height:0;opacity:0'">
+                <div class="flex flex-wrap gap-1.5">
+                  <button @click="hist.location=''"
+                          class="text-xs px-2.5 py-1 rounded-full border transition-all"
+                          :class="hist.location==='' ? 'bg-blue-100 text-blue-700 border-blue-400 font-bold' : 'bg-white text-gray-500 border-gray-300'">
+                    전체
+                  </button>
+                  <template x-for="l in hist.locations" :key="l">
+                    <button @click="hist.location=l"
+                            class="text-xs px-2.5 py-1 rounded-full border transition-all"
+                            :class="hist.location===l ? 'bg-blue-100 text-blue-700 border-blue-400 font-bold' : 'bg-white text-gray-500 border-gray-300'">
+                      <span x-text="l"></span>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
           <div class="flex gap-2">
             <button @click="loadRecords()" class="btn-primary flex-1 text-sm">📂 기록 불러오기</button>
             <button @click="loadRecords()" class="btn-secondary text-sm font-bold" style="padding:6px 14px;white-space:nowrap">🔄 새로고침</button>
@@ -595,17 +621,11 @@
               </div>
             </template>
             <template x-if="!hist.pinHasValue">
-              <div class="flex-1">
-                <div class="flex gap-1.5">
-                  <input type="password" x-model="hist.pinInput" placeholder="기본 PIN 입력"
-                         @keydown.enter="verifyPin()"
-                         style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
-                  <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
-                </div>
-                <div class="text-xs text-gray-400 mt-1">
-                  기본 PIN: 현장코드 숫자 앞에 0 붙인 4자리
-                  <span class="font-bold text-blue-500" x-text="meta.siteCode ? '('+defaultPin()+')' : ''"></span>
-                </div>
+              <div class="flex gap-1.5 flex-1">
+                <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN"
+                       @keydown.enter="verifyPin()"
+                       style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
+                <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
               </div>
             </template>
           </div>
@@ -1203,6 +1223,7 @@ function app() {
     records: [],
     hist: { mode:'date', date: todayStr(), dateGroups:[], company:'', companies:[], location:'', locations:[],
             unlocked:false, pinInput:'', pinHasValue:false, pinChanging:false, newPin:'', currentPin:'' },
+    companyLocationMap: {},
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
     wkActiveIdx: 0,
@@ -2121,7 +2142,7 @@ function app() {
     // ── 업체/위치 필터 ──────────────────────────────────────────────────
     async refreshHistFilters() {
       if (!this.meta.siteCode) {
-        this.hist.companies = []; this.hist.locations = []; return;
+        this.hist.companies = []; this.hist.locations = []; this.companyLocationMap = {}; return;
       }
       try {
         const cq = new URLSearchParams({ site_code: this.meta.siteCode, week_monday: this.currentMonday || '' });
@@ -2135,6 +2156,7 @@ function app() {
         }
       } catch { this.hist.companies = []; }
       await this._refreshHistLocations();
+      await this._buildCompanyLocationMap();
     },
 
     async _refreshHistLocations() {
@@ -2153,6 +2175,25 @@ function app() {
           this.hist.location = '';
         }
       } catch { this.hist.locations = []; }
+    },
+
+    async _buildCompanyLocationMap() {
+      const map = {};
+      for (const c of this.hist.companies) {
+        try {
+          const lq = new URLSearchParams({ site_code: this.meta.siteCode, company: c, week_monday: this.currentMonday || '' });
+          const lr = await fetch('/api/locations?' + lq);
+          const ld = await lr.json();
+          map[c] = ld.locations || [];
+        } catch { map[c] = []; }
+      }
+      this.companyLocationMap = map;
+    },
+
+    async selectCompanyTab(company) {
+      this.hist.company = company;
+      this.hist.location = '';
+      await this._refreshHistLocations();
     },
 
     async onHistCompanyChange() {
