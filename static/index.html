@@ -222,7 +222,7 @@
     <!-- 탭 버튼 (항상 클릭 가능) -->
     <div class="flex gap-2 mb-4">
       <button @click="activeTab='camera'"
-              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2"
+              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2 active:scale-95"
               :class="activeTab==='camera'
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-100 bg-gray-50 hover:border-gray-200'">
@@ -230,7 +230,7 @@
         <span class="text-xs font-extrabold" :class="activeTab==='camera'?'text-blue-600':'text-gray-500'">촬영</span>
       </button>
       <button @click="activeTab='upload'"
-              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2"
+              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2 active:scale-95"
               :class="activeTab==='upload'
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-100 bg-gray-50 hover:border-gray-200'">
@@ -239,7 +239,7 @@
       </button>
       <button @click="activeTab='history'; onHistTabActivate()"
               :style="!meta.siteCode ? 'opacity:.35;pointer-events:none' : ''"
-              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2"
+              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2 active:scale-95"
               :class="activeTab==='history'
                 ? 'border-gray-700 bg-gray-800'
                 : 'border-gray-100 bg-gray-50 hover:border-gray-200'">
