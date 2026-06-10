@@ -915,14 +915,24 @@
                             <!-- 관리자 모드: 편집 -->
                             <template x-if="hist.unlocked">
                               <div class="space-y-1 text-left">
+                                <!-- 사진 표시 / 추가 / 교체 -->
                                 <template x-if="rec.photo_id">
-                                  <div class="photo-wrap relative text-center mb-1">
+                                  <div class="relative text-center mb-1">
                                     <img :src="'/uploads/'+rec.photo_id"
                                          @click="openLightbox('/uploads/'+rec.photo_id)"
                                          class="rounded cursor-pointer object-cover mx-auto"
                                          style="width:60px;height:60px;border:1px solid #e8e8ed">
-                                    <img :src="'/uploads/'+rec.photo_id" class="photo-hover-zoom">
+                                    <label class="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer" style="font-size:.6rem" title="사진 교체">
+                                      🔄<input type="file" accept="image/*" class="hidden" @change="uploadDateRecPhoto(rec, g, $event.target.files[0])">
+                                    </label>
                                   </div>
+                                </template>
+                                <template x-if="!rec.photo_id">
+                                  <label class="flex items-center justify-center gap-1 cursor-pointer rounded-lg py-1.5 mb-1 text-xs font-bold text-blue-600"
+                                         style="border:1.5px dashed #93c5fd;background:#eff6ff">
+                                    <input type="file" accept="image/*" class="hidden" @change="uploadDateRecPhoto(rec, g, $event.target.files[0])">
+                                    📷 사진 추가
+                                  </label>
                                 </template>
                                 <input type="text" x-model="rec.location" placeholder="장소"
                                        @change="autoSaveDateRec(rec, g)"
@@ -2362,6 +2372,27 @@ function app() {
     },
 
     openLightbox(url) { this.lightbox = { show:true, url }; },
+
+    async uploadDateRecPhoto(rec, g, file) {
+      if (!file) return;
+      this.showToast('📷 업로드 중...');
+      try {
+        const resized = await resizeImageFile(file);
+        const fd = new FormData(); fd.append('file', resized, resized.name);
+        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
+        if (!ur.ok) throw new Error('업로드 실패');
+        const ud = await ur.json();
+        // 기존 사진 삭제
+        if (rec.photo_id) {
+          await fetch(`/api/photos/${rec.photo_id}`, { method:'DELETE' });
+        }
+        rec.photo_id = ud.photo_id;
+        await this.autoSaveDateRec(rec, g);
+        this.showToast('✅ 사진 등록 완료');
+      } catch(e) {
+        this.showToast('❌ ' + e.message);
+      }
+    },
 
     openSlotPanel(row, monday) {
       this.slotPanel = { show:true, row, monday, uploading:false, extracting:false, elapsed:0, error:null };
