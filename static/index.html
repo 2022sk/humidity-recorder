@@ -1120,12 +1120,15 @@
                 </td>
                 <td class="text-center font-bold"
                     x-text="row.isFirstSlot ? row.dateLabel : ''"></td>
-                <td class="text-center cursor-pointer"
+                <td class="text-center"
                     @mouseenter="row.photo_id && (photoPreview={show:true,url:'/uploads/'+row.photo_id})"
-                    @mouseleave="photoPreview.show=false"
-                    @click="openSlotPanel(row, row.week_monday)">
-                  <span class="text-blue-500 font-bold" x-text="row.slot"></span>
-                  <span x-show="row.photo_id" style="font-size:.65rem;margin-left:2px">📷</span>
+                    @mouseleave="photoPreview.show=false">
+                  <button @click.stop="openSlotPanel(row, row.week_monday)"
+                          class="text-blue-500 font-bold px-1 py-0.5 rounded hover:bg-blue-50 active:bg-blue-100 w-full"
+                          style="border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:inherit">
+                    <span x-text="row.slot"></span>
+                    <span x-show="row.photo_id" style="font-size:.65rem;margin-left:2px">📷</span>
+                  </button>
                 </td>
                 <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
                            :disabled="!hist.unlocked"
