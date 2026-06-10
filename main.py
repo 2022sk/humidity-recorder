@@ -115,26 +115,29 @@ class RecordIn(BaseModel):
 @app.post("/api/photos/upload")
 async def upload_photo(file: UploadFile = File(...)):
     from PIL import Image, ImageOps
+    from starlette.concurrency import run_in_threadpool
 
     content = await file.read()
+    filename = file.filename or "photo.jpg"
     photo_id = str(uuid.uuid4())
     save_path = UPLOAD_DIR / f"{photo_id}.jpg"
 
-    # EXIF 회전 보정 + 리사이즈 (최대 1200px, 초고해상도는 더 강하게 압축)
-    img = Image.open(io.BytesIO(content))
-    img = ImageOps.exif_transpose(img)
-    w, h = img.size
-    orig_max = max(w, h)
-    if orig_max > 1200:
-        s = 1200 / orig_max
-        img = img.resize((int(w*s), int(h*s)), Image.LANCZOS)
-    quality = 60 if orig_max > 3000 else 72
-    buf = io.BytesIO()
-    img.convert("RGB").save(buf, format="JPEG", quality=quality)
-    save_path.write_bytes(buf.getvalue())
+    def _process():
+        img = Image.open(io.BytesIO(content))
+        img = ImageOps.exif_transpose(img)
+        w, h = img.size
+        orig_max = max(w, h)
+        if orig_max > 1200:
+            s = 1200 / orig_max
+            img = img.resize((int(w*s), int(h*s)), Image.LANCZOS)
+        quality = 60 if orig_max > 3000 else 72
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, format="JPEG", quality=quality)
+        save_path.write_bytes(buf.getvalue())
 
-    db.save_photo(photo_id, file.filename or "photo.jpg", str(save_path))
-    return {"photo_id": photo_id, "filename": file.filename}
+    await run_in_threadpool(_process)
+    db.save_photo(photo_id, filename, str(save_path))
+    return {"photo_id": photo_id, "filename": filename}
 
 
 # ── AI 키 관리 ────────────────────────────────────────────────────────────────
