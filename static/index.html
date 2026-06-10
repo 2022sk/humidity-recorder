@@ -626,23 +626,13 @@
            :class="hist.unlocked ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'">
         <template x-if="!hist.unlocked">
           <div class="flex items-center gap-2 w-full">
-            <span class="text-base flex-shrink-0">🔒</span>
-            <template x-if="hist.pinHasValue">
-              <div class="flex gap-1.5 flex-1">
-                <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN"
-                       @keydown.enter="verifyPin()"
-                       style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
-                <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
-              </div>
-            </template>
-            <template x-if="!hist.pinHasValue">
-              <div class="flex gap-1.5 flex-1">
-                <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN"
-                       @keydown.enter="verifyPin()"
-                       style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
-                <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
-              </div>
-            </template>
+            <span class="text-xs font-extrabold text-gray-500 flex-shrink-0">✏️ 수정</span>
+            <div class="flex gap-1.5 flex-1">
+              <input type="password" x-model="hist.pinInput" placeholder="관리자 PIN 입력"
+                     @keydown.enter="verifyPin()"
+                     style="padding:6px 10px!important;font-size:.82rem!important;border-radius:8px" class="flex-1">
+              <button @click="verifyPin()" class="btn-primary text-xs" style="padding:6px 12px">확인</button>
+            </div>
           </div>
         </template>
         <template x-if="hist.unlocked">
