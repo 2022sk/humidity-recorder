@@ -225,14 +225,14 @@
 
           <!-- ① 오늘 날짜 + 폭염 상태 카드 -->
           <div class="rounded-2xl overflow-hidden shadow-sm"
-               :style="dashboard.maxHeat==='위험'?'background:linear-gradient(135deg,#7c0000,#b91c1c)':dashboard.maxHeat==='경고'?'background:linear-gradient(135deg,#7c3400,#ea580c)':dashboard.maxHeat==='주의'?'background:linear-gradient(135deg,#713f12,#ca8a04)':dashboard.maxHeat==='관심'?'background:linear-gradient(135deg,#1d4ed8,#3b82f6)':'background:linear-gradient(135deg,#374151,#6b7280)'">
+               :style="dashboard.maxHeat==='위험'?'background:linear-gradient(135deg,#7c0000,#b91c1c)':dashboard.maxHeat==='경고'?'background:linear-gradient(135deg,#7c3400,#ea580c)':dashboard.maxHeat==='주의'?'background:linear-gradient(135deg,#713f12,#ca8a04)':(dashboard.maxHeat==='관심')?'background:linear-gradient(135deg,#1d4ed8,#3b82f6)':'background:linear-gradient(135deg,#374151,#6b7280)'">
             <div style="padding:16px 18px">
               <div class="flex items-start justify-between">
                 <div>
                   <div class="text-white text-xs opacity-75 font-bold"
-                       x-text="(()=>{ const d=new Date(); const days=['일','월','화','수','목','금','토']; return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+days[d.getDay()]+')'; })()"></div>
+                       x-text="(()=>{ const d=new Date(); const days=['일요일','월요일','화요일','수요일','목요일','금요일','토요일']; return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+days[d.getDay()]; })()"></div>
                   <div class="text-white font-extrabold mt-0.5" style="font-size:1.3rem"
-                       x-text="dashboard.maxHeat ? dashboard.maxHeat+'단계' : '폭염에 안전한 날 😊'"></div>
+                       x-text="(dashboard.maxHeat && dashboard.maxHeat!=='-') ? dashboard.maxHeat+'단계' : '폭염에 안전한 날 😊'"></div>
                 </div>
                 <div class="text-white opacity-30" style="font-size:3rem;line-height:1">☀️</div>
               </div>
@@ -242,7 +242,7 @@
                   <button @click="dashboard.showDetail=!dashboard.showDetail"
                           class="text-xs font-bold px-2 py-0.5 rounded-full transition-all active:scale-95"
                           style="background:rgba(255,255,255,.2);color:white;border:none;cursor:pointer"
-                          x-text="s.slot+(s.heat_level?' '+s.heat_level:'')+(s.feels_like?' '+s.feels_like+'°C':'')"></button>
+                          x-text="s.slot+(s.heat_level&&s.heat_level!=='-'?' '+s.heat_level:'')+(s.feels_like?' '+s.feels_like+'°C':'')"></button>
                 </template>
               </div>
               <!-- 상세 펼침: 업체/위치별 체감온도 -->
