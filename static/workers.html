@@ -292,20 +292,27 @@
                 <div class="text-xs font-extrabold text-amber-600 mb-2">⚠️ 건강기록 미입력 — 탭하여 기록</div>
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:start">
                   <template x-for="w in dashboard.unchecked" :key="w.id">
-                    <div class="rounded-xl overflow-hidden transition-all"
-                         :style="w._status==='불량'?'border:1.5px solid #fca5a5':w._status==='주의'?'border:1.5px solid #fcd34d':(w._status==='양호'||w._open)?'border:1.5px solid #86efac':'border:1.5px solid #d1d5db'">
+                    <div class="overflow-hidden transition-all"
+                         style="border-radius:10px"
+                         :style="w._status==='불량'?'border:1.5px solid #fca5a5':w._status==='주의'?'border:1.5px solid #fcd34d':(w._status==='양호'||w._open)?'border:1.5px solid #86efac':'border:1.5px solid #e5e7eb'">
                       <!-- 근로자 카드 상단 -->
-                      <div class="cursor-pointer select-none transition-all"
-                           :style="w._status==='불량'?'background:#fef2f2;padding:10px 10px':w._status==='주의'?'background:#fffbeb;padding:10px 10px':(w._status==='양호'||w._open)?'background:#f0fdf4;padding:10px 10px':'background:#f9fafb;padding:10px 10px'"
+                      <div class="cursor-pointer select-none transition-all group"
+                           :style="w._status==='불량'?'background:#fef2f2':w._status==='주의'?'background:#fffbeb':(w._status==='양호'||w._open)?'background:#f0fdf4':'background:#f9fafb'"
+                           style="padding:8px 10px"
                            @click="w._open=!w._open; if(!w._status) w._status='양호'">
-                        <div class="flex items-center gap-1 flex-wrap">
-                          <span x-show="hasOtherVuln(w)" class="text-xs leading-none">🔴</span>
-                          <span x-show="isElderlyVuln(w)" class="text-xs leading-none">🟠</span>
-                          <span x-show="isNewWorker(w)" class="text-xs leading-none">🆕</span>
-                          <span class="font-bold text-gray-800 text-sm" x-text="w.name_korean||w.name"></span>
-                          <span class="text-xs text-gray-400" x-text="w.company"></span>
+                        <div class="flex items-center gap-1">
+                          <span x-show="hasOtherVuln(w)" style="font-size:.7rem">🔴</span>
+                          <span x-show="isElderlyVuln(w)" style="font-size:.7rem">🟠</span>
+                          <span x-show="isNewWorker(w)" style="font-size:.7rem">🆕</span>
+                          <span class="font-bold text-gray-800 flex-1 truncate" style="font-size:.8rem" x-text="w.name_korean||w.name"></span>
+                          <span class="text-gray-300 flex-shrink-0" style="font-size:.6rem;transition:transform .2s"
+                                :style="w._open?'transform:rotate(180deg)':''"
+                                >▼</span>
+                        </div>
+                        <div class="flex items-center gap-1 flex-wrap mt-0.5">
+                          <span class="text-gray-400 truncate" style="font-size:.68rem" x-text="w.company"></span>
                           <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
-                            <span class="text-xs font-bold px-1 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8;font-size:.62rem" x-text="loc"></span>
+                            <span class="font-bold px-1 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8;font-size:.6rem" x-text="loc"></span>
                           </template>
                         </div>
                       </div>
@@ -389,7 +396,8 @@
                           </div><!-- 탭 내용 끝 -->
                         </div><!-- flex 끝 -->
                         <button @click.stop="saveDashboardHealthRec(w)"
-                                class="btn-primary w-full text-xs py-2 font-bold mt-2"
+                                class="w-full font-bold mt-2"
+                                style="background:#f59e0b;color:white;border:none;border-radius:8px;padding:5px 8px;font-size:.75rem;cursor:pointer"
                                 :disabled="w._saving">
                           <span x-text="w._saving?'저장 중...':'💾 저장'"></span>
                         </button>
