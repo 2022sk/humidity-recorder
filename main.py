@@ -113,7 +113,7 @@ class RecordIn(BaseModel):
 
 # 동시 이미지 처리 제한 (메모리 보호)
 import asyncio as _asyncio
-_upload_sem = _asyncio.Semaphore(1)
+_upload_sem = _asyncio.Semaphore(3)
 
 # ── 사진 업로드 ───────────────────────────────────────────────────────────────
 @app.post("/api/photos/upload")
