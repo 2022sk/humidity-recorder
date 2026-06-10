@@ -225,26 +225,41 @@
 
           <!-- ① 오늘 날짜 + 폭염 상태 카드 -->
           <div class="rounded-2xl overflow-hidden shadow-sm"
-               :style="dashboard.maxHeat==='위험'?'background:linear-gradient(135deg,#7c0000,#b91c1c)':dashboard.maxHeat==='경고'?'background:linear-gradient(135deg,#7c3400,#ea580c)':dashboard.maxHeat==='주의'?'background:linear-gradient(135deg,#713f12,#ca8a04)':dashboard.maxHeat==='관심'?'background:linear-gradient(135deg,#1d4ed8,#3b82f6)':'background:linear-gradient(135deg,#374151,#6b7280)'">
+               :style="dashboard.maxHeat==='위험'?'background:linear-gradient(135deg,#7c0000,#b91c1c)':dashboard.maxHeat==='경고'?'background:linear-gradient(135deg,#7c3400,#ea580c)':dashboard.maxHeat==='주의'?'background:linear-gradient(135deg,#713f12,#ca8a04)':dashboard.maxHeat==='관심'?'background:linear-gradient(135deg,#1d4ed8,#3b82f6)':'background:linear-gradient(135deg,#065f46,#059669)'">
             <div style="padding:16px 18px">
               <div class="flex items-start justify-between">
                 <div>
-                  <div class="text-white text-xs opacity-75 font-bold" x-text="new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'})"></div>
+                  <div class="text-white text-xs opacity-75 font-bold"
+                       x-text="(()=>{ const d=new Date(); const days=['일','월','화','수','목','금','토']; return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+days[d.getDay()]+')'; })()"></div>
                   <div class="text-white font-extrabold mt-0.5" style="font-size:1.3rem"
-                       x-text="dashboard.maxHeat ? dashboard.maxHeat+'단계' : '폭염단계 미발령'"></div>
-                  <div x-show="dashboard.maxFeels" class="text-white opacity-80 text-sm mt-0.5"
-                       x-text="'체감온도 '+dashboard.maxFeels+'°C'"></div>
+                       x-text="dashboard.maxHeat ? dashboard.maxHeat+'단계' : '폭염에 안전한 날 😊'"></div>
                 </div>
-                <div class="text-white opacity-30" style="font-size:3rem;line-height:1">
-                  <span x-text="dashboard.maxHeat?'☀️':'🌤'"></span>
-                </div>
+                <div class="text-white opacity-30" style="font-size:3rem;line-height:1">☀️</div>
               </div>
-              <!-- 슬롯별 폭염 현황 -->
+              <!-- 슬롯별 최고 체감온도 (클릭 시 상세) -->
               <div x-show="dashboard.heatSlots.length > 0" class="flex flex-wrap gap-1.5 mt-3">
                 <template x-for="s in dashboard.heatSlots" :key="s.slot">
-                  <div class="text-xs font-bold px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,.2);color:white"
-                       x-text="s.slot+' '+s.heat_level+(s.feels_like?' '+s.feels_like+'°C':'')"></div>
+                  <button @click="dashboard.showDetail=!dashboard.showDetail"
+                          class="text-xs font-bold px-2 py-0.5 rounded-full transition-all active:scale-95"
+                          style="background:rgba(255,255,255,.2);color:white;border:none;cursor:pointer"
+                          x-text="s.slot+(s.heat_level?' '+s.heat_level:'')+(s.feels_like?' '+s.feels_like+'°C':'')"></button>
                 </template>
+              </div>
+              <!-- 상세 펼침: 업체/위치별 체감온도 -->
+              <div x-show="dashboard.showDetail && dashboard.todayRecords.length > 0"
+                   class="mt-3 rounded-xl overflow-hidden" style="background:rgba(0,0,0,.2)">
+                <div class="text-white text-xs font-extrabold px-3 py-2 opacity-80">📋 오늘 측정 전체</div>
+                <div class="space-y-0">
+                  <template x-for="r in dashboard.todayRecords" :key="r.id">
+                    <div class="flex items-center gap-2 px-3 py-1.5" style="border-top:1px solid rgba(255,255,255,.1)">
+                      <span class="text-xs font-bold text-white opacity-70 w-12 flex-shrink-0" x-text="r.slot"></span>
+                      <span class="text-xs text-white opacity-80 flex-1 truncate" x-text="(r.company||'')+(r.location?' · '+r.location:'')"></span>
+                      <span class="text-xs font-extrabold text-white" x-text="r.feels_like!=null?r.feels_like.toFixed(1)+'°C':'-'"></span>
+                      <span x-show="r.heat_level && r.heat_level!=='-'" class="text-xs font-bold px-1.5 py-0.5 rounded"
+                            style="background:rgba(255,255,255,.25);color:white" x-text="r.heat_level"></span>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
           </div>
@@ -2584,25 +2599,35 @@ function app() {
       this.dashboard.loaded = false;
       const today = localDateStr();
       try {
-        // 병렬 조회
-        const [hsRes, attRes, hrRes] = await Promise.all([
+        // 병렬 조회 (오늘 체감온도 전체 기록 추가)
+        const [hsRes, attRes, hrRes, recRes] = await Promise.all([
           fetch(API_BASE+'/api/heat-summary?site_code='+this.siteCode+'&measure_date='+today),
           fetch(API_BASE+'/api/vw/attendance?site_code='+this.siteCode+'&work_date='+today),
           fetch(API_BASE+'/api/vw/health-records?site_code='+this.siteCode+'&record_date='+today),
+          fetch(API_BASE+'/api/records?site_code='+this.siteCode+'&measure_date='+today),
         ]);
-        const [hs, att, hr] = await Promise.all([hsRes.json(), attRes.json(), hrRes.json()]);
+        const [hs, att, hr, rec] = await Promise.all([hsRes.json(), attRes.json(), hrRes.json(), recRes.json()]);
 
-        // 폭염 슬롯 집계
+        // 슬롯별 최고 체감온도 집계 (전체 기록 기준)
         const HEAT_ORDER = ['위험','경고','주의','관심'];
-        const allSlots = [];
-        Object.entries(hs.by_company||{}).forEach(([co, slots]) => {
-          Object.entries(slots).forEach(([slot, info]) => {
-            allSlots.push({slot, heat_level: info.heat_level, feels_like: info.feels_like?.toFixed(1)||null, company: co});
-          });
+        const slotMax = {}; // slot → {feels_like, heat_level, company, location}
+        (rec.records||[]).forEach(r => {
+          if (r.feels_like == null) return;
+          const s = r.slot;
+          if (!slotMax[s] || r.feels_like > slotMax[s].feels_like) {
+            slotMax[s] = { feels_like: r.feels_like, heat_level: r.heat_level||'', company: r.company||'', location: r.location||'' };
+          }
         });
+        const SLOT_ORDER = ['오전1','오전2','오후1','오후2'];
+        const allSlots = SLOT_ORDER.filter(s => slotMax[s]).map(s => ({
+          slot: s, ...slotMax[s], feels_like: slotMax[s].feels_like.toFixed(1)
+        }));
         allSlots.sort((a,b) => HEAT_ORDER.indexOf(a.heat_level) - HEAT_ORDER.indexOf(b.heat_level));
         const maxHeat = allSlots[0]?.heat_level || '';
         const maxFeels = allSlots[0]?.feels_like || null;
+        // 클릭 시 상세용 원본 기록
+        const todayRecords = (rec.records||[]).filter(r => r.feels_like != null)
+          .sort((a,b) => (b.feels_like||0) - (a.feels_like||0));
 
         // 취약근로자 + 건강기록 교차
         if (!this.workers.length) await this.loadWorkers();
@@ -2634,6 +2659,7 @@ function app() {
           vulnTotal: vuln.length, checkedCount: checkedIds.size,
           unchecked, byLocation: locMap, workerLocs: wlocs,
           allHealthRecs: hr.records||[],
+          todayRecords, showDetail: false,
         };
       } catch(e) {
         console.error(e);
