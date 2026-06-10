@@ -2432,7 +2432,7 @@ function classifyError(err, status) {
   if (status === 502 || status === 503) return '서버 일시 과부하 — 잠시 후 다시 시도해 주세요';
   if (status === 413) return '사진 파일이 너무 큽니다 — 더 작은 사진으로 시도해 주세요';
   if (status === 429) return 'AI 요청이 너무 많습니다 — 1분 후 다시 시도해 주세요';
-  if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('한도')) return 'AI 일일 사용 한도 초과 — 내일 다시 이용 가능합니다';
+  if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('한도')) return 'AI 사용 한도 초과 — 관리자에게 문의하세요';
   if (msg.includes('파싱') || msg.includes('JSON') || msg.includes('인식하지 못')) return '온습도계 화면이 잘 보이지 않습니다 — 더 가까이, 밝은 곳에서 다시 촬영해 주세요';
   if (msg.includes('범위')) return msg;
   if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch') || msg.includes('NetworkError')) return '네트워크 연결 오류 — 인터넷 상태를 확인해 주세요';
