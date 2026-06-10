@@ -1113,18 +1113,9 @@
                 <td class="text-center cursor-pointer"
                     @mouseenter="row.photo_id && (photoPreview={show:true,url:'/uploads/'+row.photo_id})"
                     @mouseleave="photoPreview.show=false"
-                    @click="row.photo_id && !hist.unlocked ? openLightbox('/uploads/'+row.photo_id) : openSlotPanel(row, wkInfo.monday)">
-                  <span :class="row.photo_id ? 'text-blue-600 font-bold' : 'text-blue-400 underline decoration-dotted'" x-text="row.slot"></span>
-                  <template x-if="row.photo_id">
-                    <div class="relative inline-block ml-0.5">
-                      <span style="font-size:.65rem">📷</span>
-                      <template x-if="hist.unlocked">
-                        <button @click.stop="deletePhotoInRow(row)"
-                                class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-red-500 text-white rounded-full flex items-center justify-center"
-                                style="font-size:.45rem;line-height:1" title="사진 삭제">✕</button>
-                      </template>
-                    </div>
-                  </template>
+                    @click="openSlotPanel(row, row.week_monday)">
+                  <span class="text-blue-500 font-bold" x-text="row.slot"></span>
+                  <span x-show="row.photo_id" style="font-size:.65rem;margin-left:2px">📷</span>
                 </td>
                 <td><input type="text" x-model="row.measure_time" placeholder="HH:MM"
                            :disabled="!hist.unlocked"
@@ -2647,10 +2638,22 @@ function heatDotStyle(hi) {
     <!-- 사진 업로드 -->
     <div class="mb-3">
       <template x-if="slotPanel.row && slotPanel.row.photo_id">
-        <div class="relative">
-          <img :src="'/uploads/'+(slotPanel.row?.photo_id)" class="w-full rounded-xl object-cover" style="max-height:180px">
-          <button @click="deletePhotoInRow(slotPanel.row); slotPanel.row.photo_id=''"
-                  class="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
+        <div class="mb-2">
+          <div class="relative mb-1.5">
+            <img :src="'/uploads/'+(slotPanel.row?.photo_id)"
+                 class="w-full rounded-xl object-cover cursor-pointer"
+                 style="max-height:180px"
+                 @click="openLightbox('/uploads/'+slotPanel.row.photo_id)">
+            <button @click="deletePhotoInRow(slotPanel.row); slotPanel.row.photo_id=''"
+                    class="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
+          </div>
+          <!-- 사진 교체 -->
+          <label class="flex items-center justify-center gap-1.5 cursor-pointer rounded-xl py-2 text-xs font-bold text-blue-600"
+                 style="border:1.5px dashed #93c5fd;background:#eff6ff">
+            <input type="file" accept="image/*" class="hidden"
+                   @change="slotPanelUpload($event.target.files[0])">
+            🔄 사진 교체
+          </label>
         </div>
       </template>
       <template x-if="!slotPanel.row || !slotPanel.row.photo_id">
