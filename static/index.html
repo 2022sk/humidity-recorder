@@ -571,29 +571,46 @@
               </select>
             </div>
           </div>
-          <!-- 업체 · 위치 선택 -->
+          <!-- 업체 탭 -->
           <template x-if="hist.companies.length > 0">
-            <div class="grid grid-cols-2 gap-2 mb-2">
-              <div>
-                <label class="text-xs text-gray-500 font-bold">업체</label>
-                <select x-model="hist.company" @change="selectCompanyTab(hist.company)" class="mt-1">
-                  <option value="">전체</option>
-                  <template x-for="c in hist.companies" :key="c">
-                    <option :value="c" x-text="c"></option>
-                  </template>
-                </select>
+            <div class="mb-2">
+              <div class="flex gap-1.5 overflow-x-auto pb-1" style="scrollbar-width:none;-webkit-overflow-scrolling:touch">
+                <button @click="selectCompanyTab(''); loadRecords()"
+                        class="company-tab flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border"
+                        :class="hist.company==='' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">
+                  전체
+                </button>
+                <template x-for="c in hist.companies" :key="c">
+                  <button @click="selectCompanyTab(c); loadRecords()"
+                          class="company-tab flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-1"
+                          :class="hist.company===c ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200'">
+                    <span x-text="c"></span>
+                    <span x-show="(companyLocationMap[c]||[]).length >= 1"
+                          style="font-size:9px;transition:transform .25s"
+                          :style="hist.company===c ? 'transform:rotate(180deg)' : ''"
+                          class="opacity-50">▼</span>
+                  </button>
+                </template>
               </div>
+              <!-- 위치 칩 슬라이드 -->
               <div class="overflow-hidden location-slide"
                    :style="hist.company && (companyLocationMap[hist.company]||[]).length >= 1
-                     ? 'max-height:80px;opacity:1'
-                     : 'max-height:0;opacity:0'">
-                <label class="text-xs text-gray-500 font-bold">위치</label>
-                <select x-model="hist.location" class="mt-1">
-                  <option value="">전체</option>
+                     ? 'max-height:120px;opacity:1;margin-top:6px'
+                     : 'max-height:0;opacity:0;margin-top:0'">
+                <div class="flex flex-wrap gap-1.5">
+                  <button @click="hist.location=''; loadRecords()"
+                          class="text-xs px-2.5 py-1 rounded-full border transition-all"
+                          :class="hist.location==='' ? 'bg-blue-600 text-white border-blue-600 font-bold' : 'bg-white text-gray-500 border-gray-200'">
+                    전체
+                  </button>
                   <template x-for="l in (companyLocationMap[hist.company]||[])" :key="l">
-                    <option :value="l" x-text="l"></option>
+                    <button @click="hist.location=l; loadRecords()"
+                            class="text-xs px-2.5 py-1 rounded-full border transition-all"
+                            :class="hist.location===l ? 'bg-blue-600 text-white border-blue-600 font-bold' : 'bg-white text-gray-500 border-gray-200'">
+                      <span x-text="l"></span>
+                    </button>
                   </template>
-                </select>
+                </div>
               </div>
             </div>
           </template>
