@@ -218,16 +218,8 @@
   </div>
 
   <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
-  <div class="card relative">
-    <!-- 촬영·업로드 탭 잠금 (이전기록 탭은 제외) -->
-    <template x-if="activeTab !== 'history' && (!meta.siteCode || !meta.siteName || !meta.company || !meta.location)">
-      <div class="absolute inset-0 rounded-xl z-10 flex flex-col items-center justify-center gap-2"
-           style="background:rgba(255,255,255,.88);backdrop-filter:blur(3px)">
-        <div class="text-4xl">🏗</div>
-        <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
-        <div class="text-xs text-gray-400">현장코드 · 업체명 · 온습도계 위치 필수</div>
-      </div>
-    </template>
+  <div class="card">
+    <!-- 탭 버튼 (항상 클릭 가능) -->
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
       <button class="tab-btn flex-1" :class="{active:activeTab==='camera'}"  @click="activeTab='camera'">📸 촬영</button>
       <button class="tab-btn flex-1" :class="{active:activeTab==='upload'}"  @click="activeTab='upload'">📁 업로드</button>
@@ -235,9 +227,17 @@
               @click="activeTab='history'; onHistTabActivate()"
               :style="!meta.siteCode ? 'opacity:.4;pointer-events:none' : ''">📋 이전 기록</button>
     </div>
+    <!-- 촬영·업로드 콘텐츠 잠금 안내 (탭 버튼은 덮지 않음) -->
+    <template x-if="activeTab !== 'history' && (!meta.siteCode || !meta.siteName || !meta.company || !meta.location)">
+      <div class="flex flex-col items-center justify-center gap-2 py-10">
+        <div class="text-4xl">🏗</div>
+        <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
+        <div class="text-xs text-gray-400">현장코드 · 업체명 · 온습도계 위치 필수</div>
+      </div>
+    </template>
 
     <!-- ── 카메라 탭: 촬영 → 즉시 AI 추출 → 수정 → 저장 ── -->
-    <div x-show="activeTab==='camera'">
+    <div x-show="activeTab==='camera' && meta.siteCode && meta.siteName && meta.company && meta.location">
       <template x-if="!cam.preview">
         <div>
           <div class="mb-3">
@@ -361,7 +361,7 @@
     </div>
 
     <!-- ── 업로드 탭: 일괄 업로드 → AI 자동 추출 → 전체 저장 ── -->
-    <div x-show="activeTab==='upload'">
+    <div x-show="activeTab==='upload' && meta.siteCode && meta.siteName && meta.company && meta.location">
       <div class="card mb-3 space-y-2">
         <div class="text-xs font-extrabold text-gray-500 mb-1">기본값 설정 <span class="font-normal text-gray-400">(사진 추가 시 자동 적용)</span></div>
         <div class="flex items-center gap-2">
