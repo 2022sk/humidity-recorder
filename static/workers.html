@@ -117,7 +117,7 @@
         </div>
       </div>
       <div class="flex items-center gap-2 mt-0.5">
-        <template x-if="authed && mode !== 'health'">
+        <template x-if="authed">
           <button @click="logout()" class="text-xs px-3 py-1.5 rounded-lg font-bold"
                   style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.25)">로그아웃</button>
         </template>
