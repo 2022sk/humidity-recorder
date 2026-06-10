@@ -16,6 +16,8 @@
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>
   [x-cloak]{display:none!important}
+  @media(max-width:767px){.hidden-mobile{display:none!important}.show-mobile{display:block}}
+  @media(min-width:768px){.show-mobile{display:none!important}.hidden-mobile{display:block}}
   html{font-size:clamp(13px, 1.1vw, 18px)}
   @media(max-width:767px){html{font-size:15.5px}}
   body{font-family:'Nanum Square','NanumSquare','Apple SD Gothic Neo','맑은 고딕',sans-serif;background:#f5f5f7}
@@ -846,6 +848,60 @@
         <b>드래그</b>: 위치 이동 &nbsp;|&nbsp; <b>✏️</b>: 이름 수정 &nbsp;|&nbsp; <b>✕</b>: 삭제
       </div>
 
+      <!-- 업체별 취약근로자 위치 현황 표 -->
+      <template x-if="!locEditMode && mapAttendance.filter(a=>a.is_vulnerable).length > 0">
+        <div class="card mb-3" style="padding:12px">
+          <div class="text-xs font-extrabold text-gray-600 mb-2">🔴 취약근로자 위치 현황</div>
+          <div class="overflow-x-auto">
+            <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+              <thead>
+                <tr style="background:#f9fafb">
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">업체</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">이름</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">취약구분</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">위치</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="w in mapAttendance.filter(a=>a.is_vulnerable)" :key="w.worker_id">
+                  <tr style="border-bottom:1px solid #f3f4f6" :class="{'bg-red-50':w.is_vulnerable}">
+                    <td style="padding:5px 10px;color:#6b7280;font-size:.72rem" x-text="w.company||'-'"></td>
+                    <td style="padding:5px 10px">
+                      <div class="flex items-center gap-1">
+                        <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
+                        <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
+                        <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
+                        <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+                      </div>
+                    </td>
+                    <td style="padding:5px 10px">
+                      <div class="flex flex-wrap gap-0.5">
+                        <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                          <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                        </template>
+                      </div>
+                    </td>
+                    <td style="padding:5px 10px">
+                      <div class="flex flex-wrap gap-1">
+                        <template x-if="parseLocations(w.work_location).length===0">
+                          <span class="text-xs text-gray-300">미배정</span>
+                        </template>
+                        <template x-for="loc in parseLocations(w.work_location)" :key="loc">
+                          <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
+                        </template>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+
+      <!-- PC: 좌우 분할 / 모바일: 위아래 -->
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="flex:1;min-width:0">
       <!-- 지도 + HTML 마커 -->
       <div class="relative select-none" x-ref="adminMapEl"
            style="border-radius:12px;background:#f0f0f0;touch-action:none"
@@ -921,9 +977,45 @@
         </div>
       </div>
 
-      <!-- 위치 클릭 결과 -->
+        </div><!-- 지도 컨테이너 끝 -->
+
+        <!-- 우측 패널: 위치 클릭 결과 (모바일은 아래, PC는 오른쪽 고정 너비) -->
+        <div style="width:260px;flex-shrink:0;min-width:0" class="hidden-mobile">
+          <template x-if="mapSelectedLoc && !locEditMode">
+            <div class="card" style="padding:12px">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-extrabold text-gray-800 text-sm" x-text="'📍 '+mapSelectedLoc"></span>
+                <button @click="mapSelectedLoc=null" class="text-gray-400 text-lg leading-none">✕</button>
+              </div>
+              <div class="text-xs text-gray-400 mb-2" x-text="(mapWorkersAt(mapSelectedLoc)||[]).length+'명'"></div>
+              <template x-if="(mapWorkersAt(mapSelectedLoc)||[]).length===0">
+                <div class="text-xs text-gray-400 py-3 text-center">근로자 없음</div>
+              </template>
+              <div class="space-y-1.5">
+                <template x-for="w in (mapWorkersAt(mapSelectedLoc)||[])" :key="w.worker_id">
+                  <div class="flex items-center gap-1.5 p-1.5 rounded-lg text-sm" :class="w.is_vulnerable ? 'bg-red-50' : 'bg-gray-50'">
+                    <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
+                    <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
+                    <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
+                    <span class="font-bold text-gray-800 flex-1 truncate" x-text="w.name_korean||w.name"></span>
+                    <span class="text-xs text-gray-400 truncate" x-text="w.company"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+          <template x-if="!mapSelectedLoc && !locEditMode">
+            <div class="card text-center py-8" style="padding:24px 12px">
+              <div class="text-2xl mb-2">📍</div>
+              <div class="text-xs text-gray-400">마커를 클릭하면<br>근로자 명단이 표시됩니다</div>
+            </div>
+          </template>
+        </div>
+      </div><!-- flex 끝 -->
+
+      <!-- 모바일: 위치 클릭 결과 (아래에 표시) -->
       <template x-if="mapSelectedLoc && !locEditMode">
-        <div class="card mt-3">
+        <div class="card mt-3 show-mobile">
           <div class="flex items-center justify-between mb-2">
             <span class="font-extrabold text-gray-800" x-text="'📍 '+mapSelectedLoc+' 위치 근로자'"></span>
             <button @click="mapSelectedLoc=null" class="text-gray-400 text-lg leading-none">✕</button>
