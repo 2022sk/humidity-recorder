@@ -215,33 +215,25 @@
       <label class="text-xs text-gray-500 font-bold">측정자</label>
       <input type="text" x-model="meta.measurer" placeholder="홍길동" @change="saveMeasurer" class="mt-1">
     </div>
-    <template x-if="meta.siteCode && meta.siteName">
-      <div class="mt-3">
-        <button @click="activeTab='history'; onHistTabActivate()"
-                class="btn-secondary w-full text-sm">📋 이전 기록 보기</button>
-      </div>
-    </template>
   </div>
 
   <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
   <div class="card relative">
-    <template x-if="activeTab === 'history' ? !meta.siteCode : (!meta.siteCode || !meta.siteName || !meta.company || !meta.location)">
+    <!-- 촬영·업로드 탭 잠금 (이전기록 탭은 제외) -->
+    <template x-if="activeTab !== 'history' && (!meta.siteCode || !meta.siteName || !meta.company || !meta.location)">
       <div class="absolute inset-0 rounded-xl z-10 flex flex-col items-center justify-center gap-2"
            style="background:rgba(255,255,255,.88);backdrop-filter:blur(3px)">
         <div class="text-4xl">🏗</div>
-        <template x-if="activeTab === 'history'">
-          <div class="font-bold text-sm text-gray-600">현장코드를 입력해주세요</div>
-        </template>
-        <template x-if="activeTab !== 'history'">
-          <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
-        </template>
-        <div class="text-xs text-gray-400" x-text="activeTab === 'history' ? '현장코드 필수' : '현장코드 · 업체명 · 온습도계 위치 필수'"></div>
+        <div class="font-bold text-sm text-gray-600">현장 기본 정보를 모두 입력해주세요</div>
+        <div class="text-xs text-gray-400">현장코드 · 업체명 · 온습도계 위치 필수</div>
       </div>
     </template>
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4">
       <button class="tab-btn flex-1" :class="{active:activeTab==='camera'}"  @click="activeTab='camera'">📸 촬영</button>
       <button class="tab-btn flex-1" :class="{active:activeTab==='upload'}"  @click="activeTab='upload'">📁 업로드</button>
-      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}" @click="activeTab='history'; onHistTabActivate()">📋 이전 기록</button>
+      <button class="tab-btn flex-1" :class="{active:activeTab==='history'}"
+              @click="activeTab='history'; onHistTabActivate()"
+              :style="!meta.siteCode ? 'opacity:.4;pointer-events:none' : ''">📋 이전 기록</button>
     </div>
 
     <!-- ── 카메라 탭: 촬영 → 즉시 AI 추출 → 수정 → 저장 ── -->
