@@ -1008,7 +1008,7 @@
   </template>
 
   <!-- ══ 주별 섹션 ═════════════════════════════════════════════════════════ -->
-  <!-- 탭 바: 위치·업체 탭 -->
+  <!-- 탭 바: 업체·위치 탭 -->
   <template x-if="weekGroups.length > 1">
     <div class="flex gap-1 flex-nowrap overflow-x-auto pb-1 mb-2" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
       <template x-for="(wkInfo, wi) in weekGroups" :key="'tab_'+wi">
@@ -1025,6 +1025,11 @@
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
+          <template x-if="wkInfo.company">
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                  style="background:#fff3e8;color:#c05000;border:1px solid #ffd0a0"
+                  x-text="'🏢 '+wkInfo.company"></span>
+          </template>
           <template x-if="wkInfo.location && !wkInfo.editingLocation">
             <span class="text-xs font-bold px-2 py-0.5 rounded-full"
                   style="background:#e8f0fe;color:#0062cc;border:1px solid #b8d0f7"
@@ -1039,11 +1044,6 @@
               <button @click="saveGroupLocation(wkInfo)" class="text-xs btn-primary py-1 px-2">저장</button>
               <button @click="wkInfo.editingLocation=false" class="text-xs btn-secondary py-1 px-2">취소</button>
             </div>
-          </template>
-          <template x-if="wkInfo.company">
-            <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                  style="background:#fff3e8;color:#c05000;border:1px solid #ffd0a0"
-                  x-text="'🏢 '+wkInfo.company"></span>
           </template>
           <template x-if="hist.unlocked && !wkInfo.editingLocation">
             <button @click="wkInfo.editLocationInput=wkInfo.location; wkInfo.editingLocation=true"
