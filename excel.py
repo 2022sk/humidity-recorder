@@ -20,7 +20,25 @@ SLOTS   = ["오전1","오전2","오후1","오후2"]
 def _excel_font() -> str:
     # 환경변수로 재정의 가능: EXCEL_FONT=맑은 고딕
     env = os.environ.get("EXCEL_FONT", "")
-    return env if env else "현대하모니 Head"
+    if env:
+        return env
+    # 폰트 파일 존재 여부로 우선순위 결정
+    import glob
+    font_map = {
+        "현대하모니 Head": ["*[Hh]yundai*", "*[Hh]armony*"],
+        "NanumSquare":    ["*NanumSquare*", "*nanumsquare*"],
+        "Malgun Gothic":  ["*malgun*", "*Malgun*"],
+    }
+    search_dirs = ["/usr/share/fonts", "/usr/local/share/fonts",
+                   "C:/Windows/Fonts", os.path.expanduser("~/Library/Fonts")]
+    for name, patterns in font_map.items():
+        for d in search_dirs:
+            if not os.path.isdir(d):
+                continue
+            for pat in patterns:
+                if glob.glob(os.path.join(d, "**", pat), recursive=True):
+                    return name
+    return "NanumSquare"  # nixpacks.toml에 fonts-nanum 포함됨
 
 
 def _heat_index(Ta: float, RH: float) -> float:
