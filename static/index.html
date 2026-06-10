@@ -794,7 +794,21 @@
         <div class="space-y-2">
           <div class="text-xs text-gray-400 font-bold px-1" x-text="records.length+'건 조회'"></div>
           <template x-for="g in hist.dateGroups" :key="g.key">
-            <div class="card" style="padding:12px">
+            <div>
+              <!-- 업체 구분선 헤더 (이전 그룹과 업체명이 다를 때) -->
+              <template x-if="hist.dateGroups.indexOf(g)===0 || hist.dateGroups[hist.dateGroups.indexOf(g)-1].company !== g.company">
+                <div class="flex items-center gap-2 px-1 py-1.5 cursor-pointer select-none"
+                     @click="collapsedDateCompanies[g.company||''] = !collapsedDateCompanies[g.company||'']">
+                  <span class="text-xs font-extrabold text-gray-600"
+                        x-text="'🏢 '+(g.company||'업체 미입력')"></span>
+                  <span class="text-xs text-gray-400"
+                        x-text="'('+hist.dateGroups.filter(x=>x.company===g.company).length+'개 위치)'"></span>
+                  <span class="ml-auto text-gray-400 text-xs transition-transform duration-200"
+                        :style="collapsedDateCompanies[g.company||''] ? 'transform:rotate(-90deg)' : ''"
+                        >▾</span>
+                </div>
+              </template>
+            <div x-show="!collapsedDateCompanies[g.company||'']" class="card mb-0" style="padding:12px">
               <!-- 장소·업체 헤더 -->
               <div class="flex items-center gap-2 mb-2 flex-wrap">
                 <!-- 장소명 -->
@@ -951,6 +965,7 @@
                   </div>
                 </template>
               </div>
+            </div>
             </div>
           </template>
         </div>
@@ -1230,6 +1245,7 @@ function app() {
     extractStatus: '',
 
     records: [],
+    collapsedDateCompanies: {},
     hist: { mode:'date', date: todayStr(), dateGroups:[], company:'', companies:[], location:'', locations:[],
             unlocked:false, pinInput:'', pinHasValue:false, pinChanging:false, newPin:'', currentPin:'' },
     companyLocationMap: {},
