@@ -315,18 +315,23 @@
                       </div>
                       <!-- 인라인 건강기록 입력 폼 -->
                       <div x-show="w._open" style="background:#fffdf0;padding:10px 12px;border-top:1px solid #fde68a">
-                        <!-- 섹션 탭 -->
-                        <div class="flex gap-1 bg-yellow-100 p-0.5 rounded-lg mb-2.5">
-                          <button @click="w._tab='status'"
-                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all"
-                                  :class="(!w._tab||w._tab==='status')?'bg-white shadow-sm text-amber-700':'text-amber-500'">건강상태</button>
-                          <button @click="w._tab='temp'"
-                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all"
-                                  :class="w._tab==='temp'?'bg-white shadow-sm text-amber-700':'text-amber-500'">체온</button>
-                          <button @click="w._tab='bp'"
-                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all"
-                                  :class="w._tab==='bp'?'bg-white shadow-sm text-amber-700':'text-amber-500'">혈압</button>
-                        </div>
+                        <!-- 모바일: 가로탭 / PC: 좌우 분할 -->
+                        <div class="flex flex-col lg:flex-row gap-2">
+                          <!-- 탭 버튼 (모바일=가로, PC=세로) -->
+                          <div class="flex lg:flex-col gap-1 lg:gap-0.5 flex-shrink-0 lg:w-20">
+                            <div class="hidden lg:block text-xs font-extrabold text-amber-600 mb-1 px-1">구분</div>
+                            <button @click="w._tab='status'"
+                                    class="flex-1 lg:flex-none text-xs font-bold py-1.5 lg:py-2.5 px-2 rounded-lg lg:rounded-xl transition-all text-center"
+                                    :class="(!w._tab||w._tab==='status')?'bg-amber-500 text-white shadow-sm':'bg-yellow-100 text-amber-500'">건강상태</button>
+                            <button @click="w._tab='temp'"
+                                    class="flex-1 lg:flex-none text-xs font-bold py-1.5 lg:py-2.5 px-2 rounded-lg lg:rounded-xl transition-all text-center"
+                                    :class="w._tab==='temp'?'bg-amber-500 text-white shadow-sm':'bg-yellow-100 text-amber-500'">체온</button>
+                            <button @click="w._tab='bp'"
+                                    class="flex-1 lg:flex-none text-xs font-bold py-1.5 lg:py-2.5 px-2 rounded-lg lg:rounded-xl transition-all text-center"
+                                    :class="w._tab==='bp'?'bg-amber-500 text-white shadow-sm':'bg-yellow-100 text-amber-500'">혈압</button>
+                          </div>
+                          <!-- 탭 내용 -->
+                          <div class="flex-1 min-w-0">
 
                         <!-- 건강상태 탭 -->
                         <div x-show="!w._tab||w._tab==='status'" class="mb-2 space-y-2">
@@ -389,8 +394,10 @@
                           </div>
                         </div>
 
+                          </div><!-- 탭 내용 끝 -->
+                        </div><!-- flex 끝 -->
                         <button @click="saveDashboardHealthRec(w)"
-                                class="btn-primary w-full text-xs py-2.5 font-bold"
+                                class="btn-primary w-full text-xs py-2.5 font-bold mt-2"
                                 :disabled="w._saving">
                           <span x-text="w._saving?'저장 중...':'💾 건강기록 저장'"></span>
                         </button>
