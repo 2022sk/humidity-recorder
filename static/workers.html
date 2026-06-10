@@ -295,19 +295,15 @@
                     <div class="overflow-hidden transition-all"
                          style="border-radius:10px"
                          :style="w._status==='불량'?'border:1.5px solid #fca5a5':w._status==='주의'?'border:1.5px solid #fcd34d':(w._status==='양호'||w._open)?'border:1.5px solid #86efac':'border:1.5px solid #e5e7eb'">
-                      <!-- 근로자 카드 상단 -->
-                      <div class="cursor-pointer select-none transition-all group"
-                           :style="w._status==='불량'?'background:#fef2f2':w._status==='주의'?'background:#fffbeb':(w._status==='양호'||w._open)?'background:#f0fdf4':'background:#f9fafb'"
-                           style="padding:8px 10px"
-                           @click="w._open=!w._open; if(!w._status) w._status='양호'">
+                      <!-- 근로자 카드 정보 (읽기 전용) -->
+                      <div class="select-none transition-all"
+                           :style="w._status==='불량'?'background:#fef2f2':w._status==='주의'?'background:#fffbeb':(w._status==='양호'&&w._open)?'background:#f0fdf4':'background:#f9fafb'"
+                           style="padding:8px 10px">
                         <div class="flex items-center gap-1">
                           <span x-show="hasOtherVuln(w)" style="font-size:.7rem">🔴</span>
                           <span x-show="isElderlyVuln(w)" style="font-size:.7rem">🟠</span>
                           <span x-show="isNewWorker(w)" style="font-size:.7rem">🆕</span>
-                          <span class="font-bold text-gray-800 flex-1 truncate" style="font-size:.8rem" x-text="w.name_korean||w.name"></span>
-                          <span class="text-gray-300 flex-shrink-0" style="font-size:.6rem;transition:transform .2s"
-                                :style="w._open?'transform:rotate(180deg)':''"
-                                >▼</span>
+                          <span class="font-bold text-gray-800 truncate" style="font-size:.8rem" x-text="w.name_korean||w.name"></span>
                         </div>
                         <div class="flex items-center gap-1 flex-wrap mt-0.5">
                           <span class="text-gray-400 truncate" style="font-size:.68rem" x-text="w.company"></span>
@@ -316,6 +312,12 @@
                           </template>
                         </div>
                       </div>
+                      <!-- 펼치기 버튼 (하단) -->
+                      <button @click.stop="w._open=!w._open; if(!w._status) w._status='양호'"
+                              class="w-full transition-all"
+                              style="border:none;background:rgba(0,0,0,.04);padding:3px 0;font-size:.6rem;color:#9ca3af;cursor:pointer;border-top:1px solid #e5e7eb">
+                        <span :style="w._open?'display:inline-block;transform:rotate(180deg)':'display:inline-block'">▼</span>
+                      </button>
                       <!-- 인라인 건강기록 입력 폼 -->
                       <div x-show="w._open" style="background:#fffdf0;padding:10px 10px;border-top:1px solid #fde68a">
                         <!-- 가로 탭 -->
