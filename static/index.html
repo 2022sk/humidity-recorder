@@ -79,7 +79,8 @@
       <div>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-lg">🌡</span>
-          <h1 class="font-extrabold text-white" style="font-size:1.35rem;letter-spacing:-.02em">체감온도 기록관리</h1>
+          <h1 class="font-extrabold text-white cursor-pointer hover:opacity-80 transition-opacity" style="font-size:1.35rem;letter-spacing:-.02em"
+              @click="window.location.href='/'+(meta.siteCode||'')">체감온도 기록관리</h1>
         </div>
         <div class="pl-7 leading-tight">
           <template x-if="meta.siteCode || meta.siteName || meta.company || meta.location">

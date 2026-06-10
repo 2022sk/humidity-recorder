@@ -88,7 +88,8 @@
       <div>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-lg">🦺</span>
-          <h1 class="font-extrabold text-white" style="font-size:1.35rem;letter-spacing:-.02em">근로자 건강관리</h1>
+          <h1 class="font-extrabold text-white cursor-pointer hover:opacity-80 transition-opacity" style="font-size:1.35rem;letter-spacing:-.02em"
+              @click="window.location.href='/workers'+(siteCode?'/'+siteCode:'')">근로자 건강관리</h1>
         </div>
         <div class="pl-7 leading-tight">
           <template x-if="siteCode">
