@@ -329,19 +329,24 @@
                         </div>
 
                         <!-- 건강상태 탭 -->
-                        <div x-show="!w._tab||w._tab==='status'" class="mb-2">
-                          <label class="text-xs text-gray-500 font-bold">건강상태</label>
-                          <div class="flex gap-2 mt-1">
-                            <template x-for="s in ['양호','주의','불량']" :key="s">
-                              <button @click="w._status=s"
-                                      class="flex-1 text-xs font-bold py-2 rounded-lg transition-all"
-                                      :class="(w._status||'양호')===s
-                                        ? (s==='양호'?'bg-green-500 text-white':'s'==='주의'?'bg-amber-500 text-white':'bg-red-500 text-white')
-                                        : 'bg-white text-gray-500 border border-gray-200'"
-                                      :style="(w._status||'양호')===s ? (s==='양호'?'background:#22c55e':'s'==='주의'?'background:#f59e0b':'background:#ef4444') : ''">
-                                <span x-text="s==='양호'?'😊 양호':s==='주의'?'⚠️ 주의':'🚨 불량'"></span>
-                              </button>
-                            </template>
+                        <div x-show="!w._tab||w._tab==='status'" class="mb-2 space-y-2">
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">건강상태</label>
+                            <div class="flex gap-2 mt-1">
+                              <template x-for="s in ['양호','주의','불량']" :key="s">
+                                <button @click="w._status=s"
+                                        class="flex-1 text-xs font-bold py-2 rounded-lg transition-all"
+                                        :class="(w._status||'양호')===s ? '' : 'bg-white text-gray-500 border border-gray-200'"
+                                        :style="(w._status||'양호')===s ? (s==='양호'?'background:#22c55e;color:white':s==='주의'?'background:#f59e0b;color:white':'background:#ef4444;color:white') : ''">
+                                  <span x-text="s==='양호'?'😊 양호':s==='주의'?'⚠️ 주의':'🚨 불량'"></span>
+                                </button>
+                              </template>
+                            </div>
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">추가 정보</label>
+                            <textarea x-model="w._notes" placeholder="증상, 특이사항 등 기입" rows="2"
+                                      class="mt-1" style="padding:7px 10px!important;font-size:.85rem!important;resize:none"></textarea>
                           </div>
                         </div>
 
@@ -2814,6 +2819,7 @@ function app() {
             bp_dia: w._bpDia || null,
             measure_time: w._time || '',
             health_status: w._status || '양호',
+            notes: w._notes || '',
           })
         });
         // 혈압 측정지 사진 연결
