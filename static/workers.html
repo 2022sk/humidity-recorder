@@ -289,124 +289,78 @@
             <!-- 미확인 근로자 목록 (3열 그리드) -->
             <template x-if="dashboard.unchecked.length > 0">
               <div>
-                <div class="text-xs font-extrabold text-amber-600 mb-2">⚠️ 건강기록 미입력 — 탭하여 기록</div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:start">
-                  <template x-for="w in dashboard.unchecked" :key="w.id">
-                    <div class="overflow-hidden transition-all"
-                         style="border-radius:10px"
-                         :style="w._status==='불량'?'border:1.5px solid #fca5a5':w._status==='주의'?'border:1.5px solid #fcd34d':(w._status==='양호'||w._open)?'border:1.5px solid #86efac':'border:1.5px solid #e5e7eb'">
-                      <!-- 근로자 카드 정보 (읽기 전용) -->
-                      <div class="select-none transition-all"
-                           :style="w._status==='불량'?'background:#fef2f2':w._status==='주의'?'background:#fffbeb':(w._status==='양호'&&w._open)?'background:#f0fdf4':'background:#f9fafb'"
-                           style="padding:8px 10px">
-                        <div class="flex items-center gap-1">
-                          <span x-show="hasOtherVuln(w)" style="font-size:.7rem">🔴</span>
-                          <span x-show="isElderlyVuln(w)" style="font-size:.7rem">🟠</span>
-                          <span x-show="isNewWorker(w)" style="font-size:.7rem">🆕</span>
-                          <span class="font-bold text-gray-800 truncate" style="font-size:.8rem" x-text="w.name_korean||w.name"></span>
-                        </div>
-                        <div class="flex items-center gap-1 flex-wrap mt-0.5">
-                          <span class="text-gray-400 truncate" style="font-size:.68rem" x-text="w.company"></span>
-                          <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
-                            <span class="font-bold px-1 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8;font-size:.6rem" x-text="loc"></span>
-                          </template>
-                        </div>
-                      </div>
-                      <!-- 펼치기 버튼 (하단) -->
-                      <button @click.stop="w._open=!w._open; if(!w._status) w._status='양호'"
-                              class="w-full transition-all"
-                              style="border:none;background:rgba(0,0,0,.04);padding:3px 0;font-size:.6rem;color:#9ca3af;cursor:pointer;border-top:1px solid #e5e7eb">
-                        <span :style="w._open?'display:inline-block;transform:rotate(180deg)':'display:inline-block'">▼</span>
-                      </button>
-                      <!-- 인라인 건강기록 입력 폼 -->
-                      <div x-show="w._open" style="background:#fffdf0;padding:10px 10px;border-top:1px solid #fde68a">
-                        <!-- 가로 탭 -->
-                        <div class="flex gap-1 mb-2" style="background:#fef3c7;border-radius:8px;padding:3px">
-                          <button @click.stop="w._tab='status'"
-                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all text-center"
-                                  :class="(!w._tab||w._tab==='status')?'bg-amber-500 text-white shadow-sm':'text-amber-600'">상태</button>
-                          <button @click.stop="w._tab='temp'"
-                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all text-center"
-                                  :class="w._tab==='temp'?'bg-amber-500 text-white shadow-sm':'text-amber-600'">체온</button>
-                          <button @click.stop="w._tab='bp'"
-                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all text-center"
-                                  :class="w._tab==='bp'?'bg-amber-500 text-white shadow-sm':'text-amber-600'">혈압</button>
-                        </div>
-                        <div>
-
-                        <!-- 건강상태 탭 -->
-                        <div x-show="!w._tab||w._tab==='status'" class="mb-2 space-y-2">
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">건강상태</label>
-                            <div class="flex gap-2 mt-1">
-                              <template x-for="s in ['양호','주의','불량']" :key="s">
-                                <button @click="w._status=s"
-                                        class="flex-1 text-xs font-bold py-2 rounded-lg transition-all"
-                                        :class="(w._status||'양호')===s ? '' : 'bg-white text-gray-500 border border-gray-200'"
-                                        :style="(w._status||'양호')===s ? (s==='양호'?'background:#22c55e;color:white':s==='주의'?'background:#f59e0b;color:white':'background:#ef4444;color:white') : ''">
-                                  <span x-text="s==='양호'?'😊 양호':s==='주의'?'⚠️ 주의':'🚨 불량'"></span>
-                                </button>
+                <div class="text-xs font-extrabold text-amber-600 mb-2">⚠️ 건강기록 미입력</div>
+                <!-- 업체별 그룹 -->
+                <template x-for="company in [...new Set(dashboard.unchecked.map(w=>w.company||''))]" :key="company">
+                  <div class="mb-3">
+                    <div class="text-xs font-bold text-gray-500 mb-1.5" x-text="'🏢 '+company"></div>
+                    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:start">
+                      <template x-for="w in dashboard.unchecked.filter(x=>x.company===company)" :key="w.id">
+                        <div class="rounded-xl overflow-hidden shadow-sm transition-all"
+                             :style="w._status==='불량'?'border:1.5px solid #fca5a5;background:white':w._status==='주의'?'border:1.5px solid #fcd34d;background:white':w._open?'border:1.5px solid #86efac;background:white':'border:1.5px solid #e8e8ed;background:white'">
+                          <!-- 카드 본문 -->
+                          <div style="padding:8px 8px 4px;text-align:center">
+                            <div style="font-size:.6rem;margin-bottom:2px">
+                              <span x-show="hasOtherVuln(w)">🔴</span>
+                              <span x-show="isElderlyVuln(w)">🟠</span>
+                              <span x-show="isNewWorker(w)">🆕</span>
+                            </div>
+                            <div class="font-bold text-gray-800 truncate" style="font-size:.75rem" x-text="w.name_korean||w.name"></div>
+                            <div class="flex flex-wrap gap-0.5 justify-center mt-1">
+                              <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
+                                <span class="font-bold px-1 rounded" style="background:#dbeafe;color:#1d4ed8;font-size:.55rem" x-text="loc"></span>
                               </template>
                             </div>
                           </div>
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">추가 정보</label>
-                            <textarea x-model="w._notes" placeholder="증상, 특이사항 등 기입" rows="2"
-                                      class="mt-1" style="padding:7px 10px!important;font-size:.85rem!important;resize:none"></textarea>
-                          </div>
-                        </div>
-
-                        <!-- 체온 탭 -->
-                        <div x-show="w._tab==='temp'" class="space-y-2 mb-2">
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">체온(°C)</label>
-                            <input type="number" step="0.1" placeholder="36.5" x-model.number="w._temp"
-                                   class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
-                          </div>
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">측정시각</label>
-                            <input type="text" placeholder="09:00" x-model="w._time"
-                                   class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
-                          </div>
-                        </div>
-
-                        <!-- 혈압 탭 -->
-                        <div x-show="w._tab==='bp'" class="space-y-2 mb-2">
-                          <div class="grid grid-cols-2 gap-2">
-                            <div>
-                              <label class="text-xs text-gray-500 font-bold">수축기(mmHg)</label>
-                              <input type="number" placeholder="120" x-model.number="w._bpSys"
-                                     class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
+                          <!-- 펼치기 버튼 -->
+                          <button @click.stop="w._open=!w._open; if(!w._status) w._status='양호'"
+                                  style="width:100%;border:none;border-top:1px solid #f0f0f0;background:transparent;padding:3px 0;font-size:.55rem;color:#d1d5db;cursor:pointer;display:block">
+                            <span :style="w._open?'display:inline-block;transform:rotate(180deg)':'display:inline-block'">▼</span>
+                          </button>
+                          <!-- 펼쳐진 입력 폼 -->
+                          <div x-show="w._open" style="border-top:1px solid #fde68a;background:#fffdf5;padding:8px">
+                            <!-- 탭 -->
+                            <div class="flex gap-0.5 mb-2" style="background:#fef3c7;border-radius:6px;padding:2px">
+                              <button @click.stop="w._tab='status'" class="flex-1 font-bold rounded transition-all text-center" style="font-size:.65rem;padding:3px 0;border:none;cursor:pointer" :style="(!w._tab||w._tab==='status')?'background:#f59e0b;color:white':'background:transparent;color:#d97706'">상태</button>
+                              <button @click.stop="w._tab='temp'" class="flex-1 font-bold rounded transition-all text-center" style="font-size:.65rem;padding:3px 0;border:none;cursor:pointer" :style="w._tab==='temp'?'background:#f59e0b;color:white':'background:transparent;color:#d97706'">체온</button>
+                              <button @click.stop="w._tab='bp'" class="flex-1 font-bold rounded transition-all text-center" style="font-size:.65rem;padding:3px 0;border:none;cursor:pointer" :style="w._tab==='bp'?'background:#f59e0b;color:white':'background:transparent;color:#d97706'">혈압</button>
                             </div>
-                            <div>
-                              <label class="text-xs text-gray-500 font-bold">이완기(mmHg)</label>
-                              <input type="number" placeholder="80" x-model.number="w._bpDia"
-                                     class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
+                            <!-- 건강상태 -->
+                            <div x-show="!w._tab||w._tab==='status'" class="space-y-1">
+                              <div class="flex gap-1">
+                                <template x-for="s in ['양호','주의','불량']" :key="s">
+                                  <button @click.stop="w._status=s" class="flex-1 font-bold rounded-lg transition-all" style="font-size:.6rem;padding:4px 2px;border:none;cursor:pointer"
+                                          :style="(w._status||'양호')===s?(s==='양호'?'background:#22c55e;color:white':s==='주의'?'background:#f59e0b;color:white':'background:#ef4444;color:white'):'background:#f9fafb;color:#9ca3af;border:1px solid #e5e7eb'"
+                                          x-text="s==='양호'?'😊':s==='주의'?'⚠️':'🚨'"></button>
+                                </template>
+                              </div>
+                              <textarea x-model="w._notes" placeholder="특이사항" rows="2" style="font-size:.7rem!important;padding:4px 6px!important;resize:none;width:100%;border:1px solid #e5e7eb;border-radius:6px"></textarea>
                             </div>
-                          </div>
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">혈압 측정지 첨부</label>
-                            <label class="flex items-center justify-center gap-1.5 cursor-pointer rounded-xl mt-1 text-xs font-bold text-blue-600"
-                                   style="border:1.5px dashed #93c5fd;background:#eff6ff;padding:10px">
-                              <input type="file" accept="image/*" class="hidden"
-                                     @change="uploadBpPhoto(w, $event.target.files[0])">
-                              <span x-text="w._bpPhotoId ? '📷 측정지 첨부됨 ✓' : '📷 사진 첨부하기'"></span>
-                            </label>
+                            <!-- 체온 -->
+                            <div x-show="w._tab==='temp'" class="space-y-1">
+                              <input type="number" step="0.1" placeholder="체온°C" x-model.number="w._temp" style="font-size:.75rem!important;padding:4px 6px!important">
+                              <input type="text" placeholder="측정시각" x-model="w._time" style="font-size:.75rem!important;padding:4px 6px!important">
+                            </div>
+                            <!-- 혈압 -->
+                            <div x-show="w._tab==='bp'" class="space-y-1">
+                              <input type="number" placeholder="수축기" x-model.number="w._bpSys" style="font-size:.75rem!important;padding:4px 6px!important">
+                              <input type="number" placeholder="이완기" x-model.number="w._bpDia" style="font-size:.75rem!important;padding:4px 6px!important">
+                              <label class="flex items-center justify-center gap-1 cursor-pointer rounded-lg text-blue-500 font-bold" style="border:1px dashed #93c5fd;background:#eff6ff;padding:5px;font-size:.65rem">
+                                <input type="file" accept="image/*" class="hidden" @change="uploadBpPhoto(w,$event.target.files[0])">
+                                <span x-text="w._bpPhotoId?'📷✓':'📷'"></span>
+                              </label>
+                            </div>
+                            <!-- 저장 버튼 -->
+                            <button @click.stop="saveDashboardHealthRec(w)" :disabled="w._saving"
+                                    style="width:100%;margin-top:6px;background:#f59e0b;color:white;border:none;border-radius:7px;padding:5px;font-size:.7rem;font-weight:700;cursor:pointer">
+                              <span x-text="w._saving?'저장 중...':'💾 저장'"></span>
+                            </button>
                           </div>
                         </div>
-
-                          </div><!-- 탭 내용 끝 -->
-                        </div><!-- flex 끝 -->
-                        <button @click.stop="saveDashboardHealthRec(w)"
-                                class="w-full font-bold mt-2"
-                                style="background:#f59e0b;color:white;border:none;border-radius:8px;padding:5px 8px;font-size:.75rem;cursor:pointer"
-                                :disabled="w._saving">
-                          <span x-text="w._saving?'저장 중...':'💾 저장'"></span>
-                        </button>
-                      </div>
+                      </template>
                     </div>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
             </template>
             <template x-if="dashboard.unchecked.length===0 && dashboard.vulnTotal>0">
