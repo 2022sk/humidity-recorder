@@ -564,7 +564,7 @@
             </div>
             <div>
               <label class="text-xs text-gray-500 font-bold">주차</label>
-              <select x-model="meta.weekLabel" @change="onWeekChange" class="mt-1">
+              <select x-model="meta.weekLabel" @change="onWeekChange(); loadRecords()" class="mt-1">
                 <template x-for="w in weeks" :key="w.monday">
                   <option :value="w.label" x-text="w.label"></option>
                 </template>
@@ -614,9 +614,8 @@
               </div>
             </div>
           </template>
-          <div class="flex gap-2">
-            <button @click="loadRecords()" class="btn-primary flex-1 text-sm">📂 기록 불러오기</button>
-            <button @click="loadRecords()" class="btn-secondary text-sm font-bold" style="padding:6px 14px;white-space:nowrap">🔄 새로고침</button>
+          <div class="flex justify-end">
+            <button @click="loadRecords()" class="btn-secondary text-xs py-1.5 px-3">🔄 새로고침</button>
           </div>
         </div>
 
