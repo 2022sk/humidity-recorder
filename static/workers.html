@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>
   [x-cloak]{display:none!important}
@@ -210,8 +211,7 @@
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='dashboard'}" @click="adminTab='dashboard';loadDashboard()">🏠 현황</button>
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
-      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">🗺 도면</button>
-      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='healthlog'}" @click="adminTab='healthlog';loadAdminHealthLog()">☀️ 혹서기</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">📍 취약근로자 위치</button>
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 PIN</button>
     </div>
 
@@ -222,7 +222,7 @@
       <div x-show="!dashboard.loaded" class="text-center py-10 text-gray-400 text-sm">현황 불러오는 중...</div>
 
       <template x-if="dashboard.loaded">
-        <div class="space-y-3">
+        <div class="space-y-3" id="dashboardCapture">
 
           <!-- ① 오늘 날짜 + 폭염 상태 카드 -->
           <div class="rounded-2xl overflow-hidden shadow-sm"
@@ -423,9 +423,11 @@
           <!-- ④ 액션 버튼 -->
           <div class="flex gap-2">
             <button @click="saveVulnLog();showToast('💾 현황 저장 완료')"
-                    class="flex-1 btn-primary py-3 font-bold">💾 오늘 현황 저장</button>
+                    class="flex-1 btn-primary py-2.5 font-bold text-sm">💾 현황 저장</button>
+            <button @click="saveDashboardPng()"
+                    class="flex-1 btn-secondary py-2.5 font-bold text-sm">🖼 PNG 저장</button>
             <button @click="copyDashboard()"
-                    class="flex-1 btn-secondary py-3 font-bold">📋 공유 복사</button>
+                    class="flex-1 btn-secondary py-2.5 font-bold text-sm">📋 복사</button>
           </div>
 
           <!-- 새로고침 -->
@@ -941,140 +943,6 @@
                   <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
                     <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
                   </template>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </template>
-    </div>
-
-    <!-- 측정기록 탭 -->
-    <div x-show="adminTab==='healthlog'">
-      <!-- 조회 필터 -->
-      <div class="card mb-3" style="padding:12px 14px">
-        <div class="grid grid-cols-2 gap-2 mb-2">
-          <div>
-            <label class="text-xs text-gray-500 font-bold">날짜</label>
-            <input type="date" x-ref="adminHLDate" x-model="adminHL.date" class="mt-0.5">
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 font-bold">슬롯</label>
-            <select x-model="adminHL.slot" @change="loadAdminHealthLog()" class="mt-0.5">
-              <option value="">전체</option>
-              <option>오전1</option><option>오전2</option><option>오후1</option><option>오후2</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-500 font-bold">업체</label>
-            <select x-model="adminHL.company" @change="loadAdminHealthLog()" class="mt-0.5">
-              <option value="">전체</option>
-              <template x-for="c in workerCompanies" :key="c">
-                <option :value="c" x-text="c"></option>
-              </template>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button @click="adminHL.date=$refs.adminHLDate.value||adminHL.date; loadAdminHealthLog()" class="btn-primary text-xs w-full py-1.5">조회</button>
-          </div>
-        </div>
-      </div>
-      <!-- 기록 목록 -->
-      <!-- 폭염 단계 컨텍스트 배너 -->
-      <template x-if="adminHL.loaded && adminHL.heatSummary">
-        <div class="mb-3">
-          <template x-if="Object.keys(adminHL.heatSummary.by_company||{}).length > 0">
-            <div class="rounded-xl p-3 space-y-1.5" style="background:#fff8e1;border:1px solid #fde68a">
-              <div class="text-xs font-extrabold text-amber-700 mb-1">☀️ 폭염단계 발생 현황</div>
-              <template x-for="[co, slots] in Object.entries(adminHL.heatSummary.by_company||{})" :key="co">
-                <div class="flex items-start gap-2 text-xs">
-                  <span class="font-bold text-gray-700 flex-shrink-0" x-text="co === '현대건설' ? co+' (기준측정)' : co+' (자체측정)'"></span>
-                  <div class="flex flex-wrap gap-1">
-                    <template x-for="[sl, info] in Object.entries(slots)" :key="sl">
-                      <span class="px-1.5 py-0.5 rounded font-bold"
-                            style="background:#dc2626;color:white;font-size:10px"
-                            x-text="sl+' '+info.heat_level+(info.feels_like?' ('+info.feels_like.toFixed(1)+'°C)':'')"></span>
-                    </template>
-                  </div>
-                </div>
-              </template>
-              <!-- 자체 측정 없는 업체 → 현대건설 기준 안내 -->
-              <template x-if="(adminHL.heatSummary.companies_with_own||[]).length > 0 && !(adminHL.heatSummary.companies_with_own||[]).includes('현대건설') === false">
-                <div class="text-xs text-amber-600 mt-1">
-                  * 자체 측정 없는 업체는 현대건설 기준 적용
-                </div>
-              </template>
-            </div>
-          </template>
-          <template x-if="Object.keys(adminHL.heatSummary.by_company||{}).length === 0">
-            <div class="rounded-xl p-2.5 text-xs text-gray-400 font-bold" style="background:#f9fafb;border:1px solid #e5e7eb">
-              🌤 해당 날짜 폭염단계 미발령
-            </div>
-          </template>
-        </div>
-      </template>
-
-      <div x-show="adminHL.loaded && adminHL.records.length===0"
-           class="text-center py-8">
-        <div class="text-3xl mb-2">🌤</div>
-        <template x-if="adminHL.heatSummary && Object.keys(adminHL.heatSummary.by_company||{}).length===0">
-          <div>
-            <div class="text-sm font-bold text-gray-500">폭염단계 미발령</div>
-            <div class="text-xs text-gray-400 mt-1" x-text="(adminHL.date||localDateStr())+' 체감온도 정상 범위'"></div>
-          </div>
-        </template>
-        <template x-if="!adminHL.heatSummary || Object.keys(adminHL.heatSummary.by_company||{}).length>0">
-          <div>
-            <div class="text-sm font-bold text-gray-500">건강관리 기록 없음</div>
-            <div class="text-xs text-gray-400 mt-1">폭염단계 발생했으나 측정기록 미입력</div>
-          </div>
-        </template>
-      </div>
-
-      <!-- 슬롯별 그룹핑 (슬롯 필터 없을 때) -->
-      <template x-if="adminHL.records.length > 0">
-        <div>
-          <!-- 슬롯 요약 칩 (필터 없을 때만) -->
-          <template x-if="!adminHL.slot">
-            <div class="flex flex-wrap gap-1.5 mb-3">
-              <template x-for="sl in ['오전1','오전2','오후1','오후2'].filter(s=>adminHL.records.some(r=>r.slot===s))" :key="sl">
-                <div class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
-                     style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
-                  <span x-text="sl"></span>
-                  <span class="text-blue-400" x-text="'·'+adminHL.records.find(r=>r.slot===sl)?.heat_level"></span>
-                  <span class="text-gray-400" x-text="adminHL.records.filter(r=>r.slot===sl).length+'명'"></span>
-                </div>
-              </template>
-            </div>
-          </template>
-
-          <div class="space-y-2">
-            <template x-for="r in adminHL.records" :key="r.id">
-              <div class="card" style="padding:10px 14px">
-                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span class="font-extrabold text-gray-800" x-text="r.name_korean||r.name"></span>
-                  <span class="text-xs text-gray-400" x-text="r.company"></span>
-                  <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#eff6ff;color:#1d4ed8" x-text="r.slot"></span>
-                  <span x-show="r.heat_level" class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#fff3cd;color:#856404" x-text="r.heat_level"></span>
-                </div>
-                <div class="flex flex-wrap gap-3 text-xs">
-                  <span x-show="r.body_temp" class="flex items-center gap-1">
-                    <span class="text-gray-400">체온</span>
-                    <span class="font-bold" :class="r.body_temp>=38?'text-red-600':'text-gray-800'" x-text="r.body_temp+'°C'"></span>
-                  </span>
-                  <span x-show="r.bp_sys" class="flex items-center gap-1">
-                    <span class="text-gray-400">혈압</span>
-                    <span class="font-bold text-gray-800" x-text="r.bp_sys+'/'+(r.bp_dia||'-')"></span>
-                  </span>
-                  <span x-show="r.measure_time" class="flex items-center gap-1">
-                    <span class="text-gray-400">시각</span>
-                    <span class="font-bold text-gray-800" x-text="r.measure_time"></span>
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <span class="text-gray-400">상태</span>
-                    <span class="font-bold" :class="r.health_status==='불량'?'text-red-600':r.health_status==='주의'?'text-amber-600':'text-green-700'"
-                          x-text="r.health_status||'양호'"></span>
-                  </span>
                 </div>
               </div>
             </template>
@@ -2750,6 +2618,21 @@ function app() {
         console.error(e);
         this.dashboard.loaded = true;
       }
+    },
+
+    async saveDashboardPng() {
+      const el = document.getElementById('dashboardCapture');
+      if (!el || typeof html2canvas === 'undefined') { this.showToast('❌ PNG 저장 불가'); return; }
+      this.showToast('🖼 캡처 중...');
+      try {
+        const canvas = await html2canvas(el, { backgroundColor:'#f5f5f7', scale:2, useCORS:true });
+        const link = document.createElement('a');
+        const today = localDateStr();
+        link.download = `혹서기현황_${today}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        this.showToast('✅ PNG 저장 완료');
+      } catch { this.showToast('❌ 저장 실패'); }
     },
 
     copyDashboard() {
