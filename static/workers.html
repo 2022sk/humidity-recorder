@@ -718,8 +718,9 @@
 
     <!-- 출근 탭 -->
     <div x-show="adminTab==='attendance'">
-      <div class="card mb-3">
-        <div class="grid grid-cols-2 gap-2">
+      <!-- 필터 -->
+      <div class="card mb-3" style="padding:12px">
+        <div class="grid grid-cols-2 gap-2 mb-2">
           <div>
             <label class="text-xs font-bold text-gray-500">날짜</label>
             <input type="date" x-model="attDate" @change="loadAttendance()" class="mt-1">
@@ -734,33 +735,46 @@
             </select>
           </div>
         </div>
-      </div>
-      <div class="space-y-2">
-        <template x-for="a in attendance" :key="a.id">
-          <div class="worker-card flex items-center gap-3" :class="a.is_vulnerable ? 'vulnerable' : ''">
-            <span x-show="hasOtherVuln(a)" class="font-black">🔴</span>
-            <span x-show="isElderlyVuln(a)" class="font-black">🟠</span>
-            <span x-show="isNewWorker(a)" class="font-black">🆕</span>
-            <div class="flex-1">
-              <span class="font-bold" x-text="a.name_korean||a.name"></span>
-              <span class="text-xs text-gray-400 ml-2" x-text="a.company"></span>
-              <div class="flex flex-wrap gap-1 mt-0.5">
-                <template x-for="vt in a.vulnerability_types" :key="vt">
-                  <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
-                </template>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-1 mt-0.5">
-              <template x-if="parseLocations(a.work_location).length>0">
-                <template x-for="loc in parseLocations(a.work_location)" :key="loc">
-                  <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#e0f2fe;color:#0369a1" x-text="loc"></span>
-                </template>
-              </template>
-            </div>
+        <div class="flex items-center justify-between text-xs text-gray-500">
+          <span x-text="'출근 '+checkedWorkerIds.size+'명 / 전체 '+(attCompany?workers.filter(w=>w.company===attCompany&&w.deploy_status!==\'inactive\').length:workers.filter(w=>w.deploy_status!==\'inactive\').length)+'명'"></span>
+          <div class="flex gap-2">
+            <button @click="(attCompany?workers.filter(w=>w.company===attCompany&&w.deploy_status!==\'inactive\'):workers.filter(w=>w.deploy_status!==\'inactive\')).forEach(w=>{checkedWorkerIds.add(w.id)});checkedWorkerIds=new Set(checkedWorkerIds)" class="text-blue-500 font-bold">전체 출근</button>
+            <button @click="checkedWorkerIds=new Set()" class="text-gray-400 font-bold">전체 해제</button>
           </div>
-        </template>
-        <div x-show="attendance.length===0" class="text-center text-gray-400 py-8 text-sm">출근 기록이 없습니다</div>
+        </div>
       </div>
+
+      <!-- 업체별 근로자 체크리스트 -->
+      <template x-for="company in (attCompany?[attCompany]:[...new Set(workers.filter(w=>w.deploy_status!==\'inactive\').map(w=>w.company||\'\')).values()])" :key="company">
+        <div class="card mb-2" style="padding:12px">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-extrabold text-gray-600" x-text="'🏢 '+company"></span>
+            <span class="text-xs text-gray-400"
+                  x-text="workers.filter(w=>w.company===company&&w.deploy_status!==\'inactive\'&&checkedWorkerIds.has(w.id)).length+'/'+workers.filter(w=>w.company===company&&w.deploy_status!==\'inactive\').length+'명 출근'"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px">
+            <template x-for="w in workers.filter(x=>x.company===company&&x.deploy_status!==\'inactive\')" :key="w.id">
+              <label class="flex items-center gap-2 rounded-xl cursor-pointer transition-all"
+                     style="padding:8px 10px;border:1.5px solid"
+                     :style="checkedWorkerIds.has(w.id)?'border-color:#3b82f6;background:#eff6ff':'border-color:#e5e7eb;background:#f9fafb'">
+                <input type="checkbox" :checked="checkedWorkerIds.has(w.id)"
+                       @change="toggleAdminAttendance(w)"
+                       class="accent-blue-500" style="width:16px;height:16px;padding:0!important;min-width:0">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-0.5">
+                    <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
+                    <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
+                    <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
+                    <span class="font-bold text-gray-800 truncate" style="font-size:.82rem" x-text="w.name_korean||w.name"></span>
+                  </div>
+                  <div class="text-gray-400 truncate" style="font-size:.68rem" x-text="w.job_type||'─'"></div>
+                </div>
+              </label>
+            </template>
+          </div>
+        </div>
+      </template>
+      <div x-show="workers.filter(w=>w.deploy_status!==\'inactive\').length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
     </div>
 
     <!-- 도면 탭 -->
@@ -2505,9 +2519,10 @@ function app() {
     customCoords: {},
 
     // ── 출근 ──
-    attDate: new Date().toISOString().slice(0,10),
+    attDate: localDateStr(),
     attCompany: '',
     attendance: [],
+    checkedWorkerIds: new Set(),
     companyWorkers: [],
     workerLocations: {},
     selectedLocTab: null,
@@ -3656,10 +3671,39 @@ function app() {
 
     // ── 관리자: 출근현황 ──────────────────────────────────────────────────────
     async loadAttendance() {
+      if (!this.workers.length) await this.loadWorkers();
       const q = new URLSearchParams({ site_code: this.siteCode, company: this.attCompany, work_date: this.attDate });
       const r = await fetch(API_BASE+'/api/vw/attendance?'+q);
       const d = await r.json();
       this.attendance = d.attendance || [];
+      this.checkedWorkerIds = new Set((d.attendance||[]).map(a => a.worker_id));
+    },
+
+    async toggleAdminAttendance(worker) {
+      const wid = worker.id;
+      const isChecked = this.checkedWorkerIds.has(wid);
+      if (isChecked) {
+        this.checkedWorkerIds.delete(wid);
+      } else {
+        this.checkedWorkerIds.add(wid);
+      }
+      this.checkedWorkerIds = new Set(this.checkedWorkerIds); // reactivity
+      // 즉시 저장
+      const checked = [...this.checkedWorkerIds];
+      const workers = checked.map(id => ({ worker_id: id, work_location: '[]' }));
+      await fetch(API_BASE+'/api/vw/attendance', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          site_code: this.siteCode,
+          company: worker.company || this.attCompany || '',
+          work_date: this.attDate,
+          worker_ids: [], work_location: '',
+          workers: workers.filter(w => {
+            const wk = this.workers.find(x=>x.id===w.worker_id);
+            return wk && (wk.company === (worker.company||this.attCompany||'') || !this.attCompany);
+          }),
+        })
+      });
     },
 
     // ── 업체: 이전 날짜 출근 불러오기 ─────────────────────────────────────────
