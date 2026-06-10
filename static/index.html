@@ -270,10 +270,23 @@
             <div class="flex-1">
               <div class="text-xs text-gray-500 mb-1">📅 <span x-text="cam.date"></span></div>
               <template x-if="cam.extracting">
-                <div class="text-sm text-blue-600 font-bold animate-pulse">🤖 AI 분석 중...</div>
+                <div>
+                  <div class="text-sm text-blue-600 font-bold animate-pulse">🤖 AI 분석 중... <span class="text-blue-400 font-normal text-xs" x-text="cam.elapsed>0?'('+cam.elapsed+'초)':''"></span></div>
+                  <template x-if="cam.elapsed >= 15">
+                    <div class="mt-2 p-2.5 rounded-xl text-xs" style="background:#fff8e1;border:1px solid #fde68a">
+                      <div class="font-bold text-amber-700 mb-1.5">⏱ 응답이 늦어지고 있어요</div>
+                      <button @click="cam.manualMode=true; cam.extracting=false; cam.result={temperature:null,humidity:null,time:'',slot:null,feels_like:null,heat_level:null,action:'N/A'}; clearTimeout()"
+                              class="btn-primary text-xs py-1.5 w-full">✏️ 직접 입력하기</button>
+                    </div>
+                  </template>
+                </div>
               </template>
-              <template x-if="cam.error">
-                <div class="text-sm text-red-500 font-bold" x-text="'❌ '+cam.error"></div>
+              <template x-if="cam.error && !cam.manualMode">
+                <div>
+                  <div class="text-xs font-bold text-red-500 mb-1.5">❌ <span x-text="cam.error"></span></div>
+                  <button @click="cam.manualMode=true; cam.error=null; cam.result={temperature:null,humidity:null,time:'',slot:null,feels_like:null,heat_level:null,action:'N/A'}"
+                          class="btn-secondary text-xs py-1.5 w-full">✏️ 직접 입력하기</button>
+                </div>
               </template>
               <template x-if="!cam.extracting && !cam.error && cam.result">
                 <div class="text-xs text-green-600 font-bold">✅ 추출 완료 — 아래에서 확인·수정 후 저장</div>
@@ -282,10 +295,11 @@
             </div>
           </div>
 
-          <template x-if="cam.result">
+          <template x-if="cam.result || cam.manualMode">
             <div>
               <div class="bg-gray-50 rounded-xl p-3 space-y-2 mb-3">
-                <div class="text-xs font-extrabold text-gray-600 mb-2">측정값 확인 및 수정</div>
+                <div class="text-xs font-extrabold mb-2" :class="cam.manualMode?'text-amber-600':'text-gray-600'"
+                     x-text="cam.manualMode?'✏️ 직접 입력':'측정값 확인 및 수정'"></div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="text-xs text-gray-400">온도 (°C)</label>
@@ -1213,7 +1227,7 @@ function app() {
     isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
 
     // 카메라 탭 상태
-    cam: { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false },
+    cam: { date: todayStr(), preview:null, photo_id:null, extracting:false, error:null, result:null, saving:false, elapsed:0, manualMode:false },
 
     // 업로드 탭 상태
     upld: { batch: [], saving: false, defaultDate: todayStr(), defaultCompany: '', defaultLocation: '' },
@@ -1894,23 +1908,27 @@ function app() {
       if (!file) return;
       _camFile = file;
       this.cam.preview = URL.createObjectURL(file);
-      this.cam.result = null;
-      this.cam.error  = null;
-      this.cam.photo_id = null;
+      this.cam.result = null; this.cam.error = null;
+      this.cam.photo_id = null; this.cam.elapsed = 0; this.cam.manualMode = false;
       this.cam.extracting = true;
+      const CAM_TIMEOUT = 30;
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), CAM_TIMEOUT * 1000);
+      const timer = setInterval(() => { if (this.cam.extracting) this.cam.elapsed++; }, 1000);
       try {
         const fname = `camera_${this.cam.date}_${Date.now()}.jpg`;
         const fd = new FormData(); fd.append('file', file, fname);
-        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
-        if (!ur.ok) throw new Error(`업로드 실패 HTTP ${ur.status}`);
+        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd, signal: ctrl.signal });
+        if (!ur.ok) throw Object.assign(new Error(), { status: ur.status });
         const ud = await ur.json();
         this.cam.photo_id = ud.photo_id;
 
         const er = await fetch('/api/photos/extract', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ photo_id: ud.photo_id, site_code: this.meta.siteCode })
+          body: JSON.stringify({ photo_id: ud.photo_id, site_code: this.meta.siteCode }),
+          signal: ctrl.signal,
         });
-        if (!er.ok) { const d=await er.json().catch(()=>({})); throw new Error(d.detail||'AI 추출 실패'); }
+        if (!er.ok) { const d=await er.json().catch(()=>({})); throw Object.assign(new Error(d.detail||''), { status: er.status }); }
         const extracted = await er.json();
         if (extracted.temperature != null && extracted.humidity != null) {
           extracted.feels_like = heatIndex(extracted.temperature, extracted.humidity);
@@ -1920,8 +1938,9 @@ function app() {
         extracted.action = extracted.action || 'N/A';
         this.cam.result  = extracted;
       } catch(err) {
-        this.cam.error = err.message;
+        this.cam.error = classifyError(ctrl.signal.aborted ? '시간 초과' : err, err.status);
       } finally {
+        clearInterval(timer); clearTimeout(tid);
         this.cam.extracting = false;
       }
     },
@@ -2009,13 +2028,13 @@ function app() {
           try {
             const fd = new FormData(); fd.append('file', file, file.name);
             const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
-            if (!ur.ok) throw new Error();
+            if (!ur.ok) throw Object.assign(new Error(), { status: ur.status });
             const ud = await ur.json();
             const bi = this.upld.batch.find(i => i.id === id);
             if (bi) bi.photo_id = ud.photo_id;
-          } catch {
+          } catch(e) {
             const bi = this.upld.batch.find(i => i.id === id);
-            if (bi) { bi.error = '업로드 실패'; bi.uploading = false; }
+            if (bi) { bi.error = classifyError(e, e.status); bi.uploading = false; }
             return;
           }
           const bi = this.upld.batch.find(i => i.id === id);
@@ -2051,9 +2070,7 @@ function app() {
         bi = get(); if (bi) bi.result = ex;
       } catch(e) {
         bi = get();
-        if (bi) bi.error = ctrl.signal.aborted
-          ? `시간 초과 (${TIMEOUT_S}초) — 다시 분석해 주세요`
-          : 'AI 추출 실패 — 다시 분석해 주세요';
+        if (bi) bi.error = classifyError(ctrl.signal.aborted ? '시간 초과' : e, e.status);
       } finally {
         clearInterval(timer); clearTimeout(tid);
         bi = get(); if (bi) bi.extracting = false;
@@ -2410,6 +2427,20 @@ function parseSlotFromFilename(name) {
   if (m) return {1:'오전1',2:'오전2',3:'오후1',4:'오후2'}[parseInt(m[1])] || '오전1';
   return '오전1';
 }
+function classifyError(err, status) {
+  const msg = (err?.message || err || '').toString();
+  if (status === 502 || status === 503) return '서버 일시 과부하 — 잠시 후 다시 시도해 주세요';
+  if (status === 413) return '사진 파일이 너무 큽니다 — 더 작은 사진으로 시도해 주세요';
+  if (status === 429) return 'AI 요청이 너무 많습니다 — 1분 후 다시 시도해 주세요';
+  if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('한도')) return 'AI 일일 사용 한도 초과 — 내일 다시 이용 가능합니다';
+  if (msg.includes('파싱') || msg.includes('JSON') || msg.includes('인식하지 못')) return '온습도계 화면이 잘 보이지 않습니다 — 더 가까이, 밝은 곳에서 다시 촬영해 주세요';
+  if (msg.includes('범위')) return msg;
+  if (msg.includes('fetch') || msg.includes('network') || msg.includes('Failed to fetch') || msg.includes('NetworkError')) return '네트워크 연결 오류 — 인터넷 상태를 확인해 주세요';
+  if (msg.includes('시간 초과') || msg.includes('aborted') || msg.includes('abort')) return '응답 시간 초과 — 서버가 바쁩니다. 직접 입력하거나 잠시 후 다시 시도해 주세요';
+  if (msg.includes('HTTP 5')) return '서버 오류 — 잠시 후 다시 시도해 주세요';
+  return msg || 'AI 추출 실패 — 직접 입력하거나 다시 촬영해 주세요';
+}
+
 function fmtTime(raw) {
   if (!raw) return raw;
   const s = raw.replace(/[^\d]/g, '');       // 숫자만 추출
