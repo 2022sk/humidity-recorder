@@ -213,7 +213,7 @@
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3" style="flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none">
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='dashboard'}" @click="adminTab='dashboard';loadDashboard()">🏠 현황</button>
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='workers'}" @click="adminTab='workers';loadWorkers()">👷 근로자</button>
-      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance';loadAttendance()">📋 출근</button>
+      <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='attendance'}" @click="adminTab='attendance'; if(!workers.length) loadWorkers().then(()=>loadAttendance()); else loadAttendance()">📋 출근</button>
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='map'}" @click="adminTab='map';loadWorkers().then(()=>loadMapAttendance())">📍 취약근로자 위치</button>
       <button class="tab-btn flex-shrink-0" :class="{active:adminTab==='pins'}" @click="adminTab='pins';loadCompanyPins();loadCompanyVisibility()">🔐 PIN</button>
     </div>
@@ -966,11 +966,58 @@
         </div>
       </template>
 
-      <!-- 업체별 취약근로자 위치 현황 표 -->
+      <!-- 취약근로자 위치 배치표 -->
       <template x-if="!locEditMode && mapAttendance.filter(a=>a.is_vulnerable).length > 0">
-        <div class="card mb-3" style="padding:12px">
-          <div class="text-xs font-extrabold text-gray-600 mb-2">🔴 취약근로자 위치 현황</div>
-          <div class="overflow-x-auto">
+        <div class="card mt-3" style="padding:12px">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-extrabold text-gray-600">🔴 취약근로자 위치 배치표</span>
+            <span class="text-xs text-gray-400">탭하여 위치 배정 · 저장 자동</span>
+          </div>
+          <div class="overflow-x-auto mx-wrap" style="border-radius:10px;border:1px solid #e8e8ed">
+            <table class="mx-table">
+              <thead>
+                <tr>
+                  <th class="mx-head-name">이름</th>
+                  <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                    <th class="mx-head-loc" x-text="loc"></th>
+                  </template>
+                  <th class="mx-head-loc" title="전 구역">🌐</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(w, i) in mapAttendance.filter(a=>a.is_vulnerable)" :key="w.worker_id">
+                  <tr :class="i%2===1?'mx-even':''">
+                    <td class="mx-name" :class="i%2===1?'mx-even':''" :title="w.name_korean||w.name">
+                      <div class="flex items-center gap-0.5">
+                        <span x-show="hasOtherVuln(w)" style="font-size:.65rem">🔴</span>
+                        <span x-show="isElderlyVuln(w)" style="font-size:.65rem">🟠</span>
+                        <span x-text="(w.name_korean||w.name||'').slice(0,6)"></span>
+                      </div>
+                      <div class="text-gray-400 truncate" style="font-size:.6rem" x-text="w.company||''"></div>
+                    </td>
+                    <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                      <td class="mx-cell" @click="assignVulnWorkerLoc(w, loc)">
+                        <div class="mx-dot" :class="parseLocations(w.work_location).includes(loc)?'mx-dot-blue':''"></div>
+                      </td>
+                    </template>
+                    <td class="mx-cell" @click="assignVulnToggleAllZone(w)">
+                      <div class="mx-dot" :class="parseLocations(w.work_location).includes('전구역')?'mx-dot-green':''"></div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <!-- 범례 -->
+          <div class="flex gap-3 text-xs text-gray-400 mt-1.5 px-1">
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>배치</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>전구역</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-gray-200"></span>미배치</span>
+          </div>
+
+          <!-- 기존 상세 목록 (접기/펼치기) -->
+          <div class="mt-3">
+            <div class="overflow-x-auto">
             <table style="width:100%;border-collapse:collapse;font-size:.78rem">
               <thead>
                 <tr style="background:#f9fafb">
@@ -1005,10 +1052,11 @@
                           <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
                         </template>
                         <!-- 위치 추가 드롭다운 -->
-                        <select @change="assignVulnWorkerLoc(w, $event.target.value); $event.target.value=''"
+                        <select @change="$event.target.value==='전구역'?assignVulnToggleAllZone(w):assignVulnWorkerLoc(w,$event.target.value); $event.target.value=''"
                                 class="text-xs rounded-lg border border-gray-200 bg-white"
-                                style="padding:2px 4px!important;font-size:.7rem!important;max-width:100px">
+                                style="padding:2px 4px!important;font-size:.7rem!important;max-width:110px">
                           <option value="">+ 위치 추가</option>
+                          <option x-show="!parseLocations(w.work_location).includes('전구역')" value="전구역">🌐 전구역</option>
                           <template x-for="loc in LOCATION_PRESETS.filter(l=>!parseLocations(w.work_location).includes(l))" :key="loc">
                             <option :value="loc" x-text="loc"></option>
                           </template>
@@ -1019,6 +1067,7 @@
                 </template>
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </template>
@@ -3142,6 +3191,22 @@ function app() {
         const locs = this.parseLocations(a.work_location);
         return locs.includes(loc) || locs.includes('전구역');
       });
+    },
+
+    async assignVulnToggleAllZone(w) {
+      const current = parseLocations(w.work_location);
+      const next = current.includes('전구역') ? [] : ['전구역'];
+      w.work_location = JSON.stringify(next);
+      this.workerLocations = { ...this.workerLocations, [w.worker_id]: next };
+      await fetch(API_BASE+'/api/vw/attendance', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          site_code: this.siteCode, company: w.company||'',
+          work_date: localDateStr(), worker_ids:[], work_location:'',
+          workers:[{ worker_id: w.worker_id, work_location: JSON.stringify(next) }]
+        })
+      });
+      this.showToast(next.length ? '🌐 '+(w.name_korean||w.name)+' 전구역 배정' : '📍 위치 해제');
     },
 
     async assignVulnWorkerLoc(w, loc) {
