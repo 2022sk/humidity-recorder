@@ -108,12 +108,19 @@
           </template>
         </div>
       </div>
-      <span class="text-xs font-bold flex-shrink-0 self-center px-2 py-1 rounded-lg cursor-pointer hover:opacity-80"
-            style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);white-space:nowrap"
-            :style="apiOk && !aiLastError ? 'color:white' : 'color:#ffd0d0'"
-            :title="aiLastError ? 'AI 오류 - 클릭하여 확인' : (apiOk ? `AI 키 ${aiKeyCount}개 등록됨 - 클릭하여 관리` : 'AI 키를 등록하려면 클릭')"
-            @click="openAiKeyModal()"
-            x-text="aiLastError ? '❌ AI' : (apiOk ? `✅ AI ${aiKeyCount > 1 ? aiKeyCount+'키' : ''}` : '❌ AI')"></span>
+      <div class="flex items-center gap-1.5 flex-shrink-0 self-center">
+        <a :href="'/workers'+(meta.siteCode?'/'+meta.siteCode:'')"
+           class="text-xs font-bold px-2 py-1 rounded-lg hover:opacity-80 transition-opacity"
+           style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;white-space:nowrap;text-decoration:none">
+          🦺 건강관리
+        </a>
+        <span class="text-xs font-bold px-2 py-1 rounded-lg cursor-pointer hover:opacity-80"
+              style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);white-space:nowrap"
+              :style="apiOk && !aiLastError ? 'color:white' : 'color:#ffd0d0'"
+              :title="aiLastError ? 'AI 오류 - 클릭하여 확인' : (apiOk ? `AI 키 ${aiKeyCount}개 등록됨 - 클릭하여 관리` : 'AI 키를 등록하려면 클릭')"
+              @click="openAiKeyModal()"
+              x-text="aiLastError ? '❌ AI' : (apiOk ? `✅ AI ${aiKeyCount > 1 ? aiKeyCount+'키' : ''}` : '❌ AI')"></span>
+      </div>
     </div>
   </div>
 </header>
