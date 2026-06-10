@@ -220,31 +220,24 @@
   <!-- ══ 사진 등록 탭 ══════════════════════════════════════════════════════ -->
   <div class="card">
     <!-- 탭 버튼 (항상 클릭 가능) -->
-    <div class="flex gap-2 mb-4">
+    <div class="flex border-b border-gray-100 mb-4">
       <button @click="activeTab='camera'"
-              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2 active:scale-95"
-              :class="activeTab==='camera'
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-100 bg-gray-50 hover:border-gray-200'">
-        <span style="font-size:1.6rem;line-height:1">📸</span>
-        <span class="text-xs font-extrabold" :class="activeTab==='camera'?'text-blue-600':'text-gray-500'">촬영</span>
+              class="flex-1 flex flex-col items-center gap-1.5 pt-2 pb-2.5 transition-all active:scale-95"
+              :style="activeTab==='camera' ? 'box-shadow:inset 0 -2.5px 0 #0071e3' : ''">
+        <span style="font-size:1.5rem;line-height:1">📸</span>
+        <span class="text-xs font-bold" :class="activeTab==='camera'?'text-blue-600':'text-gray-400'">촬영</span>
       </button>
       <button @click="activeTab='upload'"
-              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2 active:scale-95"
-              :class="activeTab==='upload'
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-gray-100 bg-gray-50 hover:border-gray-200'">
-        <span style="font-size:1.6rem;line-height:1">📁</span>
-        <span class="text-xs font-extrabold" :class="activeTab==='upload'?'text-purple-600':'text-gray-500'">업로드</span>
+              class="flex-1 flex flex-col items-center gap-1.5 pt-2 pb-2.5 transition-all active:scale-95"
+              :style="activeTab==='upload' ? 'box-shadow:inset 0 -2.5px 0 #0071e3' : ''">
+        <span style="font-size:1.5rem;line-height:1">📁</span>
+        <span class="text-xs font-bold" :class="activeTab==='upload'?'text-blue-600':'text-gray-400'">업로드</span>
       </button>
       <button @click="activeTab='history'; onHistTabActivate()"
-              :style="!meta.siteCode ? 'opacity:.35;pointer-events:none' : ''"
-              class="flex-1 flex flex-col items-center gap-1 rounded-2xl py-3 transition-all border-2 active:scale-95"
-              :class="activeTab==='history'
-                ? 'border-gray-700 bg-gray-800'
-                : 'border-gray-100 bg-gray-50 hover:border-gray-200'">
-        <span style="font-size:1.6rem;line-height:1">📋</span>
-        <span class="text-xs font-extrabold" :class="activeTab==='history'?'text-white':'text-gray-500'">이전 기록</span>
+              :style="(!meta.siteCode ? 'opacity:.35;pointer-events:none;' : '') + (activeTab==='history' ? 'box-shadow:inset 0 -2.5px 0 #0071e3' : '')"
+              class="flex-1 flex flex-col items-center gap-1.5 pt-2 pb-2.5 transition-all active:scale-95">
+        <span style="font-size:1.5rem;line-height:1">📋</span>
+        <span class="text-xs font-bold" :class="activeTab==='history'?'text-blue-600':'text-gray-400'">이전 기록</span>
       </button>
     </div>
     <!-- 촬영·업로드 콘텐츠 잠금 안내 (탭 버튼은 덮지 않음) -->
