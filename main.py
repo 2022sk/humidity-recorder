@@ -707,6 +707,43 @@ def del_company_pin(site_code: str, company: str):
     wdb.delete_company_pin(site_code, company)
     return {"ok": True}
 
+# ── 기존 사진 일괄 압축 ───────────────────────────────────────────────────────
+@app.post("/api/photos/recompress")
+async def recompress_photos(pin: str = "", site_code: str = ""):
+    """기존 업로드 사진을 최대 1000px로 일괄 재압축 (관리자 전용)"""
+    from PIL import Image, ImageOps
+    from starlette.concurrency import run_in_threadpool
+    if site_code and not db.verify_pin(site_code, pin):
+        raise HTTPException(403, "PIN이 올바르지 않습니다")
+    results = {"done": 0, "skipped": 0, "errors": 0, "saved_bytes": 0}
+    def _do():
+        import os
+        for p in UPLOAD_DIR.glob("*.jpg"):
+            try:
+                orig_size = p.stat().st_size
+                img = Image.open(p)
+                img = ImageOps.exif_transpose(img)
+                w, h = img.size
+                if max(w, h) <= 1000 and orig_size < 300_000:
+                    results["skipped"] += 1
+                    continue
+                s = min(1.0, 1000 / max(w, h))
+                img = img.resize((int(w*s), int(h*s)), Image.LANCZOS)
+                buf = io.BytesIO()
+                img.convert("RGB").save(buf, "JPEG", quality=78)
+                new_bytes = buf.getvalue()
+                if len(new_bytes) < orig_size:
+                    p.write_bytes(new_bytes)
+                    results["saved_bytes"] += orig_size - len(new_bytes)
+                    results["done"] += 1
+                else:
+                    results["skipped"] += 1
+            except Exception:
+                results["errors"] += 1
+    await run_in_threadpool(_do)
+    results["saved_mb"] = round(results["saved_bytes"] / 1_048_576, 1)
+    return results
+
 # ── 취약근로자 날짜별 로그 ──────────────────────────────────────────────────────
 @app.post("/api/vw/vuln-log")
 def save_vuln_log(body: dict):
