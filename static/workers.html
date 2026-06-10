@@ -13,6 +13,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3/dist/chartjs-plugin-annotation.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>
   [x-cloak]{display:none!important}
@@ -2746,7 +2747,19 @@ function app() {
         data: { labels: allLabels, datasets: chartDatasets },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color:'white', boxWidth:10, font:{size:10} } } },
+          plugins: {
+            legend: { labels: { color:'white', boxWidth:10, font:{size:10} } },
+            annotation: {
+              annotations: {
+                line31: { type:'line', yMin:31, yMax:31, borderColor:'rgba(52,199,89,.9)', borderWidth:1.5, borderDash:[4,3],
+                  label:{content:'관심 31°C', display:true, color:'rgba(52,199,89,1)', font:{size:9,weight:'bold'}, position:'end', backgroundColor:'transparent', yAdjust:-8} },
+                line35: { type:'line', yMin:35, yMax:35, borderColor:'rgba(255,149,0,.9)', borderWidth:1.5, borderDash:[4,3],
+                  label:{content:'경고 35°C', display:true, color:'rgba(255,149,0,1)', font:{size:9,weight:'bold'}, position:'end', backgroundColor:'transparent', yAdjust:-8} },
+                line38: { type:'line', yMin:38, yMax:38, borderColor:'rgba(255,59,48,.9)', borderWidth:1.5, borderDash:[4,3],
+                  label:{content:'위험 38°C', display:true, color:'rgba(255,59,48,1)', font:{size:9,weight:'bold'}, position:'end', backgroundColor:'transparent', yAdjust:-8} },
+              }
+            }
+          },
           scales: {
             x: { ticks: { color:'rgba(255,255,255,.7)', font:{size:9} }, grid: { color:'rgba(255,255,255,.1)' } },
             y: { ticks: { color:'rgba(255,255,255,.7)', font:{size:9} }, grid: { color:'rgba(255,255,255,.1)' },
