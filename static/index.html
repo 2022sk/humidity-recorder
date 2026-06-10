@@ -578,7 +578,7 @@
                           class="company-tab flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-1"
                           :class="hist.company===c ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-gray-600 border-gray-300'">
                     <span x-text="c"></span>
-                    <span x-show="(companyLocationMap[c]||[]).length > 1"
+                    <span x-show="(companyLocationMap[c]||[]).length >= 1"
                           style="font-size:9px;transition:transform .25s"
                           :style="hist.company===c ? 'transform:rotate(180deg)' : 'transform:rotate(0deg)'"
                           class="opacity-60">▼</span>
@@ -587,7 +587,7 @@
               </div>
               <!-- 위치 슬라이드다운 -->
               <div class="overflow-hidden location-slide rounded-xl"
-                   :style="hist.company && (companyLocationMap[hist.company]||[]).length > 1
+                   :style="hist.company && (companyLocationMap[hist.company]||[]).length >= 1
                      ? 'max-height:200px;opacity:1;margin-top:8px'
                      : 'max-height:0;opacity:0;margin-top:0'">
                 <div class="flex flex-wrap gap-1.5 p-2.5" style="background:#f0f5ff;border:1px solid #dbeafe;border-radius:12px">
@@ -2211,16 +2211,15 @@ function app() {
     },
 
     async _buildCompanyLocationMap() {
-      const map = {};
-      for (const c of this.hist.companies) {
+      const results = await Promise.all(this.hist.companies.map(async c => {
         try {
           const lq = new URLSearchParams({ site_code: this.meta.siteCode, company: c, week_monday: this.currentMonday || '' });
           const lr = await fetch('/api/locations?' + lq);
           const ld = await lr.json();
-          map[c] = ld.locations || [];
-        } catch { map[c] = []; }
-      }
-      this.companyLocationMap = map;
+          return [c, ld.locations || []];
+        } catch { return [c, []]; }
+      }));
+      this.companyLocationMap = Object.fromEntries(results);
     },
 
     async selectCompanyTab(company) {
