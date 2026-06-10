@@ -1710,15 +1710,21 @@ function app() {
           const d = new Date(mon); d.setDate(mon.getDate()+i);
           dayLabels.push(`${d.getMonth()+1}/${d.getDate()}(${DAYS_KO[d.getDay()===0?6:d.getDay()-1]})`);
         }
-        const slotColors = {"오전1":"#4A90E2","오전2":"#34C759","오후1":"#FF9500","오후2":"#FF3B30"};
-        const NEUTRAL = "#87CEEB"; // 31도 미만: 하늘색
+        const heatColor = v => {
+          if (v == null) return 'rgba(200,200,200,.4)';
+          if (v >= 38) return 'rgba(255,59,48,.85)';   // 위험 빨강
+          if (v >= 35) return 'rgba(255,149,0,.85)';   // 경고 주황
+          if (v >= 33) return 'rgba(255,204,0,.85)';   // 주의 노랑
+          if (v >= 31) return 'rgba(52,199,89,.85)';   // 관심 초록
+          return 'rgba(135,206,235,.6)';                // 미만 하늘색
+        };
         const datasets = SLOTS.map(slot => {
           const data = dayLabels.map((_,di) => {
             const d = new Date(wk.monday); d.setDate(new Date(wk.monday).getDate()+di);
             const r = wk.records.find(r=>r.measure_date===fmtDate(d) && r.slot===slot);
             return r?.feels_like ?? null;
           });
-          const bgColors = data.map(v => v != null && v >= 31 ? slotColors[slot]+'cc' : NEUTRAL+'cc');
+          const bgColors = data.map(v => heatColor(v));
           return { label: slot, backgroundColor: bgColors, data };
         });
         const allVals = wk.records.map(r=>r.feels_like).filter(v=>v!=null);
