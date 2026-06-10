@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Square:wght@400;700;800&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@2.0/nanumsquare.css">
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <style>
   [x-cloak]{display:none!important}
@@ -236,31 +237,26 @@
                 </div>
                 <div class="text-white opacity-30" style="font-size:3rem;line-height:1">☀️</div>
               </div>
-              <!-- 슬롯별 최고 체감온도 (클릭 시 상세) -->
-              <div x-show="dashboard.heatSlots.length > 0" class="flex flex-wrap gap-1.5 mt-3">
-                <template x-for="s in dashboard.heatSlots" :key="s.slot">
-                  <button @click="dashboard.showDetail=!dashboard.showDetail"
-                          class="text-xs font-bold px-2 py-0.5 rounded-full transition-all active:scale-95"
-                          style="background:rgba(255,255,255,.2);color:white;border:none;cursor:pointer"
-                          x-text="s.slot+(s.heat_level&&s.heat_level!=='-'?' '+s.heat_level:'')+(s.feels_like?' '+s.feels_like+'°C':'')"></button>
-                </template>
-              </div>
-              <!-- 상세 펼침: 업체/위치별 체감온도 -->
-              <div x-show="dashboard.showDetail && dashboard.todayRecords.length > 0"
-                   class="mt-3 rounded-xl overflow-hidden" style="background:rgba(0,0,0,.2)">
-                <div class="text-white text-xs font-extrabold px-3 py-2 opacity-80">📋 오늘 측정 전체</div>
-                <div class="space-y-0">
-                  <template x-for="r in dashboard.todayRecords" :key="r.id">
-                    <div class="flex items-center gap-2 px-3 py-1.5" style="border-top:1px solid rgba(255,255,255,.1)">
-                      <span class="text-xs font-bold text-white opacity-70 w-12 flex-shrink-0" x-text="r.slot"></span>
-                      <span class="text-xs text-white opacity-80 flex-1 truncate" x-text="(r.company||'')+(r.location?' · '+r.location:'')"></span>
-                      <span class="text-xs font-extrabold text-white" x-text="r.feels_like!=null?r.feels_like.toFixed(1)+'°C':'-'"></span>
-                      <span x-show="r.heat_level && r.heat_level!=='-'" class="text-xs font-bold px-1.5 py-0.5 rounded"
-                            style="background:rgba(255,255,255,.25);color:white" x-text="r.heat_level"></span>
-                    </div>
-                  </template>
+              <!-- 오늘의 체감온도 -->
+              <template x-if="dashboard.heatSlots.length > 0">
+                <div class="mt-3">
+                  <button @click="dashboard.showDetail=!dashboard.showDetail; $nextTick(()=>drawDashboardChart())"
+                          class="flex items-center gap-2 text-white opacity-90 hover:opacity-100 transition-all active:scale-95"
+                          style="background:none;border:none;cursor:pointer;padding:0">
+                    <span class="text-xs font-extrabold">오늘의 체감온도</span>
+                    <template x-for="s in dashboard.heatSlots" :key="s.slot">
+                      <span class="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                            style="background:rgba(255,255,255,.25)"
+                            x-text="s.slot+' '+s.feels_like+'°C'"></span>
+                    </template>
+                    <span class="text-xs opacity-60" x-text="dashboard.showDetail?'▲':'▼'"></span>
+                  </button>
+                  <!-- 그래프 -->
+                  <div x-show="dashboard.showDetail" class="mt-2 rounded-xl overflow-hidden" style="background:rgba(0,0,0,.2);padding:12px">
+                    <canvas id="dashboardChart" style="width:100%;height:140px;max-height:140px"></canvas>
+                  </div>
                 </div>
-              </div>
+              </template>
             </div>
           </div>
 
@@ -294,43 +290,38 @@
                 <div class="text-xs font-extrabold text-amber-600 mb-2">⚠️ 건강기록 미입력 — 탭하여 기록</div>
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:start">
                   <template x-for="w in dashboard.unchecked" :key="w.id">
-                    <div class="rounded-xl overflow-hidden" style="border:1px solid #fde68a">
-                      <!-- 근로자 카드 상단 (탭 → 펼치기) -->
-                      <div class="cursor-pointer select-none text-center"
-                           style="background:#fffbeb;padding:12px 8px 10px"
-                           @click="w._open=!w._open">
-                        <div class="flex justify-center gap-0.5 mb-1">
-                          <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
-                          <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
-                          <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
+                    <div class="rounded-xl overflow-hidden transition-all"
+                         :style="w._status==='불량'?'border:1.5px solid #fca5a5':w._status==='주의'?'border:1.5px solid #fcd34d':(w._status==='양호'||w._open)?'border:1.5px solid #86efac':'border:1.5px solid #d1d5db'">
+                      <!-- 근로자 카드 상단 -->
+                      <div class="cursor-pointer select-none transition-all"
+                           :style="w._status==='불량'?'background:#fef2f2;padding:10px 10px':w._status==='주의'?'background:#fffbeb;padding:10px 10px':(w._status==='양호'||w._open)?'background:#f0fdf4;padding:10px 10px':'background:#f9fafb;padding:10px 10px'"
+                           @click="w._open=!w._open; if(!w._status) w._status='양호'">
+                        <div class="flex items-center gap-1 flex-wrap">
+                          <span x-show="hasOtherVuln(w)" class="text-xs leading-none">🔴</span>
+                          <span x-show="isElderlyVuln(w)" class="text-xs leading-none">🟠</span>
+                          <span x-show="isNewWorker(w)" class="text-xs leading-none">🆕</span>
+                          <span class="font-bold text-gray-800 text-sm" x-text="w.name_korean||w.name"></span>
+                          <span class="text-xs text-gray-400" x-text="w.company"></span>
+                          <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
+                            <span class="text-xs font-bold px-1 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8;font-size:.62rem" x-text="loc"></span>
+                          </template>
                         </div>
-                        <div class="font-bold text-gray-800 text-sm truncate" x-text="w.name_korean||w.name"></div>
-                        <div class="text-xs text-gray-400 truncate mt-0.5" x-text="w.company"></div>
-                        <template x-if="(dashboard.workerLocs[w.id]||[]).length>0">
-                          <div class="flex flex-wrap gap-1 justify-center mt-1">
-                            <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
-                              <span class="text-xs font-bold px-1.5 py-0.5 rounded-md" style="background:#dbeafe;color:#1d4ed8;font-size:.65rem" x-text="loc"></span>
-                            </template>
-                          </div>
-                        </template>
-                        <div class="text-gray-400 mt-1.5" style="font-size:.65rem" :style="w._open?'transform:rotate(180deg)':''" x-text="w._open?'닫기 ▲':'기록 ▼'"></div>
                       </div>
                       <!-- 인라인 건강기록 입력 폼 -->
                       <div x-show="w._open" style="background:#fffdf0;padding:10px 10px;border-top:1px solid #fde68a">
-                        <!-- 세로 탭 + 내용 -->
-                        <div style="display:flex;gap:6px;align-items:flex-start">
-                          <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;width:52px">
-                            <button @click.stop="w._tab='status'"
-                                    class="text-xs font-bold py-1.5 rounded-lg transition-all text-center"
-                                    :class="(!w._tab||w._tab==='status')?'bg-amber-500 text-white':'bg-yellow-100 text-amber-500'">상태</button>
-                            <button @click.stop="w._tab='temp'"
-                                    class="text-xs font-bold py-1.5 rounded-lg transition-all text-center"
-                                    :class="w._tab==='temp'?'bg-amber-500 text-white':'bg-yellow-100 text-amber-500'">체온</button>
-                            <button @click.stop="w._tab='bp'"
-                                    class="text-xs font-bold py-1.5 rounded-lg transition-all text-center"
-                                    :class="w._tab==='bp'?'bg-amber-500 text-white':'bg-yellow-100 text-amber-500'">혈압</button>
-                          </div>
-                          <div style="flex:1;min-width:0">
+                        <!-- 가로 탭 -->
+                        <div class="flex gap-1 mb-2" style="background:#fef3c7;border-radius:8px;padding:3px">
+                          <button @click.stop="w._tab='status'"
+                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all text-center"
+                                  :class="(!w._tab||w._tab==='status')?'bg-amber-500 text-white shadow-sm':'text-amber-600'">상태</button>
+                          <button @click.stop="w._tab='temp'"
+                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all text-center"
+                                  :class="w._tab==='temp'?'bg-amber-500 text-white shadow-sm':'text-amber-600'">체온</button>
+                          <button @click.stop="w._tab='bp'"
+                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all text-center"
+                                  :class="w._tab==='bp'?'bg-amber-500 text-white shadow-sm':'text-amber-600'">혈압</button>
+                        </div>
+                        <div>
 
                         <!-- 건강상태 탭 -->
                         <div x-show="!w._tab||w._tab==='status'" class="mb-2 space-y-2">
@@ -2787,6 +2778,47 @@ function app() {
       }
       t += `\n${'─'.repeat(24)}`;
       navigator.clipboard.writeText(t).then(() => this.showToast('📋 공유 텍스트 복사됨'));
+    },
+
+    drawDashboardChart() {
+      const canvas = document.getElementById('dashboardChart');
+      if (!canvas || !this.dashboard.todayRecords.length) return;
+      if (canvas._chart) canvas._chart.destroy();
+      const SLOT_ORDER = ['오전1','오전2','오후1','오후2'];
+      const SLOT_COLORS = {'오전1':'rgba(74,144,226,.85)','오전2':'rgba(52,199,89,.85)','오후1':'rgba(255,149,0,.85)','오후2':'rgba(255,59,48,.85)'};
+      const NEUTRAL = 'rgba(135,206,235,.7)';
+      // 슬롯별로 그룹화 후 위치/업체별 막대
+      const labels = [];
+      const datasets = SLOT_ORDER.map(slot => {
+        const recs = this.dashboard.todayRecords.filter(r => r.slot === slot);
+        return { slot, recs };
+      }).filter(g => g.recs.length > 0);
+      const allLabels = [...new Set(this.dashboard.todayRecords.map(r => r.company+(r.location?'·'+r.location:'')))];
+      const chartDatasets = datasets.map(({ slot, recs }) => ({
+        label: slot,
+        data: allLabels.map(lbl => {
+          const r = recs.find(x => (x.company+(x.location?'·'+x.location:'')) === lbl);
+          return r?.feels_like ?? null;
+        }),
+        backgroundColor: allLabels.map(lbl => {
+          const r = recs.find(x => (x.company+(x.location?'·'+x.location:'')) === lbl);
+          return (r?.feels_like >= 31) ? SLOT_COLORS[slot] : NEUTRAL;
+        }),
+        borderRadius: 4,
+      }));
+      canvas._chart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: allLabels, datasets: chartDatasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color:'white', boxWidth:10, font:{size:10} } } },
+          scales: {
+            x: { ticks: { color:'rgba(255,255,255,.7)', font:{size:9} }, grid: { color:'rgba(255,255,255,.1)' } },
+            y: { ticks: { color:'rgba(255,255,255,.7)', font:{size:9} }, grid: { color:'rgba(255,255,255,.1)' },
+                 title: { display:true, text:'체감온도(°C)', color:'rgba(255,255,255,.6)', font:{size:9} } }
+          }
+        }
+      });
     },
 
     async uploadBpPhoto(w, file) {
