@@ -2020,38 +2020,41 @@ function app() {
     },
 
     addFilesToBatch(files) {
+      // 아이템 먼저 일괄 등록 후 순차 업로드 (동시 업로드 메모리 초과 방지)
+      const ids = [];
       files.forEach(file => {
         const id = crypto.randomUUID();
-        const item = {
+        ids.push({ id, file });
+        this.upld.batch.push({
           id, filename: file.name,
           preview: URL.createObjectURL(file),
           date: parseDateFromFilename(file.name) || this.upld.defaultDate,
           company:  this.upld.defaultCompany  || this.meta.company  || '',
           location: this.upld.defaultLocation || this.meta.location || '',
-          photo_id: null, uploading: true, extracting: false,
+          photo_id: null, uploading: false, extracting: false,
           elapsed: 0, error: null, result: null,
-        };
-        this.upld.batch.push(item);
-        (async () => {
-          // 업로드
+        });
+      });
+      // 순차 처리
+      (async () => {
+        for (const { id, file } of ids) {
+          const bi = this.upld.batch.find(i => i.id === id);
+          if (!bi) continue;
+          bi.uploading = true;
           try {
             const fd = new FormData(); fd.append('file', file, file.name);
             const ur = await fetch('/api/photos/upload', { method:'POST', body:fd });
             if (!ur.ok) throw Object.assign(new Error(), { status: ur.status });
             const ud = await ur.json();
-            const bi = this.upld.batch.find(i => i.id === id);
-            if (bi) bi.photo_id = ud.photo_id;
+            bi.photo_id = ud.photo_id;
           } catch(e) {
-            const bi = this.upld.batch.find(i => i.id === id);
-            if (bi) { bi.error = classifyError(e, e.status); bi.uploading = false; }
-            return;
+            bi.error = classifyError(e, e.status); bi.uploading = false;
+            continue;
           }
-          const bi = this.upld.batch.find(i => i.id === id);
-          if (bi) bi.uploading = false;
-          // AI 추출
+          bi.uploading = false;
           await this._runBatchExtract(id);
-        })();
-      });
+        }
+      })();
     },
 
     async _runBatchExtract(id) {

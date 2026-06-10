@@ -111,6 +111,10 @@ class RecordIn(BaseModel):
         return v
 
 
+# 동시 이미지 처리 제한 (메모리 보호)
+import asyncio as _asyncio
+_upload_sem = _asyncio.Semaphore(1)
+
 # ── 사진 업로드 ───────────────────────────────────────────────────────────────
 @app.post("/api/photos/upload")
 async def upload_photo(file: UploadFile = File(...)):
@@ -127,15 +131,19 @@ async def upload_photo(file: UploadFile = File(...)):
         img = ImageOps.exif_transpose(img)
         w, h = img.size
         orig_max = max(w, h)
-        if orig_max > 1200:
-            s = 1200 / orig_max
+        # 최대 900px로 낮춰 메모리 절약
+        target = 900
+        if orig_max > target:
+            s = target / orig_max
             img = img.resize((int(w*s), int(h*s)), Image.LANCZOS)
-        quality = 60 if orig_max > 3000 else 72
+        quality = 55 if orig_max > 2000 else 68
         buf = io.BytesIO()
         img.convert("RGB").save(buf, format="JPEG", quality=quality)
         save_path.write_bytes(buf.getvalue())
 
-    await run_in_threadpool(_process)
+    async with _upload_sem:
+        await run_in_threadpool(_process)
+
     db.save_photo(photo_id, filename, str(save_path))
     return {"photo_id": photo_id, "filename": filename}
 
