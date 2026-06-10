@@ -291,22 +291,66 @@
             <!-- 미확인 근로자 목록 -->
             <template x-if="dashboard.unchecked.length > 0">
               <div>
-                <div class="text-xs font-extrabold text-amber-600 mb-1.5">⚠️ 건강기록 미입력</div>
+                <div class="text-xs font-extrabold text-amber-600 mb-1.5">⚠️ 건강기록 미입력 — 탭하여 기록</div>
                 <div class="space-y-1.5">
                   <template x-for="w in dashboard.unchecked" :key="w.id">
-                    <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl" style="background:#fffbeb;border:1px solid #fde68a">
-                      <span x-show="hasOtherVuln(w)" class="text-xs leading-none">🔴</span>
-                      <span x-show="isElderlyVuln(w)" class="text-xs leading-none">🟠</span>
-                      <span x-show="isNewWorker(w)" class="text-xs leading-none">🆕</span>
-                      <span class="text-sm font-bold text-gray-800 flex-1" x-text="w.name_korean||w.name"></span>
-                      <span class="text-xs text-gray-500" x-text="w.company"></span>
-                      <template x-if="(dashboard.workerLocs[w.id]||[]).length>0">
-                        <div class="flex gap-1">
-                          <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
-                            <span class="text-xs font-bold px-1.5 py-0.5 rounded-md" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
-                          </template>
+                    <div class="rounded-xl overflow-hidden" style="border:1px solid #fde68a">
+                      <!-- 근로자 헤더 (탭 → 펼치기) -->
+                      <div class="flex items-center gap-2 px-2.5 py-1.5 cursor-pointer select-none"
+                           style="background:#fffbeb"
+                           @click="w._open=!w._open">
+                        <span x-show="hasOtherVuln(w)" class="text-xs leading-none">🔴</span>
+                        <span x-show="isElderlyVuln(w)" class="text-xs leading-none">🟠</span>
+                        <span x-show="isNewWorker(w)" class="text-xs leading-none">🆕</span>
+                        <span class="text-sm font-bold text-gray-800 flex-1" x-text="w.name_korean||w.name"></span>
+                        <span class="text-xs text-gray-500" x-text="w.company"></span>
+                        <template x-if="(dashboard.workerLocs[w.id]||[]).length>0">
+                          <div class="flex gap-1">
+                            <template x-for="loc in (dashboard.workerLocs[w.id]||[])" :key="loc">
+                              <span class="text-xs font-bold px-1.5 py-0.5 rounded-md" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
+                            </template>
+                          </div>
+                        </template>
+                        <span class="text-gray-400 text-xs ml-1" :style="w._open?'transform:rotate(180deg)':''" style="transition:transform .2s">▾</span>
+                      </div>
+                      <!-- 인라인 건강기록 입력 폼 -->
+                      <div x-show="w._open" style="background:#fffdf0;padding:10px 12px;border-top:1px solid #fde68a">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">슬롯</label>
+                            <select x-model="w._slot" class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                              <template x-for="s in (dashboard.heatSlots.length?dashboard.heatSlots.map(x=>x.slot):['오전1','오전2','오후1','오후2'])" :key="s">
+                                <option :value="s" x-text="s"></option>
+                              </template>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">건강상태</label>
+                            <select x-model="w._status" class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                              <option>양호</option><option>주의</option><option>불량</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">체온(°C)</label>
+                            <input type="number" step="0.1" placeholder="36.5" x-model.number="w._temp"
+                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">혈압(수/이)</label>
+                            <div class="flex gap-1 mt-0.5">
+                              <input type="number" placeholder="120" x-model.number="w._bpSys"
+                                     style="padding:5px 6px!important;font-size:.8rem!important;width:50%">
+                              <input type="number" placeholder="80" x-model.number="w._bpDia"
+                                     style="padding:5px 6px!important;font-size:.8rem!important;width:50%">
+                            </div>
+                          </div>
                         </div>
-                      </template>
+                        <button @click="saveDashboardHealthRec(w)"
+                                class="btn-primary w-full text-xs py-2 font-bold"
+                                :disabled="w._saving">
+                          <span x-text="w._saving?'저장 중...':'💾 건강기록 저장'"></span>
+                        </button>
+                      </div>
                     </div>
                   </template>
                 </div>
@@ -2693,6 +2737,38 @@ function app() {
       }
       t += `\n${'─'.repeat(24)}`;
       navigator.clipboard.writeText(t).then(() => this.showToast('📋 공유 텍스트 복사됨'));
+    },
+
+    async saveDashboardHealthRec(w) {
+      const today = localDateStr();
+      const slot = w._slot || (this.dashboard.heatSlots[0]?.slot || '오전1');
+      const maxHeat = this.dashboard.maxHeat || '';
+      const maxFeels = this.dashboard.heatSlots.find(s=>s.slot===slot)?.feels_like || null;
+      w._saving = true;
+      try {
+        await fetch(API_BASE+'/api/vw/health-records', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            site_code: this.siteCode,
+            company: w.company,
+            record_date: today,
+            slot,
+            heat_level: maxHeat,
+            feels_like: maxFeels ? parseFloat(maxFeels) : null,
+            worker_id: w.id,
+            body_temp: w._temp || null,
+            bp_sys: w._bpSys || null,
+            bp_dia: w._bpDia || null,
+            health_status: w._status || '양호',
+          })
+        });
+        w._open = false;
+        this.showToast('✅ '+( w.name_korean||w.name)+' 건강기록 저장');
+        // 미확인 목록에서 제거
+        this.dashboard.unchecked = this.dashboard.unchecked.filter(x => x.id !== w.id);
+        this.dashboard.checkedCount = (this.dashboard.checkedCount||0) + 1;
+      } catch { this.showToast('❌ 저장 실패'); }
+      finally { w._saving = false; }
     },
 
     async loadAdminHealthLog() {
