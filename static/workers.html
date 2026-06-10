@@ -843,13 +843,19 @@
                       </div>
                     </td>
                     <td style="padding:5px 10px">
-                      <div class="flex flex-wrap gap-1">
-                        <template x-if="parseLocations(w.work_location).length===0">
-                          <span class="text-xs text-gray-300">미배정</span>
-                        </template>
+                      <div class="flex flex-wrap gap-1 items-center">
                         <template x-for="loc in parseLocations(w.work_location)" :key="loc">
                           <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
                         </template>
+                        <!-- 위치 추가 드롭다운 -->
+                        <select @change="assignVulnWorkerLoc(w, $event.target.value); $event.target.value=''"
+                                class="text-xs rounded-lg border border-gray-200 bg-white"
+                                style="padding:2px 4px!important;font-size:.7rem!important;max-width:100px">
+                          <option value="">+ 위치 추가</option>
+                          <template x-for="loc in LOCATION_PRESETS.filter(l=>!parseLocations(w.work_location).includes(l))" :key="loc">
+                            <option :value="loc" x-text="loc"></option>
+                          </template>
+                        </select>
                       </div>
                     </td>
                   </tr>
@@ -3121,6 +3127,29 @@ function app() {
         const locs = this.parseLocations(a.work_location);
         return locs.includes(loc) || locs.includes('전구역');
       });
+    },
+
+    async assignVulnWorkerLoc(w, loc) {
+      if (!loc) return;
+      // workerLocations에 추가
+      const current = this.workerLocations[w.worker_id] || [];
+      if (current.includes(loc)) return;
+      const next = [...current, loc];
+      this.workerLocations = { ...this.workerLocations, [w.worker_id]: next };
+      w.work_location = JSON.stringify(next);
+      // 즉시 저장
+      await fetch(API_BASE+'/api/vw/attendance', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          site_code: this.siteCode,
+          company: w.company || '',
+          work_date: new Date().toISOString().slice(0,10),
+          worker_ids: [],
+          work_location: '',
+          workers: [{ worker_id: w.worker_id, work_location: JSON.stringify(next) }]
+        })
+      });
+      this.showToast('📍 '+( w.name_korean||w.name)+' → '+loc+' 배정');
     },
 
     async loadMapAttendance() {
