@@ -1264,6 +1264,7 @@ function app() {
 
     // ── 초기화 ──────────────────────────────────────────────────────────
     async init() {
+      window.scrollTo(0, 0);
       // URL 경로(/현장코드) 또는 ?site= 파라미터에서 현장코드 읽기
       const _pathSite = decodeURIComponent(window.location.pathname.replace(/^\/+|\/+$/g, ''));
       const _paramSite = new URLSearchParams(window.location.search).get('site') || '';
