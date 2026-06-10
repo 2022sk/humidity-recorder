@@ -114,6 +114,7 @@ class RecordIn(BaseModel):
 # 동시 이미지 처리 제한 (메모리 보호)
 import asyncio as _asyncio
 _upload_sem = _asyncio.Semaphore(3)
+_gemini_sem = _asyncio.Semaphore(3)  # Gemini 동시 호출 제한
 
 # ── 사진 업로드 ───────────────────────────────────────────────────────────────
 @app.post("/api/photos/upload")
@@ -233,7 +234,8 @@ async def extract_photo(body: dict):
 
     last_err = None
     all_exhausted = True
-    for key_info in api_keys:
+    async with _gemini_sem:
+      for key_info in api_keys:
         try:
             result = await extract_from_image(image_bytes, key_info["key"])
             logger.info("AI 추출 성공: photo_id=%s label=%s", photo_id, key_info.get("label",""))

@@ -107,8 +107,8 @@
           </template>
         </div>
       </div>
-      <span class="text-xs font-bold mt-1 px-2 py-1 rounded-lg cursor-pointer hover:opacity-80"
-            style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)"
+      <span class="text-xs font-bold flex-shrink-0 self-center px-2 py-1 rounded-lg cursor-pointer hover:opacity-80"
+            style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);white-space:nowrap"
             :style="apiOk && !aiLastError ? 'color:white' : 'color:#ffd0d0'"
             :title="aiLastError ? 'AI 오류 - 클릭하여 확인' : (apiOk ? `AI 키 ${aiKeyCount}개 등록됨 - 클릭하여 관리` : 'AI 키를 등록하려면 클릭')"
             @click="openAiKeyModal()"
@@ -2057,8 +2057,15 @@ function app() {
             bi.error = classifyError(e, e.status); bi.uploading = false;
           }
         }
-        // 2단계: AI 추출 병렬 (Gemini 외부 API, 서버 부담 없음)
-        await Promise.all(uploadedIds.map(id => this._runBatchExtract(id)));
+        // 2단계: AI 추출 — 최대 2개 동시 (Gemini RPM 한도 보호)
+        const extractQueue = [...uploadedIds];
+        const worker = async () => {
+          while (extractQueue.length) {
+            const id = extractQueue.shift();
+            if (id) await this._runBatchExtract(id);
+          }
+        };
+        await Promise.all([worker(), worker()]); // 워커 2개 동시
       })();
     },
 
