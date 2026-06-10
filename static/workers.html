@@ -317,14 +317,6 @@
                       <div x-show="w._open" style="background:#fffdf0;padding:10px 12px;border-top:1px solid #fde68a">
                         <div class="grid grid-cols-2 gap-2 mb-2">
                           <div>
-                            <label class="text-xs text-gray-500 font-bold">슬롯</label>
-                            <select x-model="w._slot" class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
-                              <template x-for="s in (dashboard.heatSlots.length?dashboard.heatSlots.map(x=>x.slot):['오전1','오전2','오후1','오후2'])" :key="s">
-                                <option :value="s" x-text="s"></option>
-                              </template>
-                            </select>
-                          </div>
-                          <div>
                             <label class="text-xs text-gray-500 font-bold">건강상태</label>
                             <select x-model="w._status" class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
                               <option>양호</option><option>주의</option><option>불량</option>
@@ -336,13 +328,29 @@
                                    class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
                           </div>
                           <div>
-                            <label class="text-xs text-gray-500 font-bold">혈압(수/이)</label>
-                            <div class="flex gap-1 mt-0.5">
-                              <input type="number" placeholder="120" x-model.number="w._bpSys"
-                                     style="padding:5px 6px!important;font-size:.8rem!important;width:50%">
-                              <input type="number" placeholder="80" x-model.number="w._bpDia"
-                                     style="padding:5px 6px!important;font-size:.8rem!important;width:50%">
-                            </div>
+                            <label class="text-xs text-gray-500 font-bold">측정시각</label>
+                            <input type="text" placeholder="09:00" x-model="w._time"
+                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">혈압 수축기</label>
+                            <input type="number" placeholder="120" x-model.number="w._bpSys"
+                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                          </div>
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">혈압 이완기</label>
+                            <input type="number" placeholder="80" x-model.number="w._bpDia"
+                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                          </div>
+                          <!-- 혈압 측정지 첨부 -->
+                          <div>
+                            <label class="text-xs text-gray-500 font-bold">혈압 측정지</label>
+                            <label class="flex items-center gap-1 cursor-pointer rounded-lg mt-0.5 text-xs font-bold text-blue-600"
+                                   style="border:1.5px dashed #93c5fd;background:#eff6ff;padding:5px 8px">
+                              <input type="file" accept="image/*" class="hidden"
+                                     @change="uploadBpPhoto(w, $event.target.files[0])">
+                              <span x-text="w._bpPhotoId ? '📷 첨부됨 ✓' : '📷 사진 첨부'"></span>
+                            </label>
                           </div>
                         </div>
                         <button @click="saveDashboardHealthRec(w)"
@@ -2739,14 +2747,28 @@ function app() {
       navigator.clipboard.writeText(t).then(() => this.showToast('📋 공유 텍스트 복사됨'));
     },
 
+    async uploadBpPhoto(w, file) {
+      if (!file) return;
+      this.showToast('📷 업로드 중...');
+      try {
+        const resized = typeof resizeImageFile === 'function' ? await resizeImageFile(file) : file;
+        const fd = new FormData(); fd.append('file', resized, resized.name||file.name);
+        const ur = await fetch(API_BASE+'/api/photos/upload', { method:'POST', body:fd });
+        if (!ur.ok) throw new Error();
+        const ud = await ur.json();
+        w._bpPhotoId = ud.photo_id;
+        this.showToast('✅ 혈압 측정지 첨부 완료');
+      } catch { this.showToast('❌ 업로드 실패'); }
+    },
+
     async saveDashboardHealthRec(w) {
       const today = localDateStr();
-      const slot = w._slot || (this.dashboard.heatSlots[0]?.slot || '오전1');
-      const maxHeat = this.dashboard.maxHeat || '';
-      const maxFeels = this.dashboard.heatSlots.find(s=>s.slot===slot)?.feels_like || null;
+      const slot = this.dashboard.heatSlots[0]?.slot || '오전1';
+      const maxHeat = this.dashboard.maxHeat && this.dashboard.maxHeat !== '-' ? this.dashboard.maxHeat : '';
+      const maxFeels = this.dashboard.heatSlots[0]?.feels_like || null;
       w._saving = true;
       try {
-        await fetch(API_BASE+'/api/vw/health-records', {
+        const recRes = await fetch(API_BASE+'/api/vw/health-records', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             site_code: this.siteCode,
@@ -2759,12 +2781,25 @@ function app() {
             body_temp: w._temp || null,
             bp_sys: w._bpSys || null,
             bp_dia: w._bpDia || null,
+            measure_time: w._time || '',
             health_status: w._status || '양호',
           })
         });
+        // 혈압 측정지 사진 연결
+        if (w._bpPhotoId && recRes.ok) {
+          const recData = await recRes.json();
+          if (recData.id) {
+            await fetch(API_BASE+'/api/vw/health-photos', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({
+                site_code: this.siteCode, company: w.company,
+                record_date: today, slot, photo_id: w._bpPhotoId, photo_type: '혈압측정지'
+              })
+            });
+          }
+        }
         w._open = false;
-        this.showToast('✅ '+( w.name_korean||w.name)+' 건강기록 저장');
-        // 미확인 목록에서 제거
+        this.showToast('✅ '+(w.name_korean||w.name)+' 건강기록 저장');
         this.dashboard.unchecked = this.dashboard.unchecked.filter(x => x.id !== w.id);
         this.dashboard.checkedCount = (this.dashboard.checkedCount||0) + 1;
       } catch { this.showToast('❌ 저장 실패'); }
