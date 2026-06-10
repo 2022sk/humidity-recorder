@@ -613,20 +613,6 @@
           </div>
         </div>
 
-        <template x-if="currentMonday">
-          <div>
-            <div class="text-xs font-bold text-gray-600 mb-2">➕ 이 기간에 사진 추가 (일괄)</div>
-            <label class="drop-zone block cursor-pointer"
-                   @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-                   @dragleave="$event.currentTarget.classList.remove('dragover')"
-                   @drop.prevent="onHistDrop($event)">
-              <input type="file" accept="image/*" multiple class="hidden"
-                     @change="onHistFileSelect($event.target.files)">
-              <div class="text-2xl mb-1">📎</div>
-              <div class="text-sm text-gray-600">추가 사진 선택 (여러 장 가능)</div>
-            </label>
-          </div>
-        </template>
       </div>
 
       <!-- 관리자 PIN 잠금/해제 -->
@@ -1100,11 +1086,11 @@
                 </td>
                 <td class="text-center font-bold"
                     x-text="row.isFirstSlot ? row.dateLabel : ''"></td>
-                <td class="text-center" :class="row.photo_id ? 'cursor-pointer' : ''"
+                <td class="text-center cursor-pointer"
                     @mouseenter="row.photo_id && (photoPreview={show:true,url:'/uploads/'+row.photo_id})"
                     @mouseleave="photoPreview.show=false"
-                    @click="row.photo_id && openLightbox('/uploads/'+row.photo_id)">
-                  <span :class="row.photo_id ? 'text-blue-600 font-bold' : 'text-gray-500'" x-text="row.slot"></span>
+                    @click="row.photo_id && !hist.unlocked ? openLightbox('/uploads/'+row.photo_id) : openSlotPanel(row, wkInfo.monday)">
+                  <span :class="row.photo_id ? 'text-blue-600 font-bold' : 'text-blue-400 underline decoration-dotted'" x-text="row.slot"></span>
                   <template x-if="row.photo_id">
                     <div class="relative inline-block ml-0.5">
                       <span style="font-size:.65rem">📷</span>
@@ -1257,6 +1243,7 @@ function app() {
     aiKeyModal: { show:false, key:'', pin:'', needPin:false, saving:false, error:'', success:false },
     toast: { show:false, msg:'' },
     lightbox: { show:false, url:'' },
+    slotPanel: { show:false, row:null, monday:'', uploading:false, extracting:false, elapsed:0, error:null },
     trash: { show:false, records:[], loading:false },
     photoPreview: { show:false, url:'' },
 
@@ -2345,6 +2332,59 @@ function app() {
     },
 
     openLightbox(url) { this.lightbox = { show:true, url }; },
+
+    openSlotPanel(row, monday) {
+      this.slotPanel = { show:true, row, monday, uploading:false, extracting:false, elapsed:0, error:null };
+    },
+
+    async slotPanelUpload(file) {
+      if (!file) return;
+      const sp = this.slotPanel;
+      sp.error = null; sp.elapsed = 0; sp.uploading = true;
+      const timer = setInterval(() => { if (sp.uploading||sp.extracting) sp.elapsed++; }, 1000);
+      const ctrl = new AbortController();
+      setTimeout(() => ctrl.abort(), 35000);
+      try {
+        const fd = new FormData(); fd.append('file', file, file.name);
+        const ur = await fetch('/api/photos/upload', { method:'POST', body:fd, signal:ctrl.signal });
+        if (!ur.ok) throw Object.assign(new Error(), { status:ur.status });
+        const ud = await ur.json();
+        sp.uploading = false; sp.extracting = true;
+        const er = await fetch('/api/photos/extract', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ photo_id: ud.photo_id, site_code: this.meta.siteCode }),
+          signal: ctrl.signal,
+        });
+        if (!er.ok) { const d=await er.json().catch(()=>{}); throw Object.assign(new Error(d?.detail||''), { status:er.status }); }
+        const ex = await er.json();
+        if (ex.temperature!=null && ex.humidity!=null) {
+          ex.feels_like = heatIndex(ex.temperature, ex.humidity);
+          ex.heat_level = heatLabel(ex.feels_like);
+        }
+        if (sp.row) {
+          sp.row.photo_id = ud.photo_id;
+          if (ex.temperature!=null) sp.row.temperature = ex.temperature;
+          if (ex.humidity!=null)    sp.row.humidity    = ex.humidity;
+          if (ex.time)              sp.row.measure_time = ex.time;
+          if (ex.feels_like!=null)  sp.row.feels_like  = ex.feels_like;
+          if (ex.heat_level)        sp.row.heat_level  = ex.heat_level;
+          if (ex.time) { const ns=slotFromTime(ex.time); if(ns) sp.row.slot=ns; }
+        }
+      } catch(e) {
+        sp.error = classifyError(ctrl.signal.aborted ? '시간 초과' : e, e.status);
+      } finally {
+        clearInterval(timer); sp.uploading = false; sp.extracting = false;
+      }
+    },
+
+    async slotPanelSave() {
+      const { row, monday } = this.slotPanel;
+      if (!row) return;
+      this.recalcRow(row);
+      await this.autoSaveRow(row, monday);
+      this.slotPanel.show = false;
+      this.showToast('✅ 저장 완료');
+    },
     closeLightbox()   { this.lightbox.show = false; },
 
     async deletePhotoInRow(row) {
@@ -2528,6 +2568,78 @@ function heatDotStyle(hi) {
   <button @click="closeLightbox()"
           class="absolute top-4 right-4 flex items-center justify-center text-white font-bold"
           style="width:36px;height:36px;background:rgba(255,255,255,.2);border-radius:50%;font-size:1.1rem;border:none;cursor:pointer">✕</button>
+</div>
+
+<!-- ══ 슬롯 빠른 입력 패널 ══════════════════════════════════════════════════ -->
+<div x-show="slotPanel.show" x-cloak class="modal-bg" @click.self="slotPanel.show=false">
+  <div class="modal" style="max-width:420px;width:100%" x-show="slotPanel.show">
+    <div class="modal-handle sm:hidden"></div>
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <div class="font-extrabold text-gray-800" x-text="slotPanel.row ? slotPanel.row.dateLabel+' '+slotPanel.row.slot : ''"></div>
+        <div class="text-xs text-gray-400 mt-0.5">사진 등록 및 수치 입력</div>
+      </div>
+      <button @click="slotPanel.show=false" class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-lg">✕</button>
+    </div>
+
+    <!-- 사진 업로드 -->
+    <div class="mb-3">
+      <template x-if="slotPanel.row && slotPanel.row.photo_id">
+        <div class="relative">
+          <img :src="'/uploads/'+(slotPanel.row?.photo_id)" class="w-full rounded-xl object-cover" style="max-height:180px">
+          <button @click="deletePhotoInRow(slotPanel.row); slotPanel.row.photo_id=''"
+                  class="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">✕</button>
+        </div>
+      </template>
+      <template x-if="!slotPanel.row || !slotPanel.row.photo_id">
+        <label class="drop-zone flex flex-col items-center justify-center cursor-pointer py-5"
+               :class="slotPanel.uploading||slotPanel.extracting ? 'opacity-60 pointer-events-none' : ''">
+          <input type="file" accept="image/*" class="hidden"
+                 @change="slotPanelUpload($event.target.files[0])">
+          <div class="text-3xl mb-1">📷</div>
+          <div class="text-sm text-gray-500 font-bold">
+            <span x-show="!slotPanel.uploading && !slotPanel.extracting">사진 선택</span>
+            <span x-show="slotPanel.uploading" class="animate-pulse">업로드 중... (<span x-text="slotPanel.elapsed"></span>초)</span>
+            <span x-show="slotPanel.extracting" class="animate-pulse">🤖 AI 분석 중... (<span x-text="slotPanel.elapsed"></span>초)</span>
+          </div>
+          <div x-show="slotPanel.elapsed >= 12 && (slotPanel.uploading||slotPanel.extracting)"
+               class="text-xs text-amber-600 mt-1.5 font-bold">응답이 늦어지면 아래에 직접 입력하세요</div>
+        </label>
+      </template>
+      <div x-show="slotPanel.error" class="text-xs text-red-500 mt-1" x-text="slotPanel.error"></div>
+    </div>
+
+    <!-- 수치 입력 -->
+    <template x-if="slotPanel.row">
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <div>
+          <label class="text-xs text-gray-500 font-bold">측정시각</label>
+          <input type="text" placeholder="09:00" x-model="slotPanel.row.measure_time"
+                 @change="onTimeChange(slotPanel.row, {monday:slotPanel.monday})" class="mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 font-bold">온도(°C)</label>
+          <input type="number" step="0.1" placeholder="28.5" x-model.number="slotPanel.row.temperature"
+                 @input="recalcRow(slotPanel.row)" class="mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 font-bold">습도(%)</label>
+          <input type="number" step="1" placeholder="65" x-model.number="slotPanel.row.humidity"
+                 @input="recalcRow(slotPanel.row)" class="mt-1">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 font-bold">체감온도</label>
+          <input type="text" readonly
+                 :value="slotPanel.row.feels_like!=null ? slotPanel.row.feels_like.toFixed(1)+'°C' : '-'"
+                 class="mt-1 bg-gray-50 text-gray-600">
+        </div>
+      </div>
+    </template>
+
+    <button @click="slotPanelSave()"
+            :disabled="!slotPanel.row || (slotPanel.row.temperature==null && slotPanel.row.humidity==null)"
+            class="btn-primary w-full py-3 font-bold">💾 저장</button>
+  </div>
 </div>
 
 <!-- ══ AI 키 관리 모달 ══════════════════════════════════════════════════════ -->
