@@ -1702,15 +1702,17 @@ function app() {
           const d = new Date(mon); d.setDate(mon.getDate()+i);
           dayLabels.push(`${d.getMonth()+1}/${d.getDate()}(${DAYS_KO[d.getDay()===0?6:d.getDay()-1]})`);
         }
-        const colors = {"오전1":"#4A90E2","오전2":"#34C759","오후1":"#FF9500","오후2":"#FF3B30"};
-        const datasets = SLOTS.map(slot => ({
-          label: slot, backgroundColor: colors[slot]+'cc',
-          data: dayLabels.map((_,di) => {
+        const slotColors = {"오전1":"#4A90E2","오전2":"#34C759","오후1":"#FF9500","오후2":"#FF3B30"};
+        const NEUTRAL = "#87CEEB"; // 31도 미만: 하늘색
+        const datasets = SLOTS.map(slot => {
+          const data = dayLabels.map((_,di) => {
             const d = new Date(wk.monday); d.setDate(new Date(wk.monday).getDate()+di);
             const r = wk.records.find(r=>r.measure_date===fmtDate(d) && r.slot===slot);
             return r?.feels_like ?? null;
-          }),
-        }));
+          });
+          const bgColors = data.map(v => v != null && v >= 31 ? slotColors[slot]+'cc' : NEUTRAL+'cc');
+          return { label: slot, backgroundColor: bgColors, data };
+        });
         const allVals = wk.records.map(r=>r.feels_like).filter(v=>v!=null);
         canvas._chartInst = new Chart(canvas, {
           type: 'bar',
