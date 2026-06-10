@@ -315,46 +315,77 @@
                       </div>
                       <!-- 인라인 건강기록 입력 폼 -->
                       <div x-show="w._open" style="background:#fffdf0;padding:10px 12px;border-top:1px solid #fde68a">
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">건강상태</label>
-                            <select x-model="w._status" class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
-                              <option>양호</option><option>주의</option><option>불량</option>
-                            </select>
+                        <!-- 섹션 탭 -->
+                        <div class="flex gap-1 bg-yellow-100 p-0.5 rounded-lg mb-2.5">
+                          <button @click="w._tab='status'"
+                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all"
+                                  :class="(!w._tab||w._tab==='status')?'bg-white shadow-sm text-amber-700':'text-amber-500'">건강상태</button>
+                          <button @click="w._tab='temp'"
+                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all"
+                                  :class="w._tab==='temp'?'bg-white shadow-sm text-amber-700':'text-amber-500'">체온</button>
+                          <button @click="w._tab='bp'"
+                                  class="flex-1 text-xs font-bold py-1.5 rounded-md transition-all"
+                                  :class="w._tab==='bp'?'bg-white shadow-sm text-amber-700':'text-amber-500'">혈압</button>
+                        </div>
+
+                        <!-- 건강상태 탭 -->
+                        <div x-show="!w._tab||w._tab==='status'" class="mb-2">
+                          <label class="text-xs text-gray-500 font-bold">건강상태</label>
+                          <div class="flex gap-2 mt-1">
+                            <template x-for="s in ['양호','주의','불량']" :key="s">
+                              <button @click="w._status=s"
+                                      class="flex-1 text-xs font-bold py-2 rounded-lg transition-all"
+                                      :class="(w._status||'양호')===s
+                                        ? (s==='양호'?'bg-green-500 text-white':'s'==='주의'?'bg-amber-500 text-white':'bg-red-500 text-white')
+                                        : 'bg-white text-gray-500 border border-gray-200'"
+                                      :style="(w._status||'양호')===s ? (s==='양호'?'background:#22c55e':'s'==='주의'?'background:#f59e0b':'background:#ef4444') : ''">
+                                <span x-text="s==='양호'?'😊 양호':s==='주의'?'⚠️ 주의':'🚨 불량'"></span>
+                              </button>
+                            </template>
                           </div>
+                        </div>
+
+                        <!-- 체온 탭 -->
+                        <div x-show="w._tab==='temp'" class="space-y-2 mb-2">
                           <div>
                             <label class="text-xs text-gray-500 font-bold">체온(°C)</label>
                             <input type="number" step="0.1" placeholder="36.5" x-model.number="w._temp"
-                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                                   class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
                           </div>
                           <div>
                             <label class="text-xs text-gray-500 font-bold">측정시각</label>
                             <input type="text" placeholder="09:00" x-model="w._time"
-                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
+                                   class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
+                          </div>
+                        </div>
+
+                        <!-- 혈압 탭 -->
+                        <div x-show="w._tab==='bp'" class="space-y-2 mb-2">
+                          <div class="grid grid-cols-2 gap-2">
+                            <div>
+                              <label class="text-xs text-gray-500 font-bold">수축기(mmHg)</label>
+                              <input type="number" placeholder="120" x-model.number="w._bpSys"
+                                     class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
+                            </div>
+                            <div>
+                              <label class="text-xs text-gray-500 font-bold">이완기(mmHg)</label>
+                              <input type="number" placeholder="80" x-model.number="w._bpDia"
+                                     class="mt-1" style="padding:7px 10px!important;font-size:.9rem!important">
+                            </div>
                           </div>
                           <div>
-                            <label class="text-xs text-gray-500 font-bold">혈압 수축기</label>
-                            <input type="number" placeholder="120" x-model.number="w._bpSys"
-                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
-                          </div>
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">혈압 이완기</label>
-                            <input type="number" placeholder="80" x-model.number="w._bpDia"
-                                   class="mt-0.5" style="padding:5px 8px!important;font-size:.8rem!important">
-                          </div>
-                          <!-- 혈압 측정지 첨부 -->
-                          <div>
-                            <label class="text-xs text-gray-500 font-bold">혈압 측정지</label>
-                            <label class="flex items-center gap-1 cursor-pointer rounded-lg mt-0.5 text-xs font-bold text-blue-600"
-                                   style="border:1.5px dashed #93c5fd;background:#eff6ff;padding:5px 8px">
+                            <label class="text-xs text-gray-500 font-bold">혈압 측정지 첨부</label>
+                            <label class="flex items-center justify-center gap-1.5 cursor-pointer rounded-xl mt-1 text-xs font-bold text-blue-600"
+                                   style="border:1.5px dashed #93c5fd;background:#eff6ff;padding:10px">
                               <input type="file" accept="image/*" class="hidden"
                                      @change="uploadBpPhoto(w, $event.target.files[0])">
-                              <span x-text="w._bpPhotoId ? '📷 첨부됨 ✓' : '📷 사진 첨부'"></span>
+                              <span x-text="w._bpPhotoId ? '📷 측정지 첨부됨 ✓' : '📷 사진 첨부하기'"></span>
                             </label>
                           </div>
                         </div>
+
                         <button @click="saveDashboardHealthRec(w)"
-                                class="btn-primary w-full text-xs py-2 font-bold"
+                                class="btn-primary w-full text-xs py-2.5 font-bold"
                                 :disabled="w._saving">
                           <span x-text="w._saving?'저장 중...':'💾 건강기록 저장'"></span>
                         </button>
