@@ -823,63 +823,6 @@
         <b>드래그</b>: 위치 이동 &nbsp;|&nbsp; <b>✏️</b>: 이름 수정 &nbsp;|&nbsp; <b>✕</b>: 삭제
       </div>
 
-      <!-- 업체별 취약근로자 위치 현황 표 -->
-      <template x-if="!locEditMode && mapAttendance.filter(a=>a.is_vulnerable).length > 0">
-        <div class="card mb-3" style="padding:12px">
-          <div class="text-xs font-extrabold text-gray-600 mb-2">🔴 취약근로자 위치 현황</div>
-          <div class="overflow-x-auto">
-            <table style="width:100%;border-collapse:collapse;font-size:.78rem">
-              <thead>
-                <tr style="background:#f9fafb">
-                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">업체</th>
-                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">이름</th>
-                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">취약구분</th>
-                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">위치</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template x-for="w in mapAttendance.filter(a=>a.is_vulnerable)" :key="w.worker_id">
-                  <tr style="border-bottom:1px solid #f3f4f6" :class="{'bg-red-50':w.is_vulnerable}">
-                    <td style="padding:5px 10px;color:#6b7280;font-size:.72rem" x-text="w.company||'-'"></td>
-                    <td style="padding:5px 10px">
-                      <div class="flex items-center gap-1">
-                        <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
-                        <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
-                        <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
-                        <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
-                      </div>
-                    </td>
-                    <td style="padding:5px 10px">
-                      <div class="flex flex-wrap gap-0.5">
-                        <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
-                          <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
-                        </template>
-                      </div>
-                    </td>
-                    <td style="padding:5px 10px">
-                      <div class="flex flex-wrap gap-1 items-center">
-                        <template x-for="loc in parseLocations(w.work_location)" :key="loc">
-                          <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
-                        </template>
-                        <!-- 위치 추가 드롭다운 -->
-                        <select @change="assignVulnWorkerLoc(w, $event.target.value); $event.target.value=''"
-                                class="text-xs rounded-lg border border-gray-200 bg-white"
-                                style="padding:2px 4px!important;font-size:.7rem!important;max-width:100px">
-                          <option value="">+ 위치 추가</option>
-                          <template x-for="loc in LOCATION_PRESETS.filter(l=>!parseLocations(w.work_location).includes(l))" :key="loc">
-                            <option :value="loc" x-text="loc"></option>
-                          </template>
-                        </select>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </template>
-
       <!-- PC: 좌우 분할 / 모바일: 위아래 -->
       <div style="display:flex;gap:16px;align-items:flex-start">
         <div style="flex:1;min-width:0">
@@ -1019,6 +962,63 @@
                 </div>
               </div>
             </template>
+          </div>
+        </div>
+      </template>
+
+      <!-- 업체별 취약근로자 위치 현황 표 -->
+      <template x-if="!locEditMode && mapAttendance.filter(a=>a.is_vulnerable).length > 0">
+        <div class="card mb-3" style="padding:12px">
+          <div class="text-xs font-extrabold text-gray-600 mb-2">🔴 취약근로자 위치 현황</div>
+          <div class="overflow-x-auto">
+            <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+              <thead>
+                <tr style="background:#f9fafb">
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">업체</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">이름</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">취약구분</th>
+                  <th style="padding:6px 10px;text-align:left;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb">위치</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="w in mapAttendance.filter(a=>a.is_vulnerable)" :key="w.worker_id">
+                  <tr style="border-bottom:1px solid #f3f4f6" :class="{'bg-red-50':w.is_vulnerable}">
+                    <td style="padding:5px 10px;color:#6b7280;font-size:.72rem" x-text="w.company||'-'"></td>
+                    <td style="padding:5px 10px">
+                      <div class="flex items-center gap-1">
+                        <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
+                        <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
+                        <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
+                        <span class="font-bold text-gray-800" x-text="w.name_korean||w.name"></span>
+                      </div>
+                    </td>
+                    <td style="padding:5px 10px">
+                      <div class="flex flex-wrap gap-0.5">
+                        <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
+                          <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
+                        </template>
+                      </div>
+                    </td>
+                    <td style="padding:5px 10px">
+                      <div class="flex flex-wrap gap-1 items-center">
+                        <template x-for="loc in parseLocations(w.work_location)" :key="loc">
+                          <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
+                        </template>
+                        <!-- 위치 추가 드롭다운 -->
+                        <select @change="assignVulnWorkerLoc(w, $event.target.value); $event.target.value=''"
+                                class="text-xs rounded-lg border border-gray-200 bg-white"
+                                style="padding:2px 4px!important;font-size:.7rem!important;max-width:100px">
+                          <option value="">+ 위치 추가</option>
+                          <template x-for="loc in LOCATION_PRESETS.filter(l=>!parseLocations(w.work_location).includes(l))" :key="loc">
+                            <option :value="loc" x-text="loc"></option>
+                          </template>
+                        </select>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
         </div>
       </template>
