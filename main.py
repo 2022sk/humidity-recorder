@@ -218,6 +218,11 @@ async def extract_photo(body: dict):
         api_keys = [{"key": env_key, "label": "환경변수"}]
     if not api_keys:
         raise HTTPException(500, "AI 키가 등록되지 않았습니다. 상단 AI 버튼을 눌러 키를 등록해 주세요.")
+    # 키가 여러 개면 라운드로빈으로 시작점 분산 (동시 요청 시 부하 분산)
+    if len(api_keys) > 1:
+        import hashlib
+        offset = int(hashlib.md5(photo_id.encode()).hexdigest(), 16) % len(api_keys)
+        api_keys = api_keys[offset:] + api_keys[:offset]
 
     photo = db.get_photo(photo_id)
     if not photo or not Path(photo["filepath"]).exists():

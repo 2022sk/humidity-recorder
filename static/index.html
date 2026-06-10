@@ -2036,8 +2036,10 @@ function app() {
           elapsed: 0, error: null, result: null,
         });
       });
-      // 순차 처리
+      // 업로드 순차 → 추출 병렬
       (async () => {
+        const uploadedIds = [];
+        // 1단계: 업로드 순차 (서버 메모리 보호)
         for (const { id, file } of ids) {
           const bi = this.upld.batch.find(i => i.id === id);
           if (!bi) continue;
@@ -2049,13 +2051,14 @@ function app() {
             if (!ur.ok) throw Object.assign(new Error(), { status: ur.status });
             const ud = await ur.json();
             bi.photo_id = ud.photo_id;
+            bi.uploading = false;
+            uploadedIds.push(id);
           } catch(e) {
             bi.error = classifyError(e, e.status); bi.uploading = false;
-            continue;
           }
-          bi.uploading = false;
-          await this._runBatchExtract(id);
         }
+        // 2단계: AI 추출 병렬 (Gemini 외부 API, 서버 부담 없음)
+        await Promise.all(uploadedIds.map(id => this._runBatchExtract(id)));
       })();
     },
 
