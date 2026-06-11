@@ -1130,98 +1130,27 @@
 <!-- ══ 업체 담당자 화면 ══ -->
 <template x-if="authed && role==='company'">
   <div>
-    <!-- 탭 (관리자와 동일 구조) -->
-    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-3" style="flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none">
-      <button class="tab-btn flex-shrink-0" :class="{active:companyTab==='dashboard'}"
-              @click="companyTab='dashboard'">🏠 현황</button>
-      <button class="tab-btn flex-shrink-0" :class="{active:companyTab==='workers'}"
-              @click="companyTab='workers'">👷 근로자</button>
-      <button class="tab-btn flex-shrink-0" :class="{active:companyTab==='attendance'}"
-              @click="companyTab='attendance'">📋 출근</button>
-      <button class="tab-btn flex-shrink-0" :class="{active:companyTab==='map'}"
-              @click="companyTab='map';loadMapAttendance()">📍 취약근로자 위치</button>
-    </div>
-
-    <!-- ── 현황 탭 ── -->
-    <div x-show="companyTab==='dashboard'">
-      <!-- 요약 카드 -->
-      <div class="card mb-3" style="padding:14px 16px">
-        <div class="flex items-center justify-between mb-2">
-          <span class="font-extrabold text-gray-800" x-text="company"></span>
-          <span class="text-xs text-gray-400" x-text="attDate"></span>
-        </div>
-        <div class="grid grid-cols-3 gap-2 mb-3">
-          <div class="text-center rounded-xl py-2.5" style="background:#eff6ff">
-            <div class="font-extrabold text-blue-600" style="font-size:1.4rem" x-text="companyWorkers.filter(w=>w.deploy_status!=='inactive').length"></div>
-            <div class="text-xs text-blue-400 font-bold">전체</div>
-          </div>
-          <div class="text-center rounded-xl py-2.5" style="background:#fff0f0">
-            <div class="font-extrabold text-red-600" style="font-size:1.4rem" x-text="companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length"></div>
-            <div class="text-xs text-red-400 font-bold">취약근로자</div>
-          </div>
-          <div class="text-center rounded-xl py-2.5" style="background:#f0fdf4">
-            <div class="font-extrabold text-green-600" style="font-size:1.4rem" x-text="totalAttended"></div>
-            <div class="text-xs text-green-500 font-bold">오늘 출근</div>
+    <!-- 헤더 카드 -->
+    <div class="card mb-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <div class="font-extrabold text-gray-800" x-text="company"></div>
+          <div class="text-xs text-gray-400" x-text="attDate + ' 출근체크'"></div>
+          <div class="text-xs font-bold mt-0.5">
+            <span class="text-blue-600" x-text="totalAttended+'명 출근'"></span>
+            <span class="text-gray-400 ml-1.5" x-text="'/ 총 '+companyWorkers.filter(w=>w.deploy_status!=='inactive').length+'명'"></span>
           </div>
         </div>
-        <!-- 취약근로자 목록 -->
-        <template x-if="companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive').length>0">
-          <div>
-            <div class="text-xs font-extrabold text-red-600 mb-1.5">🔴 취약근로자</div>
-            <div class="space-y-1.5">
-              <template x-for="w in companyWorkers.filter(w=>w.is_vulnerable&&w.deploy_status!=='inactive')" :key="w.id">
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl" style="background:#fff8f8;border:1px solid #fecaca">
-                  <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
-                  <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
-                  <span x-show="isNewWorker(w)" class="text-xs">🆕</span>
-                  <span class="text-sm font-bold text-gray-800 flex-1" x-text="w.name_korean||w.name"></span>
-                  <div class="flex flex-wrap gap-1">
-                    <template x-for="vt in (w.vulnerability_types||[])" :key="vt">
-                      <span class="vul-tag" :style="vtypeColor(vt)" x-text="vt"></span>
-                    </template>
-                  </div>
-                  <div x-show="(workerLocations[w.id]||[]).length>0" class="flex gap-1">
-                    <template x-for="loc in (workerLocations[w.id]||[])" :key="loc">
-                      <span class="text-xs font-bold px-1.5 py-0.5 rounded" style="background:#dbeafe;color:#1d4ed8" x-text="loc"></span>
-                    </template>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- ── 출근 탭 ── -->
-    <div x-show="companyTab==='attendance'">
-      <div class="card mb-3">
-        <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
-          <div>
-            <div class="text-xs text-gray-400" x-text="attDate + ' 출근체크'"></div>
-            <div class="text-xs font-bold mt-0.5">
-              <span class="text-blue-600" x-text="totalAttended+'명 출근'"></span>
-              <span class="text-gray-400 ml-1.5" x-text="'/ 총 '+companyWorkers.filter(w=>w.deploy_status!=='inactive').length+'명'"></span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <input type="date" x-model="attDate" @change="loadCompanyWorkers()" class="text-sm" style="width:auto;padding:6px 10px!important">
-            <button @click="loadPreviousAttendance(1)" class="btn-secondary text-xs py-1.5 px-2.5">어제</button>
-            <button @click="saveAttendance()" class="btn-primary text-sm py-2" :disabled="attSaving">
-              <span x-text="attSaving ? '저장 중...' : '💾 출근 저장'"></span>
-            </button>
-          </div>
-        </div>
-        <!-- 배치표 / 도면 토글 -->
-        <div class="flex bg-gray-100 rounded-xl p-1" style="gap:2px">
-          <button @click="locViewMode='matrix'"
-                  class="flex-1 text-xs font-bold py-1.5 rounded-lg transition-all"
-                  :class="locViewMode==='matrix' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'">⊞ 배치표</button>
-          <button @click="locViewMode='map';selectedLocTab=null"
-                  class="flex-1 text-xs font-bold py-1.5 rounded-lg transition-all"
-                  :class="locViewMode==='map' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'">🗺 도면</button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <input type="date" x-model="attDate" @change="loadCompanyWorkers()" class="text-sm" style="width:auto;padding:6px 10px!important">
+          <button @click="loadPreviousAttendance(1)" class="btn-secondary text-xs py-1.5 px-2.5">어제</button>
+          <button @click="loadPreviousAttendance(2)" class="btn-secondary text-xs py-1.5 px-2.5">이틀전</button>
+          <button @click="saveAttendance()" class="btn-primary text-sm py-2" :disabled="attSaving">
+            <span x-text="attSaving ? '저장 중...' : '💾 출근 저장'"></span>
+          </button>
         </div>
       </div>
+    </div>
 
     <!-- 뷰 토글 -->
     <div class="flex bg-gray-100 rounded-xl p-1 mb-3" style="gap:2px">
@@ -1442,11 +1371,6 @@
       </div>
     </template>
 
-    </div><!-- 출근 탭 끝 -->
-
-    <!-- ── 근로자 탭 ── -->
-    <div x-show="companyTab==='workers'">
-
     <!-- 배치 현황 요약 (위치 미선택 시) -->
     <template x-if="!selectedLocTab && totalAttended > 0">
       <div class="card mb-3">
@@ -1502,55 +1426,6 @@
     </template>
 
     <div x-show="companyWorkers.length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
-    </div><!-- 근로자 탭 끝 -->
-
-    <!-- ── 취약근로자 위치 탭 ── -->
-    <div x-show="companyTab==='map'">
-      <div class="card mb-3" style="padding:12px">
-        <div class="text-xs font-extrabold text-gray-500 mb-2">📍 위치 선택 → 근로자 확인</div>
-        <div class="relative select-none" style="border-radius:10px;background:#f0f0f0">
-          <img :src="'/site_map.png?v='+mapVer" style="width:100%;display:block;border-radius:10px" draggable="false">
-          <template x-for="loc in LOCATION_PRESETS" :key="loc">
-            <div class="absolute cursor-pointer select-none"
-                 :style="`left:${getCoord(loc).x}%;top:${getCoord(loc).y}%;transform:translate(-50%,-50%);z-index:5`"
-                 @click="selectedLocTab=(selectedLocTab===loc?null:loc)">
-              <div class="flex items-center gap-1 text-white text-xs font-bold shadow-lg rounded-lg px-2 py-1 whitespace-nowrap"
-                   :style="getBadgeStyleCompany(loc)">
-                <span x-text="loc"></span>
-                <span x-show="countAtLoc(loc)>0" class="bg-white rounded-full px-1 font-black leading-4" style="color:#16a34a;font-size:10px" x-text="countAtLoc(loc)"></span>
-              </div>
-            </div>
-          </template>
-        </div>
-        <div class="flex items-center justify-between mt-2">
-          <button @click="selectedLocTab=(selectedLocTab==='전구역'?null:'전구역')"
-                  :class="selectedLocTab==='전구역' ? 'btn-primary' : 'btn-secondary'" class="text-xs py-1.5 px-3">
-            🌐 전 구역 <span x-show="countAtLoc('전구역')>0" x-text="'('+countAtLoc('전구역')+'명)'"></span>
-          </button>
-        </div>
-      </div>
-      <template x-if="selectedLocTab">
-        <div class="card mb-3">
-          <div class="flex items-center justify-between mb-2">
-            <span class="font-extrabold text-gray-800" x-text="'📍 '+selectedLocTab+' 배치 근로자'"></span>
-            <button @click="selectedLocTab=null" class="text-gray-400 text-lg">✕</button>
-          </div>
-          <template x-if="companyWorkers.filter(w=>isWorkerAtLoc(w.id,selectedLocTab)&&w.deploy_status!=='inactive').length===0">
-            <div class="text-xs text-gray-400 py-4 text-center">이 위치에 배치된 근로자가 없습니다</div>
-          </template>
-          <div class="space-y-2">
-            <template x-for="w in companyWorkers.filter(w=>isWorkerAtLoc(w.id,selectedLocTab)&&w.deploy_status!=='inactive')" :key="w.id">
-              <div class="flex items-center gap-2 p-2 rounded-lg" :class="w.is_vulnerable?'bg-red-50':'bg-gray-50'">
-                <span x-show="hasOtherVuln(w)" class="text-xs">🔴</span>
-                <span x-show="isElderlyVuln(w)" class="text-xs">🟠</span>
-                <span class="font-bold text-sm text-gray-800" x-text="w.name_korean||w.name"></span>
-              </div>
-            </template>
-          </div>
-        </div>
-      </template>
-    </div><!-- 취약근로자 위치 탭 끝 -->
-
   </div>
 </template>
 
@@ -2637,7 +2512,6 @@ function app() {
 
     // ── 관리자 ──
     adminTab: 'dashboard',
-    companyTab: 'dashboard',
     dashboard: { loaded: false, heatSlots: [], maxHeat: '', maxFeels: null, vulnTotal: 0, checkedCount: 0, unchecked: [], byLocation: {}, allHealthRecs: [] },
     workers: [],
     workerFilter: '',
