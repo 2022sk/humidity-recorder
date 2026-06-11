@@ -735,16 +735,76 @@
             </select>
           </div>
         </div>
-        <div class="flex items-center justify-between text-xs text-gray-500">
+        <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
           <span x-text="'출근 '+checkedWorkerIds.size+'명 / 전체 '+(attCompany?workers.filter(w=>w.company===attCompany&&w.deploy_status!==\'inactive\').length:workers.filter(w=>w.deploy_status!==\'inactive\').length)+'명'"></span>
           <div class="flex gap-2">
-            <button @click="(attCompany?workers.filter(w=>w.company===attCompany&&w.deploy_status!==\'inactive\'):workers.filter(w=>w.deploy_status!==\'inactive\')).forEach(w=>{checkedWorkerIds.add(w.id)});checkedWorkerIds=new Set(checkedWorkerIds)" class="text-blue-500 font-bold">전체 출근</button>
-            <button @click="checkedWorkerIds=new Set()" class="text-gray-400 font-bold">전체 해제</button>
+            <button @click="(attCompany?workers.filter(w=>w.company===attCompany&&w.deploy_status!==\'inactive\'):workers.filter(w=>w.deploy_status!==\'inactive\')).forEach(w=>{checkedWorkerIds.add(w.id)});checkedWorkerIds=new Set(checkedWorkerIds); _saveAdminAttendance(attCompany)" class="text-blue-500 font-bold">전체 출근</button>
+            <button @click="checkedWorkerIds=new Set(); adminWorkerLocs={}; _saveAdminAttendance(attCompany)" class="text-gray-400 font-bold">전체 해제</button>
           </div>
+        </div>
+        <!-- 출근체크 / 배치표 토글 -->
+        <div class="flex bg-gray-100 rounded-xl p-1" style="gap:2px">
+          <button @click="attViewMode='check'"
+                  class="flex-1 text-xs font-bold py-1.5 rounded-lg transition-all"
+                  :class="attViewMode==='check' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'">✅ 출근 체크</button>
+          <button @click="attViewMode='matrix'"
+                  class="flex-1 text-xs font-bold py-1.5 rounded-lg transition-all"
+                  :class="attViewMode==='matrix' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'">⊞ 위치 배치표</button>
         </div>
       </div>
 
+      <!-- 위치 배치표 -->
+      <template x-if="attViewMode==='matrix'">
+        <div>
+          <template x-for="company in (attCompany?[attCompany]:[...new Set(workers.filter(w=>w.deploy_status!==\'inactive\').map(w=>w.company||\'\')).values()])" :key="'mx_'+company">
+            <div class="card mb-2" style="padding:10px 12px">
+              <div class="text-xs font-extrabold text-gray-600 mb-2" x-text="'🏢 '+company"></div>
+              <div class="overflow-x-auto mx-wrap" style="border-radius:10px;border:1px solid #e8e8ed">
+                <table class="mx-table">
+                  <thead>
+                    <tr>
+                      <th class="mx-head-name">이름</th>
+                      <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                        <th class="mx-head-loc" x-text="loc"></th>
+                      </template>
+                      <th class="mx-head-loc">🌐</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(w,i) in workers.filter(x=>x.company===company&&x.deploy_status!==\'inactive\')" :key="w.id">
+                      <tr :class="i%2===1?'mx-even':''">
+                        <td class="mx-name" :class="i%2===1?'mx-even':''" :title="w.name_korean||w.name">
+                          <div class="flex items-center gap-0.5">
+                            <span x-show="hasOtherVuln(w)" style="font-size:.6rem">🔴</span>
+                            <span x-show="isElderlyVuln(w)" style="font-size:.6rem">🟠</span>
+                            <span x-text="(w.name_korean||w.name||'').slice(0,6)"></span>
+                          </div>
+                        </td>
+                        <template x-for="loc in LOCATION_PRESETS" :key="loc">
+                          <td class="mx-cell" @click="toggleAdminWorkerLoc(w, loc)">
+                            <div class="mx-dot" :class="isAdminWorkerAtLoc(w.id,loc)?'mx-dot-blue':''"></div>
+                          </td>
+                        </template>
+                        <td class="mx-cell" @click="toggleAdminWorkerLoc(w, '전구역')">
+                          <div class="mx-dot" :class="isAdminWorkerAtLoc(w.id,'전구역')?'mx-dot-green':''"></div>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </template>
+          <div class="flex gap-3 text-xs text-gray-400 mt-1 px-1">
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>배치</span>
+            <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>전구역</span>
+            <span class="text-gray-300 ml-auto">← 가로 스크롤</span>
+          </div>
+        </div>
+      </template>
+
       <!-- 업체별 근로자 체크리스트 -->
+      <template x-if="attViewMode==='check'"><div>
       <template x-for="company in (attCompany?[attCompany]:[...new Set(workers.filter(w=>w.deploy_status!==\'inactive\').map(w=>w.company||\'\')).values()])" :key="company">
         <div class="card mb-2" style="padding:12px">
           <div class="flex items-center justify-between mb-2">
@@ -774,6 +834,7 @@
           </div>
         </div>
       </template>
+      </div></template>
       <div x-show="workers.filter(w=>w.deploy_status!==\'inactive\').length===0" class="text-center text-gray-400 py-8 text-sm">등록된 근로자가 없습니다</div>
     </div>
 
@@ -2698,6 +2759,8 @@ function app() {
     attCompany: '',
     attendance: [],
     checkedWorkerIds: new Set(),
+    adminWorkerLocs: {},
+    attViewMode: 'check',
     companyWorkers: [],
     workerLocations: {},
     selectedLocTab: null,
@@ -3868,33 +3931,68 @@ function app() {
       const d = await r.json();
       this.attendance = d.attendance || [];
       this.checkedWorkerIds = new Set((d.attendance||[]).map(a => a.worker_id));
+      // 위치 정보 복원
+      const locs = {};
+      (d.attendance||[]).forEach(a => {
+        try { locs[a.worker_id] = JSON.parse(a.work_location||'[]'); }
+        catch { locs[a.worker_id] = a.work_location ? [a.work_location] : []; }
+      });
+      this.adminWorkerLocs = locs;
+    },
+
+    // 한 업체의 출근+위치 일괄 저장
+    async _saveAdminAttendance(company) {
+      const co = company || this.attCompany || '';
+      const checkedInCo = this.workers.filter(w =>
+        this.checkedWorkerIds.has(w.id) && (!co || w.company === co)
+      );
+      const workers = checkedInCo.map(w => ({
+        worker_id: w.id,
+        work_location: JSON.stringify(this.adminWorkerLocs[w.id] || [])
+      }));
+      await fetch(API_BASE+'/api/vw/attendance', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          site_code: this.siteCode, company: co,
+          work_date: this.attDate, worker_ids: [], work_location: '', workers,
+        })
+      });
     },
 
     async toggleAdminAttendance(worker) {
       const wid = worker.id;
-      const isChecked = this.checkedWorkerIds.has(wid);
-      if (isChecked) {
+      if (this.checkedWorkerIds.has(wid)) {
         this.checkedWorkerIds.delete(wid);
+        delete this.adminWorkerLocs[wid];
       } else {
         this.checkedWorkerIds.add(wid);
       }
-      this.checkedWorkerIds = new Set(this.checkedWorkerIds); // reactivity
-      // 즉시 저장
-      const checked = [...this.checkedWorkerIds];
-      const workers = checked.map(id => ({ worker_id: id, work_location: '[]' }));
-      await fetch(API_BASE+'/api/vw/attendance', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          site_code: this.siteCode,
-          company: worker.company || this.attCompany || '',
-          work_date: this.attDate,
-          worker_ids: [], work_location: '',
-          workers: workers.filter(w => {
-            const wk = this.workers.find(x=>x.id===w.worker_id);
-            return wk && (wk.company === (worker.company||this.attCompany||'') || !this.attCompany);
-          }),
-        })
-      });
+      this.checkedWorkerIds = new Set(this.checkedWorkerIds);
+      await this._saveAdminAttendance(worker.company);
+    },
+
+    // 배치표: 위치 토글 (출근 안 했으면 자동 출근 처리)
+    async toggleAdminWorkerLoc(worker, loc) {
+      const wid = worker.id;
+      if (!this.checkedWorkerIds.has(wid)) {
+        this.checkedWorkerIds.add(wid);
+        this.checkedWorkerIds = new Set(this.checkedWorkerIds);
+      }
+      const cur = this.adminWorkerLocs[wid] || [];
+      let next;
+      if (loc === '전구역') {
+        next = cur.includes('전구역') ? [] : ['전구역'];
+      } else {
+        next = cur.includes(loc) ? cur.filter(l => l !== loc) : [...cur.filter(l=>l!=='전구역'), loc];
+      }
+      this.adminWorkerLocs = { ...this.adminWorkerLocs, [wid]: next };
+      await this._saveAdminAttendance(worker.company);
+    },
+
+    isAdminWorkerAtLoc(wid, loc) {
+      const locs = this.adminWorkerLocs[wid] || [];
+      if (loc === '전구역') return locs.includes('전구역');
+      return locs.includes(loc) || locs.includes('전구역');
     },
 
     // ── 업체: 이전 날짜 출근 불러오기 ─────────────────────────────────────────
