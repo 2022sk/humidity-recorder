@@ -113,8 +113,20 @@ class RecordIn(BaseModel):
 
 # 동시 이미지 처리 제한 (메모리 보호)
 import asyncio as _asyncio
-_upload_sem = _asyncio.Semaphore(3)
-_gemini_sem = _asyncio.Semaphore(3)  # Gemini 동시 호출 제한
+_upload_sem = None
+_gemini_sem = None
+
+def _get_upload_sem():
+    global _upload_sem
+    if _upload_sem is None:
+        _upload_sem = _asyncio.Semaphore(3)
+    return _upload_sem
+
+def _get_gemini_sem():
+    global _gemini_sem
+    if _gemini_sem is None:
+        _gemini_sem = _asyncio.Semaphore(3)
+    return _gemini_sem
 
 # ── 사진 업로드 ───────────────────────────────────────────────────────────────
 @app.post("/api/photos/upload")
@@ -142,7 +154,7 @@ async def upload_photo(file: UploadFile = File(...)):
         img.convert("RGB").save(buf, format="JPEG", quality=quality)
         save_path.write_bytes(buf.getvalue())
 
-    async with _upload_sem:
+    async with _get_upload_sem():
         await run_in_threadpool(_process)
 
     db.save_photo(photo_id, filename, str(save_path))
@@ -234,7 +246,7 @@ async def extract_photo(body: dict):
 
     last_err = None
     all_exhausted = True
-    async with _gemini_sem:
+    async with _get_gemini_sem():
       for key_info in api_keys:
         try:
             result = await extract_from_image(image_bytes, key_info["key"])
