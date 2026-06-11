@@ -109,9 +109,10 @@
         </div>
       </div>
       <div class="flex items-center gap-1.5 flex-shrink-0 self-center">
-        <button @click="window.location.href='/workers'+(meta.siteCode?'/'+meta.siteCode:'')"
-                class="text-xs font-bold px-2 py-1 rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
-                style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:white;white-space:nowrap">
+        <button @click="meta.siteCode ? window.location.href='/workers/'+meta.siteCode : showToast('현장코드를 먼저 입력하세요')"
+                class="text-xs font-bold px-2 py-1 rounded-lg transition-opacity cursor-pointer"
+                :style="meta.siteCode ? 'background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:white;opacity:1' : 'background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.4);cursor:not-allowed'"
+                style="white-space:nowrap">
           🦺 건강관리
         </button>
         <span class="text-xs font-bold px-2 py-1 rounded-lg cursor-pointer hover:opacity-80"
