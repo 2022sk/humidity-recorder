@@ -1,12 +1,9 @@
 [phases.setup]
 nixPkgs = ["python312"]
-aptPkgs = ["fontconfig"]
 
 [phases.install]
 cmds = [
-  "pip install -r requirements.txt",
-  "apt-get install -y fonts-nanum || true",
-  "fc-cache -fv"
+  "pip install -r requirements.txt"
 ]
 
 [start]
