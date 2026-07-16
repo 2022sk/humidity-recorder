@@ -7,7 +7,6 @@ logger = logging.getLogger("thermohygrometer.ai")
 
 # 사용 가능한 모델 우선순위 (무료 한도 큰 순서)
 CANDIDATE_MODELS = [
-    "gemini-2.0-flash-lite",
     "gemini-2.5-flash-lite",
     "gemini-2.0-flash",
     "gemini-2.5-flash",
@@ -16,15 +15,21 @@ CANDIDATE_MODELS = [
 PROMPT = (
     "이것은 디지털 온습도계(thermo-hygrometer) 사진입니다.\n"
     "LCD 디스플레이에서 다음 3가지 값을 읽어주세요:\n"
-    "1. temperature: 온도(°C), 소수점 포함 (예: 25.1)\n"
+    "1. temperature: 실제 측정 온도(°C), 소수점 포함 (예: 22.5)\n"
+    "   - 일부 기기는 화면 중앙에 '체감온도(heat index)'를 크게 표시하고,\n"
+    "     실제 측정 온도는 우측 하단 또는 별도 작은 영역에 °C로 표시합니다.\n"
+    "   - 반드시 '실제 측정 온도(actual temperature)'를 읽으세요.\n"
+    "   - 화면에서 가장 큰 숫자가 체감온도일 수 있으니, °C 레이블이 붙은\n"
+    "     실제 온도 값을 우선하세요.\n"
+    "   - 7세그먼트 LCD에서 숫자 0과 9를 혼동하지 마세요:\n"
+    "     0은 가운데 획(G세그먼트)이 없고, 9는 가운데 획이 있습니다.\n"
     "2. humidity: 습도(%) 정수 (예: 87)\n"
-    "3. time: 디스플레이 왼쪽에 표시된 시각(HH:MM 형식).\n"
-    "   - 시각은 보통 디스플레이의 왼쪽 또는 상단 왼쪽에 있는 숫자입니다.\n"
+    "3. time: 디스플레이에 표시된 시각(HH:MM 형식).\n"
     "   - 콜론(:)으로 구분된 두 숫자(시:분) 형태입니다.\n"
     "   - AM/PM이 있으면 반드시 24시간제로 변환하세요 (예: PM 1:30 → '13:30').\n"
     "   - 시각이 전혀 없으면 null.\n"
     "사진이 회전되어 있어도 올바르게 읽을 것.\n"
-    "반드시 JSON만 출력: {\"temperature\":25.1,\"humidity\":87,\"time\":\"13:30\"}"
+    "반드시 JSON만 출력: {\"temperature\":22.5,\"humidity\":79,\"time\":\"09:28\"}"
 )
 
 
@@ -49,7 +54,8 @@ def _is_quota_error(e: Exception) -> bool:
 
 def _is_model_error(e: Exception) -> bool:
     s = str(e)
-    return "NOT_FOUND" in s or "404" in s or "not found" in s.lower()
+    return ("NOT_FOUND" in s or "404" in s or "not found" in s.lower()
+            or "UNAVAILABLE" in s or "503" in s)
 
 
 async def _try_model(client, model: str, img) -> str:
