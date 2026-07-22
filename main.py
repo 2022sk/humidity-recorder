@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 from db import Database
 from workers_db import WorkersDatabase
 from ai import extract_from_image
-from excel import build_excel, week_label_ko, get_week_n
+from excel import build_excel, build_excel_range, week_label_ko, get_week_n
 
 load_dotenv(encoding="utf-8")
 
@@ -477,6 +477,38 @@ def download_excel(site_code: str = "", week_monday: str = "", location: str = "
     prefix = f"({code})" if code else ""
     corp_part = f"_{corp}" if corp else ""
     fname = f"{prefix}체감온도기록관리대장_{loc}{corp_part}_{monday_date.year}년{monday_date.month}월{week_label_ko(wk_n)}.xlsx"
+
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"},
+    )
+
+
+@app.get("/api/excel/range")
+def download_excel_range(site_code: str = "", from_date: str = "", to_date: str = "",
+                         location: str = "", company: str = ""):
+    if not from_date or not to_date:
+        raise HTTPException(400, "from_date와 to_date가 필요합니다")
+    records = db.get_records_by_date_range(site_code=site_code, from_date=from_date,
+                                           to_date=to_date, location=location, company=company)
+    if not records:
+        raise HTTPException(404, "해당 기간의 기록이 없습니다")
+
+    rec0 = records[0]
+    meta = {
+        "현장명":   rec0.get("site_name",""),
+        "업체명":   company or "",
+        "위치":     location or "",
+        "현장코드": rec0.get("site_code",""),
+    }
+    excel_bytes = build_excel_range(records, meta, from_date, to_date)
+
+    code = rec0.get("site_code","")
+    prefix = f"({code})" if code else ""
+    corp_part = f"_{company}" if company else ""
+    loc_part  = f"_{location}" if location else ""
+    fname = f"{prefix}체감온도기록_{from_date}~{to_date}{loc_part}{corp_part}.xlsx"
 
     return StreamingResponse(
         io.BytesIO(excel_bytes),

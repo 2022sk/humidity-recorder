@@ -60,6 +60,105 @@ def week_label_ko(n: int) -> str:
     return ["첫째","둘째","셋째","넷째","다섯째"][min(n-1,4)] + "주"
 
 
+def build_excel_range(records: list, meta: dict, from_date: str, to_date: str) -> bytes:
+    """기간 범위 전체 기록을 단순 표 형태의 엑셀로 반환."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{from_date}~{to_date}"
+    FM = _excel_font()
+
+    C_BLUE, C_WHITE, C_INK = "0071E3", "FFFFFF", "1D1D1F"
+    thin = Side(style="thin", color="C7C7CC")
+    bdr  = Border(left=thin, right=thin, top=thin, bottom=thin)
+    ctr  = Alignment(horizontal="center", vertical="center")
+    lft  = Alignment(horizontal="left",   vertical="center")
+
+    fill_hdr  = PatternFill("solid", fgColor=C_BLUE)
+    fill_date = PatternFill("solid", fgColor="EBF3FF")  # 날짜 첫 행 강조
+    fill_even = PatternFill("solid", fgColor="F5F9FF")
+    fill_odd  = PatternFill("solid", fgColor="FFFFFF")
+
+    f_hdr  = Font(bold=True, color=C_WHITE, name=FM, size=10)
+    f_body = Font(color=C_INK, name=FM, size=9)
+
+    LEVEL_COLORS = {"위험": "FF3B30", "경고": "FF9500", "주의": "FFCC00", "관심": "34C759"}
+
+    # ── 메타 정보 행 ──
+    ws.merge_cells("A1:L1")
+    title_cell = ws["A1"]
+    site_label = f"{meta.get('현장명','')}  [{meta.get('현장코드','')}]  {from_date} ~ {to_date}"
+    if meta.get("업체명"): site_label += f"  |  {meta['업체명']}"
+    if meta.get("위치"):   site_label += f"  {meta['위치']}"
+    title_cell.value = site_label
+    title_cell.font  = Font(bold=True, name=FM, size=11, color=C_BLUE)
+    title_cell.alignment = lft
+    ws.row_dimensions[1].height = 20
+
+    # ── 헤더 행 ──
+    HEADERS = ["날짜", "요일", "슬롯", "측정시각", "업체", "위치", "측정자",
+               "온도(°C)", "습도(%)", "체감온도(°C)", "단계", "조치사항"]
+    for ci, h in enumerate(HEADERS, 1):
+        c = ws.cell(row=2, column=ci, value=h)
+        c.font = f_hdr; c.fill = fill_hdr; c.alignment = ctr; c.border = bdr
+    ws.row_dimensions[2].height = 16
+
+    # ── 데이터 행 ──
+    SLOT_ORDER = {"오전1": 0, "오전2": 1, "오후1": 2, "오후2": 3}
+    sorted_records = sorted(records, key=lambda r: (
+        r.get("measure_date",""),
+        SLOT_ORDER.get(r.get("slot",""), 9),
+        r.get("company",""), r.get("location","")
+    ))
+
+    prev_date = None
+    date_group = 0  # 날짜 그룹 번호 (줄무늬용)
+    for ri, rec in enumerate(sorted_records, 3):
+        mdate = rec.get("measure_date", "")
+        day_kr = ""
+        try:
+            day_kr = DAYS_KO[date.fromisoformat(mdate).weekday()]
+        except Exception:
+            pass
+        fl = rec.get("feels_like")
+        hl = rec.get("heat_level") or ""
+        row_data = [
+            mdate, day_kr, rec.get("slot",""), rec.get("measure_time",""),
+            rec.get("company",""), rec.get("location",""), rec.get("measurer",""),
+            rec.get("temperature"), rec.get("humidity"), fl, hl, rec.get("action",""),
+        ]
+
+        is_new_date = (mdate != prev_date)
+        if is_new_date:
+            date_group += 1
+            prev_date = mdate
+        row_fill = fill_date if is_new_date else (fill_even if date_group % 2 == 0 else fill_odd)
+
+        for ci, val in enumerate(row_data, 1):
+            c = ws.cell(row=ri, column=ci, value=val)
+            c.font      = f_body
+            c.fill      = row_fill
+            c.border    = bdr
+            c.alignment = lft if ci in (1, 5, 6, 7) else ctr
+            if ci == 11 and hl in LEVEL_COLORS:
+                c.font = Font(bold=True, color=LEVEL_COLORS[hl], name=FM, size=9)
+        ws.row_dimensions[ri].height = 14
+
+    # ── 열 너비 ──
+    COL_W = [12, 5, 7, 9, 14, 14, 10, 10, 8, 12, 7, 14]
+    for ci, w in enumerate(COL_W, 1):
+        ws.column_dimensions[get_column_letter(ci)].width = w
+
+    # ── 인쇄 설정 ──
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.paperSize   = 9  # A4
+    ws.page_setup.fitToPage   = True
+    ws.page_margins = PageMargins(left=0.5, right=0.5, top=0.75, bottom=0.75)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 def get_week_n(monday: date) -> int:
     """해당 월에서 몇 번째 주인지"""
     import calendar

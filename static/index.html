@@ -242,6 +242,12 @@
         <span style="font-size:1.5rem;line-height:1">📁</span>
         <span class="text-xs font-bold" :class="activeTab==='upload'?'text-blue-600':'text-gray-400'">업로드</span>
       </button>
+      <button @click="activeTab='manual'"
+              class="flex-1 flex flex-col items-center gap-1.5 pt-2 pb-2.5 transition-all active:scale-95"
+              :style="activeTab==='manual' ? 'box-shadow:inset 0 -2.5px 0 #0071e3' : ''">
+        <span style="font-size:1.5rem;line-height:1">✏️</span>
+        <span class="text-xs font-bold" :class="activeTab==='manual'?'text-blue-600':'text-gray-400'">직접입력</span>
+      </button>
       <button @click="activeTab='history'; onHistTabActivate()"
               :style="(!meta.siteCode ? 'opacity:.35;pointer-events:none;' : '') + (activeTab==='history' ? 'box-shadow:inset 0 -2.5px 0 #0071e3' : '')"
               class="flex-1 flex flex-col items-center gap-1.5 pt-2 pb-2.5 transition-all active:scale-95">
@@ -534,6 +540,67 @@
       </template>
     </div>
 
+    <!-- ── 직접입력 탭 ── -->
+    <div x-show="activeTab==='manual' && meta.siteCode && meta.siteName && meta.company && meta.location">
+      <div class="space-y-3">
+        <div class="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+          업체 · 위치 · 측정자는 위쪽 현장 기본정보에서 자동 적용됩니다
+        </div>
+        <!-- 날짜 -->
+        <div>
+          <label class="text-xs text-gray-500 font-bold">측정 날짜</label>
+          <input type="date" x-model="manual.date" class="mt-1">
+        </div>
+        <!-- 시각 → 슬롯 자동 -->
+        <div>
+          <label class="text-xs text-gray-500 font-bold">측정 시각 <span class="text-gray-400 font-normal">(입력하면 슬롯 자동 결정)</span></label>
+          <div class="flex gap-2 mt-1 items-center">
+            <input type="time" x-model="manual.time" @input="manual.slot=slotFromTime(manual.time)" class="flex-1">
+            <span class="flex-shrink-0 px-3 py-2 rounded-xl font-bold text-sm"
+                  :class="manual.slot ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'"
+                  x-text="manual.slot || '슬롯'"></span>
+          </div>
+        </div>
+        <!-- 온도 / 습도 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-gray-500 font-bold">온도 (°C)</label>
+            <input type="number" step="0.1" x-model.number="manual.temperature" @input="calcManual()" class="mt-1" placeholder="예: 34.0">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-bold">습도 (%)</label>
+            <input type="number" step="0.1" x-model.number="manual.humidity" @input="calcManual()" class="mt-1" placeholder="예: 65.0">
+          </div>
+        </div>
+        <!-- 체감온도 자동계산 표시 -->
+        <template x-if="manual.feels_like != null">
+          <div class="rounded-xl p-3 bg-orange-50 border border-orange-100 text-center">
+            <div class="text-xs text-gray-500 mb-0.5">체감온도 (자동계산)</div>
+            <div class="flex items-center justify-center gap-2">
+              <span class="text-xl font-extrabold text-orange-500" x-text="manual.feels_like+'°C'"></span>
+              <span class="text-xs font-bold px-2 py-0.5 rounded"
+                    :class="{
+                      'badge-위험': manual.heat_level==='위험',
+                      'badge-경고': manual.heat_level==='경고',
+                      'badge-주의': manual.heat_level==='주의',
+                      'badge-관심': manual.heat_level==='관심'
+                    }"
+                    x-text="manual.heat_level||'-'"></span>
+            </div>
+          </div>
+        </template>
+        <!-- 저장 버튼 -->
+        <button @click="saveManual()"
+                class="btn-primary w-full"
+                :disabled="manual.saving || !manual.slot || manual.temperature==null || manual.humidity==null || !manual.date">
+          <span x-text="manual.saving ? '저장 중...' : '💾 기록 저장'"></span>
+        </button>
+        <div x-show="manual.msg" class="text-center text-sm font-bold"
+             :class="manual.ok ? 'text-green-600' : 'text-red-500'"
+             x-text="manual.msg"></div>
+      </div>
+    </div>
+
     <!-- ── 기간 조회 탭 ── -->
     <div x-show="activeTab==='history'">
 
@@ -625,6 +692,21 @@
           </template>
           <div class="flex justify-end">
             <button @click="loadRecords()" class="btn-secondary text-xs py-1.5 px-3">🔄 새로고침</button>
+          </div>
+          <!-- 기간 엑셀 다운로드 -->
+          <div class="mt-2 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+            <div class="text-xs font-bold text-gray-500 mb-2">📥 기간 엑셀 다운로드</div>
+            <div class="flex gap-2 items-center flex-wrap">
+              <input type="date" x-model="rangeExcel.from" class="flex-1" style="min-width:120px">
+              <span class="text-xs text-gray-400 font-bold flex-shrink-0">~</span>
+              <input type="date" x-model="rangeExcel.to" class="flex-1" style="min-width:120px">
+              <button @click="downloadExcelRange()"
+                      class="btn-primary text-xs flex-shrink-0"
+                      style="padding:6px 12px"
+                      :disabled="rangeExcel.downloading || !rangeExcel.from || !rangeExcel.to">
+                <span x-text="rangeExcel.downloading ? '...' : '다운로드'"></span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1018,7 +1100,7 @@
 
   <!-- ══ 주별 섹션 ═════════════════════════════════════════════════════════ -->
   <!-- 탭 바: 업체·위치 탭 -->
-  <template x-if="weekGroups.length > 1">
+  <template x-if="weekGroups.length > 1 && hist.company !== ''">
     <div class="flex gap-1 flex-nowrap overflow-x-auto pb-1 mb-2" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
       <template x-for="(wkInfo, wi) in weekGroups" :key="'tab_'+wi">
         <button @click="switchWeekTab(wi)"
@@ -1030,7 +1112,7 @@
   </template>
 
   <template x-for="(wkInfo, wi) in weekGroups" :key="wkInfo.monday+'_'+wkInfo.location+'_'+wkInfo.company">
-    <div x-show="wi === wkActiveIdx">
+    <div x-show="hist.company === '' || wi === wkActiveIdx">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="week-tag" x-text="'📅 '+wkInfo.label"></span>
@@ -1253,6 +1335,8 @@ function app() {
     kpi: { maxTemp:'-', maxHumid:'-', maxFeels:'-' },
     weekGroups: [],
     wkActiveIdx: 0,
+    manual: { date: todayStr(), time: '', slot: '', temperature: null, humidity: null, feels_like: null, heat_level: '', saving: false, msg: '', ok: false },
+    rangeExcel: { from: '', to: '', downloading: false },
     apiOk: false,
     aiKeyCount: 0,
     aiLastError: null,
@@ -2357,6 +2441,65 @@ function app() {
       window.location.href = '/api/excel?'+q;
     },
 
+    downloadExcelRange() {
+      if (!this.rangeExcel.from || !this.rangeExcel.to) return;
+      if (this.rangeExcel.from > this.rangeExcel.to) { this.showToast('시작일이 종료일보다 늦습니다'); return; }
+      this.rangeExcel.downloading = true;
+      const q = new URLSearchParams({
+        site_code: this.meta.siteCode,
+        from_date: this.rangeExcel.from,
+        to_date:   this.rangeExcel.to,
+        location:  this.hist.location || '',
+        company:   this.hist.company  || '',
+      });
+      window.location.href = '/api/excel/range?'+q;
+      setTimeout(() => { this.rangeExcel.downloading = false; }, 2000);
+    },
+
+    calcManual() {
+      const T = this.manual.temperature, RH = this.manual.humidity;
+      if (T != null && RH != null && !isNaN(T) && !isNaN(RH)) {
+        this.manual.feels_like = heatIndex(T, RH);
+        this.manual.heat_level = heatLabel(this.manual.feels_like);
+      } else {
+        this.manual.feels_like = null;
+        this.manual.heat_level = '';
+      }
+    },
+
+    async saveManual() {
+      if (!this.manual.slot || this.manual.temperature == null || this.manual.humidity == null || !this.manual.date) return;
+      this.manual.saving = true; this.manual.msg = '';
+      const d = new Date(this.manual.date);
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      const mon = new Date(d); mon.setDate(d.getDate() + diff);
+      const monday = mon.toISOString().slice(0, 10);
+      const payload = {
+        site_code: this.meta.siteCode, site_name: this.meta.siteName,
+        company: this.meta.company, location: this.meta.location,
+        measurer: this.meta.measurer || '',
+        measure_date: this.manual.date, slot: this.manual.slot,
+        week_monday: monday, measure_time: this.manual.time,
+        temperature: this.manual.temperature, humidity: this.manual.humidity,
+        feels_like: this.manual.feels_like, heat_level: this.manual.heat_level,
+        action: (this.manual.feels_like != null && this.manual.feels_like >= 31) ? '추가휴식시간부여' : 'N/A',
+      };
+      try {
+        const r = await fetch('/api/records', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!r.ok) throw new Error(await r.text());
+        this.manual.saving = false; this.manual.ok = true;
+        this.manual.msg = '✅ 저장되었습니다';
+        this.manual.time = ''; this.manual.slot = '';
+        this.manual.temperature = null; this.manual.humidity = null;
+        this.manual.feels_like = null; this.manual.heat_level = '';
+        setTimeout(() => { this.manual.msg = ''; }, 3000);
+      } catch(e) {
+        this.manual.saving = false; this.manual.ok = false;
+        this.manual.msg = '저장 실패: ' + e.message;
+      }
+    },
+
     showToast(msg, ms=2800) {
       this.toast = { show:true, msg };
       setTimeout(() => { this.toast.show=false; }, ms);
@@ -2608,6 +2751,13 @@ function formatMondayLabel(mondayStr) {
   const names=['첫째','둘째','셋째','넷째','다섯째'];
   return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${names[Math.min(wkN-1,4)]}주 `
        + `(${d.getMonth()+1}/${d.getDate()}~${sun.getMonth()+1}/${sun.getDate()})`;
+}
+function slotFromTime(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  const mins = h * 60 + (m || 0);
+  if (mins < 720) return mins < 630 ? '오전1' : '오전2';  // 10:30 기준
+  return mins < 840 ? '오후1' : '오후2';                  // 14:00 기준
 }
 function heatIndex(Ta, RH) {
   const Tw = (Ta * Math.atan(0.151977*Math.sqrt(RH+8.313659))

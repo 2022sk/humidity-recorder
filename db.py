@@ -310,6 +310,19 @@ class Database:
             q += " ORDER BY measure_date, slot, id"
             return [dict(r) for r in con.execute(q, p).fetchall()]
 
+    def get_records_by_date_range(self, site_code: str, from_date: str, to_date: str, location: str = "", company: str = "") -> list:
+        with self.conn() as con:
+            q = "SELECT * FROM records WHERE deleted_at IS NULL AND measure_date >= ? AND measure_date <= ?"
+            p = [from_date, to_date]
+            if site_code:
+                q += " AND UPPER(site_code)=UPPER(?)"; p.append(site_code)
+            if location:
+                q += " AND location=?"; p.append(location)
+            if company:
+                q += " AND company=?"; p.append(company)
+            q += " ORDER BY week_monday, company, location, measure_date, slot, id"
+            return [dict(r) for r in con.execute(q, p).fetchall()]
+
     def get_companies(self, site_code: str = "", week_monday: str = "") -> list:
         with self.conn() as con:
             q, p = "SELECT DISTINCT company FROM records WHERE company!='' AND deleted_at IS NULL", []
