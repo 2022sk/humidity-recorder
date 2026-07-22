@@ -8,29 +8,35 @@ logger = logging.getLogger("thermohygrometer.ai")
 # 사용 가능한 모델 우선순위 (무료 한도 큰 순서)
 CANDIDATE_MODELS = [
     "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
     "gemini-2.5-flash",
 ]
 
 PROMPT = (
-    "이것은 CAS 디지털 온습도계 사진입니다.\n"
+    "이것은 디지털 온습도계 사진입니다. 아래 두 가지 기기 유형 중 하나입니다.\n"
+    "사진을 보고 어느 유형인지 판단한 뒤 해당 규칙으로 읽으세요.\n"
     "\n"
-    "【화면 구조】사진이 회전되어 있어도 아래 구조를 파악하여 읽으세요:\n"
-    "  상단 큰 숫자 1개 = 체감온도(heat index). 절대로 temperature로 사용하지 마세요.\n"
-    "  하단 작은 숫자 3개 (왼쪽부터 순서대로):\n"
-    "    ① 왼쪽  : 실제 측정 온도 (°C 기호)  ← temperature는 여기서만 읽음\n"
-    "    ② 가운데: 습도 (% 기호)              ← humidity는 여기서만 읽음\n"
-    "    ③ 오른쪽: 시각 (HH:MM 형식)          ← time은 여기서만 읽음\n"
+    "【유형 A: CAS 신형 — 화면에 큰 숫자 1개 + 작은 숫자 구역 3개】\n"
+    "  상단 큰 숫자 1개 = 체감온도(heat index). 절대 temperature로 사용 금지.\n"
+    "  하단 작은 숫자 3개 (왼→오 순서):\n"
+    "    ① 왼쪽  : 실제 측정 온도 (°C)  → temperature  (소수 1자리 필수)\n"
+    "    ② 가운데: 습도 (%)              → humidity      (소수 1자리 필수)\n"
+    "    ③ 오른쪽: 시각 (HH:MM)          → time\n"
     "\n"
-    "【소수점 주의】온도와 습도 모두 소수점 이하 숫자(.X)가 정수 부분보다 글자가 작습니다.\n"
-    "  작은 글자도 반드시 정확히 읽으세요.\n"
-    "  7세그먼트 LCD 혼동 주의: 0(가운데 획 없음) vs 9(가운데 획 있음),\n"
-    "  5(우상단 획 없음) vs 6(우상단 획 없고 하단 닫힘) 등을 구별하세요.\n"
+    "【유형 B: CAS 구형 — 화면이 상하 2단, TEMPERATURE/HUMIDITY/CLOCK 레이블 인쇄】\n"
+    "  상단(TEMPERATURE 레이블): 온도(°C) 큰 숫자  → temperature  (소수 1자리 필수)\n"
+    "  하단 왼쪽(CLOCK 레이블) : 시각 (HH:MM, AM/PM 가능) → time\n"
+    "  하단 오른쪽(HUMIDITY 레이블): 습도(%)  → humidity  (표시된 그대로, 정수일 수 있음)\n"
     "\n"
-    "【출력할 값】\n"
-    "1. temperature: 하단 왼쪽 ①의 실제 측정 온도(°C), 소수 1자리 포함 (예: 34.0)\n"
-    "2. humidity: 하단 가운데 ②의 습도, 소수점 있으면 포함 (예: 53.8)\n"
-    "3. time: 하단 오른쪽 ③의 시각(HH:MM). AM/PM이면 24시간제 변환. 없으면 null.\n"
+    "【소수점 주의 — 두 유형 공통】\n"
+    "  온도(유형 A·B 모두)와 유형 A의 습도는 소수점 이하 한 자리가 반드시 있습니다.\n"
+    "  소수점 뒤 숫자는 정수 부분보다 글자 크기가 작게 표시됩니다. 작아도 정확히 읽으세요.\n"
+    "  7세그먼트 혼동 주의: 0(가운데 획 없음) vs 9(가운데 획 있음).\n"
+    "\n"
+    "【공통】\n"
+    "  사진이 회전되어 있어도 화면 구조와 레이블을 파악하여 올바르게 읽을 것.\n"
+    "  AM/PM 시각은 24시간제로 변환 (PM 1:04 → 13:04). 시각 없으면 null.\n"
+    "  시각은 반드시 HH:MM 형식으로 출력 (한 자리 시각도 앞에 0 붙임: 9:34 → \"09:34\").\n"
+    "  콜론이 흐릿하거나 숫자가 붙어 보여도 앞 1~2자리=시, 뒤 2자리=분으로 해석할 것.\n"
     "\n"
     "반드시 JSON만 출력: {\"temperature\":34.0,\"humidity\":53.8,\"time\":\"15:25\"}"
 )
@@ -58,7 +64,8 @@ def _is_quota_error(e: Exception) -> bool:
 def _is_model_error(e: Exception) -> bool:
     s = str(e)
     return ("NOT_FOUND" in s or "404" in s or "not found" in s.lower()
-            or "UNAVAILABLE" in s or "503" in s)
+            or "UNAVAILABLE" in s or "503" in s
+            or "disconnected" in s.lower())
 
 
 async def _try_model(client, model: str, img) -> str:
